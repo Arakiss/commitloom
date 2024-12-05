@@ -1,14 +1,60 @@
 [tool.poetry]
 name = "commitloom"
 version = "0.1.0"
-description = ""
+description = "Weave perfect git commits with AI-powered intelligence"
 authors = ["Petru Arakiss <petruarakiss@gmail.com>"]
 readme = "README.md"
+license = "MIT"
+homepage = "https://github.com/yourusername/commitloom"
+repository = "https://github.com/yourusername/commitloom"
+documentation = "https://github.com/yourusername/commitloom#readme"
+keywords = ["git", "commit", "ai", "openai", "cli"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Version Control :: Git",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
+python-dotenv = "^1.0.1"
+rich = "^13.9.4"
+requests = "^2.32.3"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
+pytest-asyncio = "^0.24.0"
+pytest-cov = "^6.0.0"
+
+[tool.poetry.scripts]
+loom = "commitloom.cli.main:main"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "--cov=commitloom --cov-report=term-missing"
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["commitloom"]
+omit = ["tests/*", "**/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "pass",
+]
