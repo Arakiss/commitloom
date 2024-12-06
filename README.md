@@ -4,34 +4,19 @@
 
 CommitLoom is an intelligent git assistant that helps you craft meaningful, structured commits. Like a master weaver's loom, it brings together all the threads of your changes into beautiful, well-organized commits.
 
-[![PyPI version](https://img.shields.io/pypi/v/commitloom.svg)](https://pypi.org/project/commitloom/)
-[![Python versions](https://img.shields.io/pypi/pyversions/commitloom.svg)](https://pypi.org/project/commitloom/)
-[![License](https://img.shields.io/github/license/yourusername/commitloom.svg)](https://github.com/yourusername/commitloom/blob/main/LICENSE)
-[![CI](https://github.com/yourusername/commitloom/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/commitloom/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/yourusername/commitloom/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/commitloom)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Checked with mypy](https://img.shields.io/badge/mypy-checked-blue.svg)](http://mypy-lang.org/)
-[![Downloads](https://pepy.tech/badge/commitloom)](https://pepy.tech/project/commitloom)
+## 🎯 Why CommitLoom?
 
-## Project Status
+Managing git commits can be challenging:
+- Writing clear, descriptive commit messages takes time
+- Large changes are hard to organize effectively
+- Maintaining consistency across a team is difficult
+- Binary files require special attention
 
-- ✅ **CI/CD**: Automated testing, linting, and publishing
-- ✅ **Code Quality**: 
-  - Ruff for linting and formatting
-  - MyPy for static type checking
-  - 70%+ test coverage
-- ✅ **Distribution**: Available on PyPI and GitHub Releases
-- ✅ **Documentation**: Comprehensive README and type hints
-- ✅ **Maintenance**: Actively maintained and accepting contributions
-
-## ✨ Features
-
-- 🤖 **AI-Powered Analysis**: Intelligently analyzes your changes and generates structured, semantic commit messages
-- 🧵 **Smart Batching**: Weaves multiple changes into coherent, logical commits
-- 📊 **Complexity Analysis**: Identifies when commits are getting too large or complex
-- 💰 **Cost Control**: Built-in token and cost estimation to keep API usage efficient
-- 🔍 **Binary Support**: Special handling for binary files with size and type detection
-- 🎨 **Beautiful CLI**: Rich, colorful interface with clear insights and warnings
+CommitLoom solves these challenges by:
+- Automatically generating structured commit messages
+- Intelligently batching large changes
+- Ensuring consistent commit style
+- Providing clear insights about your changes
 
 ## 🚀 Quick Start
 
@@ -62,72 +47,25 @@ loom  # Interactive mode
 loom -y  # Non-interactive mode
 ```
 
-## 📝 CLI Usage
+## ✨ Features
 
-CommitLoom can be used in both interactive and non-interactive modes:
+- 🤖 **AI-Powered Analysis**: Intelligently analyzes your changes and generates structured, semantic commit messages
+- 🧵 **Smart Batching**: Weaves multiple changes into coherent, logical commits
+- 📊 **Complexity Analysis**: Identifies when commits are getting too large or complex
+- 💰 **Cost Control**: Built-in token and cost estimation to keep API usage efficient
+- 🔍 **Binary Support**: Special handling for binary files with size and type detection
+- 🎨 **Beautiful CLI**: Rich, colorful interface with clear insights and warnings
 
-```bash
-# Interactive mode (default)
-loom
+## 📖 Project History
 
-# Non-interactive mode (auto-confirm all prompts)
-loom -y
+CommitLoom evolved from a personal script that was being copied across different projects. Its predecessor, GitMuse, experimented with local models like Llama through Ollama, but the results weren't as consistent or high-quality as needed. The rise of cost-effective OpenAI models, particularly gpt-4o-mini, made it possible to create a more reliable and powerful tool.
 
-# Combine all changes into a single commit
-loom -c
-
-# Enable verbose logging
-loom -v
-
-# Show help
-loom --help
-```
-
-### CLI Options
-
-- `-y, --yes`: Auto-confirm all prompts (non-interactive mode)
-- `-c, --combine`: Combine all changes into a single commit
-- `-v, --verbose`: Enable verbose logging
-- `-h, --help`: Show help message
-
-### Interactive Features
-
-- Analyzes staged changes and suggests commit messages
-- Handles large changes by splitting them into batches
-- Provides warnings for complex changes
-- Shows token usage and cost estimates
-- Allows choosing between individual or combined commits
-
-### Non-Interactive Features
-
-- Perfect for CI/CD pipelines
-- Automatically handles batching and commits
-- Provides clear error messages
-- Maintains high commit quality without user intervention
-
-## 🎯 Why CommitLoom?
-
-Managing git commits can be challenging:
-- Writing clear, descriptive commit messages takes time
-- Large changes are hard to organize effectively
-- Maintaining consistency across a team is difficult
-- Binary files require special attention
-
-CommitLoom solves these challenges by:
-- Automatically generating structured commit messages
-- Intelligently batching large changes
-- Ensuring consistent commit style
-- Providing clear insights about your changes
-
-## 🛠️ How It Works
-
-When you run `loom`, it:
-
-1. 🔍 **Analyzes** your staged changes
-2. 📊 **Evaluates** complexity and size
-3. 🤖 **Generates** appropriate commit messages
-4. 🧵 **Organizes** changes into optimal batches if needed
-5. 💡 **Guides** you through the commit process
+Key differences from GitMuse:
+- Uses OpenAI's models for superior commit message generation
+- More cost-effective with the new gpt-4o-mini model
+- Better structured for distribution and maintenance
+- Enhanced error handling and user experience
+- Improved binary file handling
 
 ## ⚙️ Configuration
 
@@ -159,76 +97,48 @@ You can change the model by setting the `MODEL_NAME` environment variable. The d
 
 > Note: Prices are based on OpenAI's official pricing (https://openai.com/api/pricing/). Batch API usage can provide a 50% discount but responses will be returned within 24 hours.
 
-### Cost Management
+## ❓ FAQ
 
-Built-in cost optimization:
-- Pre-estimates API costs
-- Provides clear usage metrics
-- Warns about expensive operations
-- Helps optimize token usage
+### Why the name "CommitLoom"?
 
-You can set custom warning thresholds:
+The name reflects the tool's ability to weave together different aspects of your changes into a coherent commit, like a loom weaving threads into fabric. It emphasizes both the craftsmanship aspect of good commits and the tool's ability to bring structure to complex changes.
 
-```env
-COST_WARNING_THRESHOLD=0.10  # Warn at €0.10
-```
+### Why use OpenAI instead of local models?
 
-## 📝 CLI Commands
+While local models like Llama are impressive, our experience with GitMuse showed that for specialized tasks like commit message generation, OpenAI's models provide superior results. With the introduction of cost-effective models like gpt-4o-mini, the benefits of cloud-based AI outweigh the advantages of local models for this specific use case.
 
+### How much will it cost to use CommitLoom?
+
+With the default gpt-4o-mini model, costs are very low:
+- Input: $0.15 per million tokens
+- Output: $0.60 per million tokens
+For perspective, a typical commit analysis might use 1000-2000 tokens, costing less than $0.002.
+
+### Can I use CommitLoom in CI/CD pipelines?
+
+Yes! Use the `-y` flag for non-interactive mode:
 ```bash
-loom              # Interactive commit creation
-loom analyze      # Just analyze changes
-loom suggest      # Generate commit message suggestions
-loom batch        # Process changes in batches
+loom -y
 ```
 
-## 🎨 Features in Detail
+### How does CommitLoom handle large changes?
 
-### Smart Change Analysis
+CommitLoom automatically:
+1. Analyzes the size and complexity of changes
+2. Warns about potentially oversized commits
+3. Suggests splitting changes when appropriate
+4. Maintains context across split commits
 
-CommitLoom analyzes your changes to ensure quality:
-- Evaluates commit size and complexity
-- Warns about potential issues
-- Suggests improvements
-- Monitors token usage and costs
+## 🛠️ Development Status
 
-### Intelligent Batching
-
-For larger changes, CommitLoom:
-- Splits changes into optimal batches
-- Maintains context across commits
-- Offers flexible commit strategies
-- Preserves commit quality at scale
-
-### Cost Management
-
-Built-in cost optimization:
-- Pre-estimates API costs
-- Provides clear usage metrics
-- Warns about expensive operations
-- Helps optimize token usage
-
-## 🔧 Advanced Usage
-
-### Custom Ignore Patterns
-
-Configure files to ignore:
-
-```env
-IGNORED_PATTERNS=[
-    "*.lock",
-    "dist/*",
-    "node_modules/*"
-]
-```
-
-### Cost Thresholds
-
-Set custom warning thresholds:
-
-```env
-COST_WARNING_THRESHOLD=0.10  # Warn at €0.10
-```
+- ✅ **CI/CD**: Automated testing, linting, and publishing
+- ✅ **Code Quality**: 
+  - Ruff for linting and formatting
+  - MyPy for static type checking
+  - 70%+ test coverage
+- ✅ **Distribution**: Available on PyPI and GitHub Releases
+- ✅ **Documentation**: Comprehensive README and type hints
+- ✅ **Maintenance**: Actively maintained and accepting contributions
 
 ## 🤝 Contributing
 
@@ -242,100 +152,6 @@ We welcome contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙌 Acknowledgments
-
-CommitLoom is powered by:
-- OpenAI's GPTs models for intelligent analysis
-- Rich for beautiful terminal interfaces
-- Poetry for dependency management
-- And many other amazing open source projects
-
 ---
 
 <p align="center">Crafted with 🧵 by developers, for developers</p>
-
-## 🛠️ Local Development Setup
-
-### Prerequisites
-
-- Python 3.11 or higher
-- Poetry (Python package manager)
-- Git
-
-### Setting Up Development Environment
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/yourusername/commitloom.git
-cd commitloom
-```
-
-2. Install Poetry (if not already installed):
-
-```bash
-curl -sSL https://install.python-poetry.org | python3 -
-```
-
-3. Install dependencies:
-
-```bash
-poetry install
-```
-
-4. Set up environment variables:
-
-```bash
-cp .env.example .env  # Create from example if available
-# Edit .env file with your configuration:
-# OPENAI_API_KEY=your-api-key
-# TOKEN_LIMIT=120000
-# MAX_FILES_THRESHOLD=5
-# COST_WARNING_THRESHOLD=0.05
-```
-
-5. Activate the virtual environment:
-
-```bash
-poetry shell
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-poetry run pytest
-
-# Run tests with coverage
-poetry run pytest --cov
-
-# Run specific test file
-poetry run pytest tests/test_specific.py
-```
-
-### Running Locally
-
-1. Install the package in editable mode:
-
-```bash
-poetry install
-```
-
-2. Run the CLI:
-
-```bash
-poetry run loom
-```
-
-### Development Commands
-
-```bash
-# Format code
-poetry run black .
-
-# Run linter
-poetry run flake8
-
-# Run type checker
-poetry run mypy .
-```
