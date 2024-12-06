@@ -193,7 +193,7 @@ class AIService:
                 raise ValueError(f"Failed to parse API response as JSON: {str(e)}") from e
 
         except requests.exceptions.RequestException as e:
-            if hasattr(e.response, "text"):
+            if hasattr(e, "response") and e.response is not None and hasattr(e.response, "text"):
                 error_message = e.response.text
             else:
                 error_message = str(e)

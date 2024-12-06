@@ -38,18 +38,27 @@ def test_process_files_in_batches_single_batch(mock_confirm, commit_loom):
     commit_loom.git.get_diff.return_value = "test diff"
     commit_loom.analyzer.estimate_tokens_and_cost.return_value = (100, 0.01)
     commit_loom.analyzer.config.token_limit = 1000
+
+    # Create a properly configured TokenUsage mock
+    token_usage_mock = MagicMock()
+    token_usage_mock.prompt_tokens = 100
+    token_usage_mock.completion_tokens = 50
+    token_usage_mock.total_tokens = 150
+    token_usage_mock.input_cost = 0.01
+    token_usage_mock.output_cost = 0.02
+    token_usage_mock.total_cost = 0.03
+
     commit_loom.ai_service.generate_commit_message.return_value = (
         CommitSuggestion(
             title="test commit",
             body={"Changes": {"emoji": "✨", "changes": ["test change"]}},
             summary="test summary",
         ),
-        MagicMock(),  # TokenUsage mock
+        token_usage_mock,
     )
     mock_confirm.return_value = True
 
-    result = commit_loom.process_files_in_batches(files)
-
+    result = commit_loom.process_files_in_batches(files, auto_commit=False)
     assert len(result) == 1
     assert result[0]["files"] == files
 
@@ -62,22 +71,31 @@ def test_process_files_in_batches_multiple_batches(mock_confirm, commit_loom):
     commit_loom.git.get_diff.return_value = "test diff"
     commit_loom.analyzer.estimate_tokens_and_cost.return_value = (1000, 0.01)
     commit_loom.analyzer.config.token_limit = 1000  # Set lower to force batching
+
+    # Create a properly configured TokenUsage mock
+    token_usage_mock = MagicMock()
+    token_usage_mock.prompt_tokens = 100
+    token_usage_mock.completion_tokens = 50
+    token_usage_mock.total_tokens = 150
+    token_usage_mock.input_cost = 0.01
+    token_usage_mock.output_cost = 0.02
+    token_usage_mock.total_cost = 0.03
+
     commit_loom.ai_service.generate_commit_message.return_value = (
         CommitSuggestion(
             title="test commit",
             body={"Changes": {"emoji": "✨", "changes": ["test change"]}},
             summary="test summary",
         ),
-        MagicMock(),
+        token_usage_mock,
     )
     mock_confirm.return_value = True
 
     # Set max_files_threshold to 5 to force multiple batches
     commit_loom.analyzer.config.max_files_threshold = 5
 
-    result = commit_loom.process_files_in_batches(files)
-
-    assert len(result) == 2  # Should split into 2 batches of 5 files each
+    result = commit_loom.process_files_in_batches(files, auto_commit=False)
+    assert len(result) == 2  # Should be split into 2 batches of 5 files each
     assert len(result[0]["files"]) == 5
     assert len(result[1]["files"]) == 5
 

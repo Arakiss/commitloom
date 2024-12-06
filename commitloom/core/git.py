@@ -129,11 +129,12 @@ class GitOperations:
     @staticmethod
     def format_file_size(size: int) -> str:
         """Format file size in human readable format."""
+        size_float = float(size)  # Convert to float for division
         for unit in ["B", "KB", "MB", "GB"]:
-            if size < 1024:
-                return f"{size:.2f} {unit}"
-            size /= 1024
-        return f"{size:.2f} TB"
+            if size_float < 1024:
+                return f"{size_float:.2f} {unit}"
+            size_float /= 1024
+        return f"{size_float:.2f} TB"
 
     @staticmethod
     def stage_files(files: list[str]) -> None:

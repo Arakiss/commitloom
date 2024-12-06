@@ -15,7 +15,12 @@ from rich.progress import (
 from rich.prompt import Confirm, Prompt
 from rich.text import Text
 
-from ..core.analyzer import CommitAnalysis, CommitAnalyzer, WarningLevel
+from ..core.analyzer import (
+    CommitAnalysis,
+    CommitAnalyzer,
+    Warning as AnalyzerWarning,
+    WarningLevel,
+)
 from ..core.git import GitFile
 from ..services.ai_service import TokenUsage
 
@@ -42,18 +47,20 @@ def print_changed_files(files: list[GitFile]) -> None:
         console.print(f"  - [cyan]{file.path}[/cyan]")
 
 
-def print_warnings(warnings: list[Warning] | CommitAnalysis) -> None:
+def print_warnings(warnings: list[AnalyzerWarning] | CommitAnalysis) -> None:
     """Print warnings."""
     if isinstance(warnings, CommitAnalysis):
         if not warnings.warnings:
             return
         analysis = warnings
-        warnings = warnings.warnings
+        warnings_list = warnings.warnings
     elif not warnings:
         return
+    else:
+        warnings_list = warnings
 
     console.print("\n[bold yellow]⚠️ Commit Size Warnings:[/bold yellow]")
-    for warning in warnings:
+    for warning in warnings_list:
         icon = "🔴" if warning.level == WarningLevel.HIGH else "🟡"
         console.print(f"{icon} {warning.message}")
 

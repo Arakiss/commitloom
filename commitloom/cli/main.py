@@ -54,26 +54,27 @@ class CommitLoom:
             analysis = self.analyzer.analyze_diff_complexity(diff, batch)
 
             # Print analysis
-            console.print_analysis(analysis, batch)
+            console.print_warnings(analysis)
 
             if analysis.is_complex and not auto_commit:
-                if not console.confirm_proceed():
+                if not console.confirm_action("Continue despite warnings?"):
                     self.git.reset_staged_changes()
                     return None
 
             # Generate commit message
             suggestion, usage = self.ai_service.generate_commit_message(diff, batch)
-            console.print_suggestion(suggestion)
-            console.print_usage(usage)
+            console.print_info("\nGenerated Commit Message:")
+            console.print_commit_message(suggestion.format_body())
+            console.print_token_usage(usage)
 
-            if not auto_commit and not console.confirm_commit(suggestion):
+            if not auto_commit and not console.confirm_action("Create this commit?"):
                 self.git.reset_staged_changes()
                 return None
 
             # Create commit if not combining
             if not combine_commits:
                 self.git.create_commit(suggestion.title, suggestion.format_body())
-                console.print_batch_completion(batch_num, total_batches)
+                console.print_batch_complete(batch_num, total_batches)
 
             return suggestion
 
@@ -88,9 +89,9 @@ class CommitLoom:
         """Handle creating a combined commit from multiple suggestions."""
         try:
             combined_message = self.ai_service.format_commit_message(suggestions)
-            console.print_suggestion(combined_message)
+            console.print_commit_message(combined_message)
 
-            if not auto_commit and not console.confirm_commit(combined_message):
+            if not auto_commit and not console.confirm_action("Create this commit?"):
                 self.git.reset_staged_changes()
                 return
 
@@ -114,42 +115,42 @@ class CommitLoom:
         return batches
 
     def process_files_in_batches(
-        self, changed_files: list[GitFile], auto_commit: bool = False
+        self, changed_files: list[GitFile], auto_commit: bool
     ) -> list[dict]:
-        """Process files in batches for better commit organization."""
+        """Process files in batches."""
         batches = self._create_batches(changed_files)
         if not batches:
             return []
 
+        console.print_info("\nProcessing files in batches...")
+        console.print_batch_summary(len(changed_files), len(batches))
+
         processed_batches = []
         for i, batch in enumerate(batches, 1):
+            console.print_batch_start(i, len(batches), batch)
+
             try:
-                # Get diff and analyze
+                # Get diff for batch
                 diff = self.git.get_diff(batch)
-                analysis = self.analyzer.analyze_diff_complexity(diff, batch)
-
-                # Print analysis
-                console.print_analysis(analysis, batch)
-
-                if analysis.is_complex and not auto_commit:
-                    if not console.confirm_action("Continue despite warnings?"):
-                        continue
-
-                # Generate commit message
                 suggestion, usage = self.ai_service.generate_commit_message(diff, batch)
-                processed_batches.append({
-                    "files": batch,
-                    "commit_data": suggestion,
-                    "usage": usage
-                })
 
-                if auto_commit:
-                    self.git.create_commit(suggestion.title, suggestion.format_body())
+                console.print_info(f"\nGenerated Commit Message for Batch {i}:")
+                console.print_commit_message(suggestion.format_body())
+                console.print_token_usage(usage)
+
+                if not auto_commit and not console.confirm_action("Create this batch commit?"):
+                    continue
+
+                processed_batches.append({"files": batch, "commit_data": suggestion})
+                console.print_batch_complete(i, len(batches))
 
             except (GitError, ValueError) as e:
                 console.print_error(f"Failed to process batch {i}: {str(e)}")
-                if not auto_commit and not console.confirm_action("Try next batch?"):
-                    break
+                continue
+
+        if not processed_batches:
+            console.print_warning("No batches were processed successfully.")
+            return []
 
         return processed_batches
 
@@ -157,7 +158,7 @@ class CommitLoom:
         """Create a combined commit from all batches."""
         all_changes = {}
         summary_points = []
-        all_files = []
+        all_files: list[str] = []
 
         for batch in batches:
             commit_data = batch["commit_data"]
