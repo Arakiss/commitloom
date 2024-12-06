@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.2.0] - 2024-12-06
+
+- ✨ feat: enhance release process with changelog
+- 📖 docs: update README with badges
+- 🔧 chore: update dependencies in pyproject.toml
+- ✨ refactor: improve console and AI service handling
+- ✨ feat: enhance commit message generation
+- ✨ feat: Improve commit message generation
+- 📝 refactor: update commit message generation format
+- ✨ feat: enhance commit suggestion formatting
+- 🔧 chore: refactor imports and improve code structure
+- 🔧 chore: update CI configuration and clean tests
+- 🔧 chore: upgrade Codecov action to v5
+- ✨ feat: enhance CI with Codecov integration
+- 🔧 test: improve KeyboardInterrupt handling in main
+- 🔧 test: fix KeyboardInterrupt handling in tests
+- 🔧 chore: add OpenAI API key to CI workflow
+- ✨ feat: update README and clean up code formatting
+- fix: resolve CI test failures - Add mock OpenAI API key and fix package installation
+- ✨ feat: update commit message format in tests
+- ✨ feat: add cost formatting for token usage
+- ✨ feat: enhance commit message formatting
+- ✨ feat: initial release with core features
+- ✨ feat: enhance README to improve clarity
+- ✨ feat: update README for enhanced clarity
+- ✨ feat: enhance model configuration and costs
+- 🔧 fix: handle deleted files during staging
+- ✨ feat: enhance git operations and tests
+- ✨ feat: enhance commit creation with warnings
+- 🚀 feat: add CI/CD workflows and improve CLI
+- ✨ feat: enhance commit process with stashing
+- 🔧 test: Update test cases for Git functionality
+- ✨ feat: Enhance AI service with new features
+- 🔧 fix: resolve issues in CLI and settings
+- ✨ feat: add .gitignore and enhance README
+- git init
+
 All notable changes to CommitLoom will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
