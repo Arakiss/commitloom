@@ -224,6 +224,7 @@ class CommitLoom:
                 suggestion, usage = self.ai_service.generate_commit_message(diff, changed_files)
                 console.print_info("\nGenerated Commit Message:")
                 console.print_commit_message(suggestion.format_body())
+                console.print_token_usage(usage)
                 if auto_commit or console.confirm_action("Create this commit?"):
                     try:
                         self.git.create_commit(suggestion.title, suggestion.format_body())

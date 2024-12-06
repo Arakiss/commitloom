@@ -54,12 +54,14 @@ class CommitSuggestion:
 
     def format_body(self) -> str:
         """Format the commit body for git commit message."""
-        formatted = []
+        formatted = [self.title, ""]  # Title followed by blank line
         for category, content in self.body.items():
-            formatted.append(f"\n{category}:")
+            formatted.append(f"{content['emoji']} {category}:")
             for change in content["changes"]:
                 formatted.append(f"- {change}")
-        formatted.append(f"\n{self.summary}")
+            formatted.append("")  # Add blank line between sections
+        formatted.append(self.summary)  # Add summary
+        formatted.append("")  # Ensure message ends with newline
         return "\n".join(formatted)
 
 
@@ -73,16 +75,7 @@ class AIService:
 
     def format_commit_message(self, commit_data: CommitSuggestion) -> str:
         """Format a commit message from the suggestion data."""
-        formatted_message = commit_data.title + "\n\n"
-
-        for category, content in commit_data.body.items():
-            formatted_message += f"{category}:\n"
-            for change in content["changes"]:
-                formatted_message += f"- {change}\n"
-            formatted_message += "\n"
-
-        formatted_message += f"{commit_data.summary}\n"
-        return formatted_message
+        return commit_data.format_body()
 
     def _generate_prompt(self, diff: str, changed_files: list[GitFile]) -> str:
         """Generate the prompt for the AI model."""
@@ -91,63 +84,66 @@ class AIService:
         # Check if we're dealing with binary files
         if diff.startswith("Binary files changed:"):
             return (
-                "Generate a structured commit message in JSON format for the following binary file changes.\n"
-                "The commit MUST follow conventional commits format with a gitemoji prefix.\n\n"
+                "Generate a structured commit message for the following binary file changes.\n"
+                "You must respond ONLY with a valid JSON object.\n\n"
                 f"Files changed: {files_summary}\n\n"
                 f"{diff}\n\n"
                 "Requirements:\n"
-                "1. Title: Maximum 50 characters, MUST start with an appropriate "
-                "gitemoji (e.g. 📝, ✨, 🐛), followed by the semantic commit "
-                "type (feat, fix, etc) and a brief description.\n"
+                "1. Title: Maximum 50 characters, starting with an appropriate "
+                "gitemoji (📝 for data files), followed by the semantic commit "
+                "type and a brief description.\n"
                 "2. Body: Create a simple summary of the binary file changes.\n"
                 "3. Summary: A brief sentence describing the data updates.\n\n"
-                "Return the response in the following JSON format:\n"
+                "Return ONLY a JSON object in this format:\n"
                 "{\n"
-                '  "title": "✨ feat: example title",\n'
+                '  "title": "📝 chore: update binary files",\n'
                 '  "body": {\n'
-                '    "Changes": {\n'
+                '    "Data Updates": {\n'
+                '      "emoji": "📝",\n'
                 '      "changes": [\n'
-                '        "✨ Added new feature X",\n'
-                '        "🔧 Updated configuration Y"\n'
+                '        "Updated binary files with new data",\n'
+                '        "Files affected: example.bin"\n'
                 "      ]\n"
                 "    }\n"
                 "  },\n"
-                '  "summary": "This change implements feature X with updated configuration."\n'
+                '  "summary": "Updated binary files with new data"\n'
                 "}"
             )
 
         return (
-            "Generate a structured commit message in JSON format for the following git diff.\n"
-            "The commit MUST follow conventional commits format with a gitemoji prefix.\n\n"
+            "Generate a structured commit message for the following git diff.\n"
+            "You must respond ONLY with a valid JSON object.\n\n"
             f"Files changed: {files_summary}\n\n"
             "```\n"
             f"{diff}\n"
             "```\n\n"
             "Requirements:\n"
-            "1. Title: Maximum 50 characters, MUST start with an appropriate "
-            "gitemoji (e.g. 📝, ✨, 🐛), followed by the semantic commit "
-            "type (feat, fix, etc) and a brief description.\n"
+            "1. Title: Maximum 50 characters, starting with an appropriate "
+            "gitemoji, followed by the semantic commit type and a brief "
+            "description.\n"
             "2. Body: Organize changes into categories. Each category should "
             "have an appropriate emoji and bullet points summarizing key "
             "changes.\n"
             "3. Summary: A brief sentence summarizing the overall impact.\n\n"
-            "Return the response in the following JSON format:\n"
+            "Return ONLY a JSON object in this format:\n"
             "{\n"
-            '  "title": "✨ feat: example title",\n'
+            '  "title": "✨ feat: add new feature",\n'
             '  "body": {\n'
             '    "Features": {\n'
+            '      "emoji": "✨",\n'
             '      "changes": [\n'
-            '        "✨ Added new feature X",\n'
-            '        "🔧 Updated configuration Y"\n'
+            '        "Added new feature X",\n'
+            '        "Implemented functionality Y"\n'
             "      ]\n"
             "    },\n"
-            '    "Fixes": {\n'
+            '    "Configuration": {\n'
+            '      "emoji": "🔧",\n'
             '      "changes": [\n'
-            '        "🐛 Fixed issue Z"\n'
+            '        "Updated settings for feature X"\n'
             "      ]\n"
             "    }\n"
             "  },\n"
-            '  "summary": "This change implements feature X with configuration updates and bug fixes."\n'
+            '  "summary": "Added new feature X with configuration updates"\n'
             "}"
         )
 
