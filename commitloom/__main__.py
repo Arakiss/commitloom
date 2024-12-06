@@ -2,8 +2,8 @@
 """Entry point for running commitloom as a module."""
 
 from pathlib import Path
+
 from dotenv import load_dotenv
-import os
 
 # Load environment variables before any imports
 env_path = Path(__file__).parent.parent / ".env"

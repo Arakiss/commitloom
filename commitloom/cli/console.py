@@ -1,22 +1,21 @@
 """Console output formatting and user interaction."""
 
+
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Confirm, Prompt
-from rich.text import Text
 from rich.progress import (
+    BarColumn,
     Progress,
     SpinnerColumn,
-    TextColumn,
-    BarColumn,
     TaskProgressColumn,
+    TextColumn,
 )
-from typing import List, Optional
+from rich.prompt import Confirm, Prompt
+from rich.text import Text
 
-from ..core.analyzer import CommitAnalysis, WarningLevel
+from ..core.analyzer import CommitAnalysis, CommitAnalyzer, WarningLevel
 from ..core.git import GitFile
 from ..services.ai_service import TokenUsage
-from ..core.analyzer import CommitAnalyzer
 
 console = Console()
 
@@ -32,7 +31,7 @@ def create_progress() -> Progress:
     )
 
 
-def print_changed_files(files: List[GitFile]) -> None:
+def print_changed_files(files: list[GitFile]) -> None:
     """Print list of changed files."""
     console.print(
         "\n[bold blue]📜 Changes detected in the following files:[/bold blue]"
@@ -57,7 +56,7 @@ def print_warnings(analysis: CommitAnalysis) -> None:
     console.print(f"  • Files changed: {analysis.num_files}")
 
 
-def print_batch_start(batch_num: int, total_batches: int, files: List[GitFile]) -> None:
+def print_batch_start(batch_num: int, total_batches: int, files: list[GitFile]) -> None:
     """Print information about starting a new batch."""
     console.print(
         f"\n[bold blue]📦 Processing Batch {batch_num}/{total_batches}[/bold blue]"
@@ -76,7 +75,7 @@ def print_batch_complete(batch_num: int, total_batches: int) -> None:
 
 def print_batch_summary(total_files: int, total_batches: int) -> None:
     """Print summary of batch processing plan."""
-    console.print(f"\n[bold blue]🔄 Batch Processing Summary:[/bold blue]")
+    console.print("\n[bold blue]🔄 Batch Processing Summary:[/bold blue]")
     console.print(f"  • Total files: [cyan]{total_files}[/cyan]")
     console.print(f"  • Number of batches: [cyan]{total_batches}[/cyan]")
     console.print(f"  • Files per batch: [cyan]~{total_files // total_batches}[/cyan]")
@@ -89,7 +88,7 @@ def format_cost(cost: float) -> str:
     return f"{human_cost} {precise_cost}"
 
 
-def print_token_usage(usage: TokenUsage, batch_num: Optional[int] = None) -> None:
+def print_token_usage(usage: TokenUsage, batch_num: int | None = None) -> None:
     """Print token usage summary."""
     batch_info = f" (Batch {batch_num})" if batch_num is not None else ""
     console.print(
@@ -112,7 +111,7 @@ def print_commit_message(message: str) -> None:
     console.print(Panel(Text(message), expand=False, border_style="green"))
 
 
-def print_batch_info(batch_number: int, files: List[str]) -> None:
+def print_batch_info(batch_number: int, files: list[str]) -> None:
     """Print information about a batch of files."""
     console.print(f"\n[bold blue]📑 Batch {batch_number} Summary:[/bold blue]")
     for file in files:

@@ -1,7 +1,6 @@
 """Analyzer module for commit complexity and cost estimation."""
 
 from dataclasses import dataclass
-from typing import List
 from enum import Enum
 
 from ..config.settings import config
@@ -31,7 +30,7 @@ class CommitAnalysis:
     estimated_tokens: int
     estimated_cost: float
     num_files: int
-    warnings: List[Warning]
+    warnings: list[Warning]
     is_complex: bool
 
 
@@ -60,7 +59,7 @@ class CommitAnalyzer:
 
     @staticmethod
     def analyze_diff_complexity(
-        diff: str, changed_files: List[GitFile]
+        diff: str, changed_files: list[GitFile]
     ) -> CommitAnalysis:
         """
         Analyzes the complexity of changes and returns warnings if necessary.
@@ -72,7 +71,7 @@ class CommitAnalyzer:
         Returns:
             CommitAnalysis object containing analysis results
         """
-        warnings: List[Warning] = []
+        warnings: list[Warning] = []
         estimated_tokens, estimated_cost = CommitAnalyzer.estimate_tokens_and_cost(diff)
 
         # Check token limit

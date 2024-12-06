@@ -1,9 +1,11 @@
 """Tests for git operations module."""
 
 import subprocess
+from unittest.mock import MagicMock, call, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, call
-from commitloom.core.git import GitOperations, GitFile, GitError
+
+from commitloom.core.git import GitError, GitFile, GitOperations
 
 
 @pytest.fixture

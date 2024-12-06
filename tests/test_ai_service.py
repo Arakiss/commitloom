@@ -1,17 +1,18 @@
 """Tests for AI service module."""
 
-import pytest
-from unittest.mock import patch, MagicMock
 import json
+from unittest.mock import MagicMock, patch
+
+import pytest
 import requests
 
+from commitloom.config.settings import config
+from commitloom.core.git import GitFile
 from commitloom.services.ai_service import (
     AIService,
-    TokenUsage,
     CommitSuggestion,
+    TokenUsage,
 )
-from commitloom.core.git import GitFile
-from commitloom.config.settings import config
 
 
 @pytest.fixture

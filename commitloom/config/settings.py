@@ -1,10 +1,10 @@
 """Configuration settings for CommitLoom."""
 
 import os
-from pathlib import Path
-from dotenv import load_dotenv
 from dataclasses import dataclass
-from typing import List, Dict
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 # Load environment variables at module level
 env_path = Path(__file__).parent.parent.parent / ".env"
@@ -28,8 +28,8 @@ class Config:
     cost_warning_threshold: float
     default_model: str
     token_estimation_ratio: int
-    ignored_patterns: List[str]
-    model_costs: Dict[str, ModelCosts]
+    ignored_patterns: list[str]
+    model_costs: dict[str, ModelCosts]
     api_key: str
 
     @classmethod

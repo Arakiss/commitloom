@@ -1,11 +1,9 @@
 """Git operations and utilities."""
 
-import subprocess
 import logging
-from typing import List, Optional
+import subprocess
 from dataclasses import dataclass
 from fnmatch import fnmatch
-import os
 
 from ..config.settings import config
 
@@ -18,8 +16,8 @@ class GitFile:
     """Represents a git file with its metadata."""
 
     path: str
-    size: Optional[int] = None
-    hash: Optional[str] = None
+    size: int | None = None
+    hash: str | None = None
 
 
 class GitError(Exception):
@@ -40,7 +38,7 @@ class GitOperations:
         )
 
     @staticmethod
-    def get_changed_files() -> List[GitFile]:
+    def get_changed_files() -> list[GitFile]:
         """Get list of staged files, excluding ignored files."""
         try:
             files = (
@@ -90,7 +88,7 @@ class GitOperations:
             raise GitError(f"Failed to get changed files: {str(e)}")
 
     @staticmethod
-    def get_diff(files: Optional[List[GitFile]] = None) -> str:
+    def get_diff(files: list[GitFile] | None = None) -> str:
         """Get the staged diff, handling binary files."""
         try:
             if files is None:
@@ -137,7 +135,7 @@ class GitOperations:
         return f"{size:.2f} TB"
 
     @staticmethod
-    def stage_files(files: List[str]) -> None:
+    def stage_files(files: list[str]) -> None:
         """Stage specific files for commit."""
         try:
             # Get status of files to handle deleted ones correctly
@@ -202,7 +200,7 @@ class GitOperations:
 
     @staticmethod
     def create_commit(
-        title: str, message: str, files: Optional[List[str]] = None
+        title: str, message: str, files: list[str] | None = None
     ) -> bool:
         """Create a git commit with the specified message."""
         try:
@@ -297,7 +295,7 @@ class GitOperations:
             )
 
     @staticmethod
-    def get_staged_files() -> List[str]:
+    def get_staged_files() -> list[str]:
         """Get list of currently staged files."""
         try:
             return (

@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 """Main CLI module for CommitLoom."""
 
-import os
-import sys
-import subprocess
-import logging
 import argparse
+import logging
+import subprocess
+import sys
 from pathlib import Path
-from typing import List, Dict
+
 from dotenv import load_dotenv
 
 # Load environment variables at module level
 env_path = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
-from ..core.git import GitOperations, GitFile, GitError
-from ..core.analyzer import CommitAnalyzer, CommitAnalysis
-from ..services.ai_service import AIService, CommitSuggestion
 from ..config.settings import config
+from ..core.analyzer import CommitAnalyzer
+from ..core.git import GitError, GitFile, GitOperations
+from ..services.ai_service import AIService, CommitSuggestion
 from . import console
 
 # Configure logging
@@ -40,8 +39,8 @@ class CommitLoom:
         self.ai_service = AIService()
 
     def process_files_in_batches(
-        self, changed_files: List[GitFile], auto_commit: bool = False
-    ) -> List[Dict]:
+        self, changed_files: list[GitFile], auto_commit: bool = False
+    ) -> list[dict]:
         """Process files in batches for better commit organization."""
         total_files = len(changed_files)
         total_batches = (
@@ -177,7 +176,7 @@ class CommitLoom:
             console.print_error(f"An error occurred: {str(e)}")
 
     def _create_individual_commit(
-        self, batch: Dict, auto_confirm: bool = False
+        self, batch: dict, auto_confirm: bool = False
     ) -> None:
         """Create an individual commit for a batch."""
         files = [f.path for f in batch["files"]]
@@ -220,7 +219,7 @@ class CommitLoom:
                 except Exception:
                     pass  # Ignore status check errors
 
-    def _create_combined_commit(self, batches: List[Dict]) -> None:
+    def _create_combined_commit(self, batches: list[dict]) -> None:
         """Create a combined commit from all batches."""
         all_changes = {}
         summary_points = []

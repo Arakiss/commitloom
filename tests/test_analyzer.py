@@ -1,13 +1,14 @@
 """Tests for analyzer module."""
 
 import pytest
+
+from commitloom.config.settings import config
 from commitloom.core.analyzer import (
-    CommitAnalyzer,
     CommitAnalysis,
+    CommitAnalyzer,
     WarningLevel,
 )
 from commitloom.core.git import GitFile
-from commitloom.config.settings import config
 
 
 @pytest.fixture

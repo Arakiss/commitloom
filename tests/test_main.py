@@ -1,14 +1,15 @@
 """Tests for main CLI module."""
 
-import pytest
-from unittest.mock import patch, MagicMock, call
-
-from commitloom.cli.main import CommitLoom, main, create_parser
-from commitloom.core.git import GitFile, GitError
-from commitloom.services.ai_service import CommitSuggestion
-from commitloom.core.analyzer import CommitAnalysis, Warning, WarningLevel
 import argparse
 import sys
+from unittest.mock import MagicMock, call, patch
+
+import pytest
+
+from commitloom.cli.main import CommitLoom, create_parser, main
+from commitloom.core.analyzer import CommitAnalysis, Warning, WarningLevel
+from commitloom.core.git import GitError, GitFile
+from commitloom.services.ai_service import CommitSuggestion
 
 
 @pytest.fixture

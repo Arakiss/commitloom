@@ -1,4 +1,5 @@
 import os
+
 import pytest
 
 
@@ -9,4 +10,4 @@ def mock_env_vars():
     yield
     # Clean up
     if "OPENAI_API_KEY" in os.environ:
-        del os.environ["OPENAI_API_KEY"] 
+        del os.environ["OPENAI_API_KEY"]

@@ -1,9 +1,9 @@
 """AI service for generating commit messages using OpenAI."""
 
 import json
-import requests
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+
+import requests
 
 from ..config.settings import config
 from ..core.git import GitFile
@@ -22,7 +22,7 @@ class TokenUsage:
 
     @classmethod
     def from_api_usage(
-        cls, usage: Dict[str, int], model: str = config.default_model
+        cls, usage: dict[str, int], model: str = config.default_model
     ) -> "TokenUsage":
         """Create TokenUsage from API response usage data."""
         prompt_tokens = usage["prompt_tokens"]
@@ -49,7 +49,7 @@ class CommitSuggestion:
     """Generated commit message suggestion."""
 
     title: str
-    body: Dict[str, Dict[str, List[str]]]
+    body: dict[str, dict[str, list[str]]]
     summary: str
 
 
@@ -74,7 +74,7 @@ class AIService:
         formatted_message += f"{commit_data.summary}\n"
         return formatted_message
 
-    def _generate_prompt(self, diff: str, changed_files: List[GitFile]) -> str:
+    def _generate_prompt(self, diff: str, changed_files: list[GitFile]) -> str:
         """Generate a prompt for commit message generation."""
         files_summary = ", ".join(f.path for f in changed_files[:3])
         if len(changed_files) > 3:
@@ -144,8 +144,8 @@ You must respond ONLY with a valid JSON object in the following format:
 }}"""
 
     def generate_commit_message(
-        self, diff: str, changed_files: List[GitFile]
-    ) -> Tuple[CommitSuggestion, TokenUsage]:
+        self, diff: str, changed_files: list[GitFile]
+    ) -> tuple[CommitSuggestion, TokenUsage]:
         """Generate a commit message using the OpenAI API."""
         prompt = self._generate_prompt(diff, changed_files)
 

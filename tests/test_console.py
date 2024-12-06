@@ -1,13 +1,14 @@
 """Tests for console output module."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from rich.console import Console
 from rich.panel import Panel
 
 from commitloom.cli import console
-from commitloom.core.git import GitFile
 from commitloom.core.analyzer import CommitAnalysis, Warning, WarningLevel
+from commitloom.core.git import GitFile
 from commitloom.services.ai_service import TokenUsage
 
 
