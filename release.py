@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
+# mypy: disable-error-code="union-attr"
 import argparse
 import re
 import subprocess
+import json
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Match, Optional, cast
+import urllib.request
+import urllib.error
+import os
 
 VERSION_TYPES = Literal["major", "minor", "patch"]
 
@@ -17,6 +22,18 @@ def get_current_version() -> str:
 def bump_version(version_type: VERSION_TYPES) -> str:
     output = run_command(f"poetry version {version_type}")
     return output.split(" ")[-1]
+
+def get_changelog_entry(version: str) -> str:
+    changelog_path = Path("CHANGELOG.md")
+    with open(changelog_path) as f:
+        content = f.read()
+    
+    pattern = rf"## \[{version}\].*?\n\n(.*?)(?=\n## \[|\Z)"
+    match = re.search(pattern, content, re.DOTALL)
+    if match is None:
+        return ""
+    
+    return match.group(1).strip()  # type: ignore[union-attr]
 
 def update_changelog(version: str) -> None:
     changelog_path = Path("CHANGELOG.md")
@@ -52,6 +69,49 @@ def create_github_release(version: str, dry_run: bool = False) -> None:
         run_command(f'git tag -a {tag} -m "Release {tag}"')
         run_command("git push origin main --tags")
         print(f"✅ Created and pushed tag {tag}")
+
+        # Create GitHub Release
+        github_token = os.getenv("GITHUB_TOKEN")
+        if github_token:
+            try:
+                # Get repository info from git remote
+                remote_url = run_command("git remote get-url origin")
+                repo_path = re.search(r"github\.com[:/](.+?)(?:\.git)?$", remote_url).group(1)
+
+                # Prepare release data
+                changelog_entry = get_changelog_entry(version)
+                release_data = {
+                    "tag_name": tag,
+                    "name": f"Release {tag}",
+                    "body": changelog_entry,
+                    "draft": False,
+                    "prerelease": False
+                }
+
+                # Create release via GitHub API
+                url = f"https://api.github.com/repos/{repo_path}/releases"
+                headers = {
+                    "Authorization": f"token {github_token}",
+                    "Accept": "application/vnd.github.v3+json"
+                }
+                request = urllib.request.Request(
+                    url,
+                    data=json.dumps(release_data).encode(),
+                    headers=headers,
+                    method="POST"
+                )
+                
+                with urllib.request.urlopen(request) as response:
+                    if response.status == 201:
+                        print(" Created GitHub Release")
+                    else:
+                        print(f"⚠️ GitHub Release creation returned status {response.status}")
+            
+            except Exception as e:
+                print(f"⚠️ Could not create GitHub Release: {str(e)}")
+                print("You may need to set the GITHUB_TOKEN environment variable")
+        else:
+            print("⚠️ GITHUB_TOKEN not found. Skipping GitHub Release creation")
     else:
         print(f"Would create tag: {tag}")
 
