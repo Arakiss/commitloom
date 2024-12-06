@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0] - 2024-12-06
+
+- 🔧 chore: clean up imports and format code
+- ✨ feat: add GitHub release creation functionality
+- 🔧 chore: clean up release.py formatting
+
 ## [0.2.0] - 2024-12-06
 
 - ✨ feat: enhance release process with changelog
