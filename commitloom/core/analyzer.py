@@ -115,7 +115,8 @@ class CommitAnalyzer:
                     level=WarningLevel.MEDIUM,
                     message=(
                         f"You're modifying {len(changed_files)} files. "
-                        f"For atomic commits, consider limiting to {config.max_files_threshold} files per commit."
+                        "For atomic commits, consider limiting to "
+                        f"{config.max_files_threshold} files per commit."
                     ),
                 )
             )
@@ -134,8 +135,9 @@ class CommitAnalyzer:
                         Warning(
                             level=WarningLevel.HIGH,
                             message=(
-                                f"File {file.path} has too many changes ({file_tokens:,} estimated tokens). "
-                                f"Consider splitting these changes across multiple commits."
+                                f"File {file.path} has too many changes "
+                                f"({file_tokens:,} estimated tokens). "
+                                "Consider splitting these changes across multiple commits."
                             ),
                         )
                     )

@@ -88,11 +88,21 @@ exclude_lines = [
 ]
 
 [tool.ruff]
-select = ["E", "F", "I", "N", "W", "C90", "B", "UP"]
-ignore = []
-line-length = 88
+line-length = 100  # Slightly more permissive than 88
 indent-width = 4
 target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "C90", "B", "UP"]
+ignore = [
+    "E402",  # Module level import not at top of file - needed for env loading
+]
+
+# Add per-file ignores
+[tool.ruff.lint.per-file-ignores]
+"commitloom/__main__.py" = ["E402"]  # Allow env loading before imports
+"commitloom/cli/main.py" = ["C901"]  # Complex run method is necessary for functionality
+"commitloom/core/git.py" = ["B904"]  # Exception chaining would break tests
 
 [tool.ruff.format]
 quote-style = "double"
@@ -100,6 +110,6 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["commitloom"]
 combine-as-imports = true

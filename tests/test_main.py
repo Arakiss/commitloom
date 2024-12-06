@@ -86,15 +86,10 @@ def test_process_files_in_batches_multiple_batches(mock_confirm, commit_loom):
 def test_create_combined_commit(mock_print_success, commit_loom):
     """Test creating a combined commit from multiple batches."""
     # Mock format_commit_message to return a formatted string
-    commit_loom.ai_service.format_commit_message.return_value = """📦 chore: combine multiple changes
-
-✨ Features:
-- Change 1
-
-🐛 Fixes:
-- Fix 1
-
-First summary Second summary"""
+    commit_loom.ai_service.format_commit_message.return_value = (
+        "📦 chore: combine multiple changes\n\n"
+        "✨ Features:\n"
+    )
 
     batches = [
         {

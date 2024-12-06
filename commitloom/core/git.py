@@ -85,7 +85,7 @@ class GitOperations:
 
             return git_files
         except subprocess.CalledProcessError as e:
-            raise GitError(f"Failed to get changed files: {str(e)}")
+            raise GitError(f"Failed to get changed files: {str(e)}") from e
 
     @staticmethod
     def get_diff(files: list[GitFile] | None = None) -> str:
@@ -106,7 +106,8 @@ class GitOperations:
                 diff_message = "Binary files changed:\n"
                 for file in files:
                     if file.size is not None:
-                        diff_message += f"- {file.path} ({GitOperations.format_file_size(file.size)})\n"
+                        size_info = GitOperations.format_file_size(file.size)
+                        diff_message += f"- {file.path} ({size_info})\n"
                     else:
                         diff_message += f"- {file.path} (size unknown)\n"
                 return diff_message
@@ -262,7 +263,7 @@ class GitOperations:
         try:
             subprocess.run(["git", "reset"], check=True)
         except subprocess.CalledProcessError as e:
-            raise GitError(f"Failed to reset staged changes: {str(e)}")
+            raise GitError(f"Failed to reset staged changes: {str(e)}") from e
 
     @staticmethod
     def stash_changes() -> None:
@@ -292,7 +293,7 @@ class GitOperations:
                 return
             raise GitError(
                 f"Failed to pop stashed changes: {e.stderr.decode().strip()}"
-            )
+            ) from e
 
     @staticmethod
     def get_staged_files() -> list[str]:

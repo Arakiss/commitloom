@@ -46,11 +46,21 @@ class TokenUsage:
 
 @dataclass
 class CommitSuggestion:
-    """Generated commit message suggestion."""
+    """Represents a commit message suggestion."""
 
     title: str
-    body: dict[str, dict[str, list[str]]]
+    body: dict[str, dict[str, str | list[str]]]
     summary: str
+
+    def format_body(self) -> str:
+        """Format the commit body for git commit message."""
+        formatted = []
+        for category, content in self.body.items():
+            formatted.append(f"\n{category}:")
+            for change in content["changes"]:
+                formatted.append(f"- {change}")
+        formatted.append(f"\n{self.summary}")
+        return "\n".join(formatted)
 
 
 class AIService:
@@ -75,73 +85,40 @@ class AIService:
         return formatted_message
 
     def _generate_prompt(self, diff: str, changed_files: list[GitFile]) -> str:
-        """Generate a prompt for commit message generation."""
-        files_summary = ", ".join(f.path for f in changed_files[:3])
-        if len(changed_files) > 3:
-            files_summary += f" and {len(changed_files) - 3} more"
+        """Generate the prompt for the AI model."""
+        files_summary = ", ".join(f.path for f in changed_files)
 
         # Check if we're dealing with binary files
         if diff.startswith("Binary files changed:"):
-            return f"""Generate a structured commit message for the following binary file changes:
+            return (
+                "Generate a structured commit message for the following binary file changes:\n\n"
+                f"Files changed: {files_summary}\n\n"
+                f"{diff}\n\n"
+                "Requirements:\n"
+                "1. Title: Maximum 50 characters, starting with an appropriate "
+                "gitemoji (📝 for data files), followed by the semantic commit "
+                "type and a brief description.\n"
+                "2. Body: Create a simple summary of the binary file changes.\n"
+                "3. Summary: A brief sentence describing the data updates.\n"
+            )
 
-Files changed: {files_summary}
-
-{diff}
-
-Requirements:
-1. Title: Maximum 50 characters, starting with an appropriate gitemoji (📝 for data files), followed by the semantic commit type and a brief description.
-2. Body: Create a simple summary of the binary file changes.
-3. Summary: A brief sentence describing the data updates.
-
-You must respond ONLY with a valid JSON object in the following format:
-{{
-    "title": "Your commit message title here",
-    "body": {{
-        "📝 Data Updates": {{
-            "emoji": "📝",
-            "changes": [
-                "Updated binary files with new data",
-                "Files affected: {files_summary}"
-            ]
-        }}
-    }},
-    "summary": "A brief summary of the data updates."
-}}"""
-
-        return f"""Generate a structured commit message for the following git diff, following the semantic commit and gitemoji conventions:
-
-Files changed: {files_summary}
-
-```
-{diff}
-```
-
-Requirements:
-1. Title: Maximum 50 characters, starting with an appropriate gitemoji, followed by the semantic commit type and a brief description.
-2. Body: Organize changes into categories. Each category should have an appropriate emoji and 2-3 bullet points summarizing key changes.
-3. Summary: A brief sentence summarizing the overall impact of the changes.
-
-You must respond ONLY with a valid JSON object in the following format:
-{{
-    "title": "Your commit message title here",
-    "body": {{
-        "🔧 Category1": {{
-            "emoji": "🔧",
-            "changes": [
-                "First change in category 1",
-                "Second change in category 1"
-            ]
-        }},
-        "✨ Category2": {{
-            "emoji": "✨",
-            "changes": [
-                "First change in category 2",
-                "Second change in category 2"
-            ]
-        }}
-    }},
-    "summary": "A brief summary of the overall changes and their impact."
-}}"""
+        return (
+            "Generate a structured commit message for the following git diff, "
+            "following the semantic commit and gitemoji conventions:\n\n"
+            f"Files changed: {files_summary}\n\n"
+            "```\n"
+            f"{diff}\n"
+            "```\n\n"
+            "Requirements:\n"
+            "1. Title: Maximum 50 characters, starting with an appropriate "
+            "gitemoji, followed by the semantic commit type and a brief "
+            "description.\n"
+            "2. Body: Organize changes into categories. Each category should "
+            "have an appropriate emoji and 2-3 bullet points summarizing key "
+            "changes.\n"
+            "3. Summary: A brief sentence summarizing the overall impact of "
+            "the changes.\n"
+        )
 
     def generate_commit_message(
         self, diff: str, changed_files: list[GitFile]
@@ -178,7 +155,6 @@ You must respond ONLY with a valid JSON object in the following format:
                 raise ValueError(f"API Error: {error_message}")
 
             response.raise_for_status()
-
             response_data = response.json()
             content = response_data["choices"][0]["message"]["content"]
             usage = response_data["usage"]
@@ -187,15 +163,11 @@ You must respond ONLY with a valid JSON object in the following format:
                 commit_data = json.loads(content)
                 return CommitSuggestion(**commit_data), TokenUsage.from_api_usage(usage)
             except json.JSONDecodeError as e:
-                raise ValueError(f"Failed to parse API response as JSON: {str(e)}")
+                raise ValueError(f"Failed to parse API response as JSON: {str(e)}") from e
 
         except requests.exceptions.RequestException as e:
-            if hasattr(e, "response") and e.response is not None:
-                try:
-                    error_data = e.response.json()
-                    error_message = error_data.get("error", {}).get("message", str(e))
-                except json.JSONDecodeError:
-                    error_message = str(e)
+            if hasattr(e.response, "text"):
+                error_message = e.response.text
             else:
                 error_message = str(e)
-            raise ValueError(f"API Request failed: {error_message}")
+            raise ValueError(f"API Request failed: {error_message}") from e

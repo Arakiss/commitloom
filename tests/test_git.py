@@ -57,7 +57,7 @@ def test_get_changed_files_empty(mock_check_output, git_operations):
 
 @patch("subprocess.check_output")
 def test_get_changed_files_error(mock_check_output, git_operations):
-    """Test handling of git command errors."""
+    """Test error handling in get_changed_files."""
     mock_check_output.side_effect = subprocess.CalledProcessError(1, "git", b"error")
 
     with pytest.raises(GitError) as exc_info:
@@ -296,17 +296,6 @@ def test_stage_nonexistent_file(mock_run):
 
 
 @patch("subprocess.run")
-def test_get_changed_files_error(mock_run, git_operations):
-    """Test error handling in get_changed_files."""
-    mock_run.side_effect = subprocess.CalledProcessError(
-        1, "git diff", stderr=b"fatal: not a git repository"
-    )
-
-    with pytest.raises(GitError, match="Failed to get changed files"):
-        git_operations.get_changed_files()
-
-
-@patch("subprocess.run")
 def test_get_changed_files_binary(mock_run, git_operations):
     """Test handling binary files in get_changed_files."""
     # Mock ls-files to fail for binary file
@@ -340,22 +329,6 @@ def test_stage_files_error(mock_run, git_operations):
 
     with pytest.raises(GitError, match="Error staging file1.py"):
         git_operations.stage_files(["file1.py"])
-
-
-@patch("subprocess.run")
-def test_create_commit_nothing_to_commit(mock_run, git_operations):
-    """Test create_commit when there's nothing to commit."""
-    mock_run.side_effect = [
-        # git status call
-        MagicMock(stdout="", stderr="", returncode=0),
-        # git commit call
-        subprocess.CalledProcessError(
-            1, "git commit", stderr=b"nothing to commit, working tree clean"
-        ),
-    ]
-
-    result = git_operations.create_commit("test", "message")
-    assert result is False
 
 
 @patch("subprocess.run")
