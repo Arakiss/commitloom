@@ -10,6 +10,7 @@ from typing import List, Optional
 from ..core.analyzer import CommitAnalysis, WarningLevel
 from ..core.git import GitFile
 from ..services.ai_service import TokenUsage
+from ..core.analyzer import CommitAnalyzer
 
 console = Console()
 
@@ -62,6 +63,12 @@ def print_batch_summary(total_files: int, total_batches: int) -> None:
     console.print(f"  • Number of batches: [cyan]{total_batches}[/cyan]")
     console.print(f"  • Files per batch: [cyan]~{total_files // total_batches}[/cyan]")
 
+def format_cost(cost: float) -> str:
+    """Format cost in both human-readable and precise formats."""
+    human_cost = CommitAnalyzer.format_cost_for_humans(cost)
+    precise_cost = f"(€{cost:.8f})"
+    return f"{human_cost} {precise_cost}"
+
 def print_token_usage(usage: TokenUsage, batch_num: Optional[int] = None) -> None:
     """Print token usage summary."""
     batch_info = f" (Batch {batch_num})" if batch_num is not None else ""
@@ -73,9 +80,9 @@ def print_token_usage(usage: TokenUsage, batch_num: Optional[int] = None) -> Non
   • Total Tokens: {usage.total_tokens:,}
 
 [bold green]💰 Cost Breakdown:[/bold green]
-  • Input Cost: €{usage.input_cost:.8f}
-  • Output Cost: €{usage.output_cost:.8f}
-  • Total Cost: €{usage.total_cost:.8f}
+  • Input Cost: {format_cost(usage.input_cost)}
+  • Output Cost: {format_cost(usage.output_cost)}
+  • Total Cost: {format_cost(usage.total_cost)}
 """
     )
 
