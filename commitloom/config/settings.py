@@ -63,7 +63,19 @@ class Config:
                 "gpt-4o-mini": ModelCosts(
                     input=0.00015,
                     output=0.00060,
-                )
+                ),
+                "gpt-4o": ModelCosts(
+                    input=0.00250,
+                    output=0.01000,
+                ),
+                "gpt-3.5-turbo": ModelCosts(
+                    input=0.00300,
+                    output=0.00600,
+                ),
+                "gpt-4o-2024-05-13": ModelCosts(
+                    input=0.00500,
+                    output=0.01500,
+                ),
             },
             api_key=api_key,
         )

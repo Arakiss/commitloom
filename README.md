@@ -134,10 +134,43 @@ When you run `loom`, it:
 Configure via environment variables or `.env` file:
 
 ```env
+# Required
+OPENAI_API_KEY=your-api-key
+
+# Optional with defaults
 TOKEN_LIMIT=120000
 MAX_FILES_THRESHOLD=5
 COST_WARNING_THRESHOLD=0.05
-OPENAI_API_KEY=your-api-key
+MODEL_NAME=gpt-4o-mini  # Default and most cost-effective model
+```
+
+### 🤖 Model Configuration
+
+CommitLoom supports various OpenAI models with different cost implications:
+
+| Model | Description | Cost per 1M tokens (Input/Output) | Best for |
+|-------|-------------|----------------------------------|----------|
+| gpt-4o-mini | Default, optimized for commits | $0.15/$0.60 | Most use cases |
+| gpt-4o | Latest model, powerful | $2.50/$10.00 | Complex analysis |
+| gpt-4o-2024-05-13 | Previous version | $5.00/$15.00 | Legacy support |
+| gpt-3.5-turbo | Fine-tuned version | $3.00/$6.00 | Training data |
+
+You can change the model by setting the `MODEL_NAME` environment variable. The default `gpt-4o-mini` model is recommended as it provides the best balance of cost and quality for commit message generation. It's OpenAI's most cost-efficient small model that's smarter and cheaper than GPT-3.5 Turbo.
+
+> Note: Prices are based on OpenAI's official pricing (https://openai.com/api/pricing/). Batch API usage can provide a 50% discount but responses will be returned within 24 hours.
+
+### Cost Management
+
+Built-in cost optimization:
+- Pre-estimates API costs
+- Provides clear usage metrics
+- Warns about expensive operations
+- Helps optimize token usage
+
+You can set custom warning thresholds:
+
+```env
+COST_WARNING_THRESHOLD=0.10  # Warn at €0.10
 ```
 
 ## 📝 CLI Commands
