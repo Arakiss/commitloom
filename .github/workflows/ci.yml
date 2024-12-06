@@ -37,7 +37,9 @@ jobs:
         run: poetry install --no-interaction --no-root
         
       - name: Install project
-        run: poetry install --no-interaction
+        run: |
+          poetry install --no-interaction
+          poetry run pip install -e .
         
       - name: Check code formatting
         run: |
@@ -87,7 +89,9 @@ jobs:
         run: poetry install --no-interaction --no-root
         
       - name: Install project
-        run: poetry install --no-interaction
+        run: |
+          poetry install --no-interaction
+          poetry run pip install -e .
         
       - name: Run tests
         run: |
