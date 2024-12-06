@@ -400,8 +400,10 @@ def test_main_keyboard_interrupt(mock_commit_loom, mock_console):
     """Test handling of KeyboardInterrupt in main."""
     mock_commit_loom.return_value.run.side_effect = KeyboardInterrupt()
 
-    with pytest.raises(SystemExit) as exc_info:
-        main()
+    # Mock sys.argv to avoid pytest arguments interfering
+    with patch.object(sys, "argv", ["commitloom"]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
 
     assert exc_info.value.code == 1
     mock_console.print_error.assert_called_with("\nOperation cancelled by user.")
