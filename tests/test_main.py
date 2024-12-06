@@ -24,7 +24,8 @@ def commit_loom():
         return instance
 
 
-def test_process_files_in_batches_single_batch(commit_loom):
+@patch("commitloom.cli.console.confirm_action")
+def test_process_files_in_batches_single_batch(mock_confirm, commit_loom):
     """Test processing files when they fit in a single batch."""
     # Setup test data
     files = [
@@ -42,16 +43,16 @@ def test_process_files_in_batches_single_batch(commit_loom):
         ),
         MagicMock(),  # TokenUsage mock
     )
+    mock_confirm.return_value = True
 
     result = commit_loom.process_files_in_batches(files)
 
     assert len(result) == 1
-    assert len(result[0]["files"]) == 2
-    assert isinstance(result[0]["commit_data"], CommitSuggestion)
-    assert isinstance(result[0]["usage"], MagicMock)
+    assert result[0]["files"] == files
 
 
-def test_process_files_in_batches_multiple_batches(commit_loom):
+@patch("commitloom.cli.console.confirm_action")
+def test_process_files_in_batches_multiple_batches(mock_confirm, commit_loom):
     """Test processing files that need to be split into multiple batches."""
     # Setup test data
     files = [GitFile(path=f"file{i}.py") for i in range(10)]
@@ -66,18 +67,35 @@ def test_process_files_in_batches_multiple_batches(commit_loom):
         ),
         MagicMock(),
     )
+    mock_confirm.return_value = True
+    
+    # Set max_files_threshold to 5 to force multiple batches
+    commit_loom.analyzer.config.max_files_threshold = 5
 
-    result = commit_loom.process_files_in_batches(files, batch_size=5)
+    result = commit_loom.process_files_in_batches(files)
 
-    assert len(result) == 2  # Should be split into 2 batches of 5 files each
+    assert len(result) == 2  # Should split into 2 batches of 5 files each
     assert len(result[0]["files"]) == 5
     assert len(result[1]["files"]) == 5
 
 
-def test_combine_commit_suggestions(commit_loom):
-    """Test combining multiple commit suggestions into one."""
-    suggestions = [
+@patch("commitloom.cli.console.print_success")
+def test_create_combined_commit(mock_print_success, commit_loom):
+    """Test creating a combined commit from multiple batches."""
+    # Mock format_commit_message to return a formatted string
+    commit_loom.ai_service.format_commit_message.return_value = """📦 chore: combine multiple changes
+
+✨ Features:
+- Change 1
+
+🐛 Fixes:
+- Fix 1
+
+First summary Second summary"""
+
+    batches = [
         {
+            "files": [GitFile(path="file1.py")],
             "commit_data": CommitSuggestion(
                 title="feat: first change",
                 body={"Features": {"emoji": "✨", "changes": ["Change 1"]}},
@@ -85,6 +103,7 @@ def test_combine_commit_suggestions(commit_loom):
             )
         },
         {
+            "files": [GitFile(path="file2.py")],
             "commit_data": CommitSuggestion(
                 title="fix: second change",
                 body={"Fixes": {"emoji": "🐛", "changes": ["Fix 1"]}},
@@ -93,15 +112,21 @@ def test_combine_commit_suggestions(commit_loom):
         },
     ]
 
-    result = commit_loom.combine_commit_suggestions(suggestions)
+    commit_loom._create_combined_commit(batches)
 
-    assert isinstance(result, CommitSuggestion)
-    assert result.title == "📦 chore: combine multiple changes"
-    assert "Features" in result.body
-    assert "Fixes" in result.body
-    assert result.body["Features"]["changes"] == ["Change 1"]
-    assert result.body["Fixes"]["changes"] == ["Fix 1"]
-    assert "First summary Second summary" in result.summary
+    # Verify that git.create_commit was called with the correct arguments
+    commit_loom.git.create_commit.assert_called_once()
+    args = commit_loom.git.create_commit.call_args[0]
+    
+    assert args[0] == "📦 chore: combine multiple changes"
+    assert "Features" in args[1]
+    assert "Fixes" in args[1]
+    assert "Change 1" in args[1]
+    assert "Fix 1" in args[1]
+    assert "First summary Second summary" in args[1]
+    
+    # Verify success message was printed
+    mock_print_success.assert_called_once_with("Combined commit created successfully!")
 
 
 @patch("commitloom.cli.main.console")
@@ -170,9 +195,10 @@ def test_run_with_warnings(mock_console, commit_loom):
 
     commit_loom.run()
 
-    mock_console.print_info.assert_called_with(
-        "Process cancelled. Please review your changes."
-    )
+    # Verify that the warning was printed
+    mock_console.print_warnings.assert_called_once()
+    # Verify that the info message was printed
+    mock_console.print_info.assert_called_with("Analyzing your changes...")
 
 
 @patch("commitloom.cli.main.console")

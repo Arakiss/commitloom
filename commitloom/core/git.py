@@ -4,6 +4,7 @@ import subprocess
 from typing import List, Optional
 from dataclasses import dataclass
 from fnmatch import fnmatch
+import os
 
 from ..config.settings import config
 
@@ -135,10 +136,7 @@ class GitOperations:
     def stage_files(files: List[str]) -> None:
         """Stage specific files for commit."""
         try:
-            # First unstage everything
-            subprocess.run(["git", "reset"], check=True)
-            
-            # Then stage only the specified files
+            # Stage the specified files
             for file in files:
                 subprocess.run(
                     ["git", "add", file],
@@ -147,7 +145,7 @@ class GitOperations:
                     text=True,
                 )
         except subprocess.CalledProcessError as e:
-            raise GitError(f"Failed to stage files: {str(e)}")
+            raise GitError(f"Failed to stage files: {e.stderr.strip()}")
 
     @staticmethod
     def create_commit(
@@ -173,7 +171,9 @@ class GitOperations:
             return "nothing to commit" not in result.stdout.lower()
 
         except subprocess.CalledProcessError as e:
-            raise GitError(f"Failed to create commit: {str(e)}")
+            if "nothing to commit" in e.stderr.lower():
+                return False
+            raise GitError(f"Failed to create commit: {e.stderr.strip()}")
 
     @staticmethod
     def reset_staged_changes() -> None:
@@ -187,17 +187,29 @@ class GitOperations:
     def stash_changes() -> None:
         """Stash any uncommitted changes."""
         try:
-            subprocess.run(["git", "stash", "-u"], check=True)
+            subprocess.run(
+                ["git", "stash", "-u"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
         except subprocess.CalledProcessError as e:
-            raise GitError(f"Failed to stash changes: {str(e)}")
+            raise GitError(f"Failed to stash changes: {e.stderr.strip()}")
 
     @staticmethod
     def pop_stashed_changes() -> None:
         """Pop the most recent stashed changes."""
         try:
-            subprocess.run(["git", "stash", "pop"], check=True)
+            subprocess.run(
+                ["git", "stash", "pop"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
         except subprocess.CalledProcessError as e:
-            raise GitError(f"Failed to pop stashed changes: {str(e)}")
+            if "No stash entries found" in e.stderr:
+                return
+            raise GitError(f"Failed to pop stashed changes: {e.stderr.strip()}")
 
     @staticmethod
     def get_staged_files() -> List[str]:

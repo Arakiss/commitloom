@@ -5,6 +5,8 @@ from typing import List, Dict
 from dotenv import load_dotenv
 import os
 from pathlib import Path
+import sys
+import subprocess
 
 # Load environment variables at module level
 env_path = Path(__file__).parent.parent.parent / '.env'
@@ -164,31 +166,21 @@ class CommitLoom:
         
         if auto_confirm or console.confirm_action("Create this commit?"):
             try:
-                # Stash any changes that aren't part of this batch
-                self.git.stash_changes()
-                
-                # Stage and commit only the files for this batch
+                # Stage and commit the files
                 self.git.stage_files(files)
                 self.git.create_commit(
                     commit_data.title,
                     self.ai_service.format_commit_message(commit_data)
                 )
                 console.print_success("Commit created successfully!")
-                
-                # Restore any stashed changes
-                self.git.pop_stashed_changes()
             except GitError as e:
                 console.print_error(str(e))
-                # Try to restore stashed changes even if commit failed
-                try:
-                    self.git.pop_stashed_changes()
-                except GitError:
-                    pass
 
     def _create_combined_commit(self, batches: List[Dict]) -> None:
         """Create a combined commit from all batches."""
         all_changes = {}
         summary_points = []
+        all_files = []
         
         for batch in batches:
             commit_data = batch["commit_data"]
@@ -197,6 +189,7 @@ class CommitLoom:
                     all_changes[category] = {"emoji": content["emoji"], "changes": []}
                 all_changes[category]["changes"].extend(content["changes"])
             summary_points.append(commit_data.summary)
+            all_files.extend(f.path for f in batch["files"])
         
         combined_commit = CommitSuggestion(
             title="📦 chore: combine multiple changes",
@@ -205,6 +198,8 @@ class CommitLoom:
         )
         
         try:
+            # Stage and commit all files
+            self.git.stage_files(all_files)
             self.git.create_commit(
                 combined_commit.title,
                 self.ai_service.format_commit_message(combined_commit)
@@ -214,8 +209,16 @@ class CommitLoom:
             console.print_error(str(e))
 
 def main():
-    """CLI entry point."""
-    CommitLoom().run()
+    """Main entry point for the CLI."""
+    try:
+        app = CommitLoom()
+        app.run()
+    except KeyboardInterrupt:
+        console.print_error("\nOperation cancelled by user.")
+        sys.exit(1)
+    except Exception as e:
+        console.print_error(f"An error occurred: {str(e)}")
+        sys.exit(1)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

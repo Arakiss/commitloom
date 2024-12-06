@@ -9,7 +9,6 @@ from commitloom.services.ai_service import (
     AIService,
     TokenUsage,
     CommitSuggestion,
-    format_commit_message,
 )
 from commitloom.core.git import GitFile
 from commitloom.config.settings import config
@@ -151,7 +150,7 @@ def test_generate_commit_message_network_error(mock_post, ai_service):
     assert "API Request failed" in str(exc_info.value)
 
 
-def test_format_commit_message():
+def test_format_commit_message(ai_service):
     """Test commit message formatting."""
     commit_data = CommitSuggestion(
         title="✨ feat: new feature",
@@ -162,7 +161,7 @@ def test_format_commit_message():
         summary="Added new features and fixed bugs",
     )
 
-    formatted = format_commit_message(commit_data)
+    formatted = ai_service.format_commit_message(commit_data)
 
     assert "✨ Features:" in formatted
     assert "🐛 Fixes:" in formatted
@@ -176,6 +175,6 @@ def test_ai_service_missing_api_key():
     """Test AIService initialization with missing API key."""
     with patch.dict("os.environ", clear=True):
         with pytest.raises(ValueError) as exc_info:
-            AIService()
+            config.from_env()
 
     assert "OPENAI_API_KEY environment variable is not set" in str(exc_info.value)

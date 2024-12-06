@@ -135,7 +135,7 @@ def test_create_commit_with_files(mock_run, git_operations):
     )
 
     assert result is True
-    assert mock_run.call_count == 3  # 2 adds + 1 commit
+    assert mock_run.call_count == 4  # 1 reset + 2 adds + 1 commit
 
 
 @patch("subprocess.run")

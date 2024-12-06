@@ -1,0 +1,58 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.7.1
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          
+      - name: Verify version matches tag
+        run: |
+          VERSION=$(poetry version -s)
+          TAG=${GITHUB_REF#refs/tags/v}
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "Version mismatch: $VERSION != $TAG"
+            exit 1
+          fi
+          
+      - name: Build package
+        run: poetry build
+        
+      - name: Check dist contents
+        run: |
+          ls -l dist/
+          if [ ! -f "dist/commitloom-"*".tar.gz" ] || [ ! -f "dist/commitloom-"*".whl" ]; then
+            echo "Missing distribution files"
+            exit 1
+          fi
+          
+      - name: Publish to PyPI
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+        run: poetry publish
+        
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

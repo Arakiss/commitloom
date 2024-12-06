@@ -123,7 +123,7 @@ def test_print_batch_info(mock_console):
     console.print_batch_info(1, files)
 
     assert mock_console.print.call_count == 3  # Header + 2 files
-    mock_console.print.assert_any_call("\n[bold blue]Batch 1 (2 files):[/bold blue]")
+    mock_console.print.assert_any_call("\n[bold blue]📑 Batch 1 Summary:[/bold blue]")
     mock_console.print.assert_any_call("  - [cyan]file1.py[/cyan]")
     mock_console.print.assert_any_call("  - [cyan]file2.py[/cyan]")
 
@@ -136,7 +136,7 @@ def test_confirm_action(mock_ask, mock_console):
     result = console.confirm_action("Proceed?")
 
     assert result is True
-    mock_ask.assert_called_once_with("Proceed?")
+    mock_ask.assert_called_once_with("\nProceed?")
 
 
 def test_print_success(mock_console):

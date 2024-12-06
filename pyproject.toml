@@ -31,6 +31,8 @@ requests = "^2.32.3"
 pytest = "^8.3.4"
 pytest-asyncio = "^0.24.0"
 pytest-cov = "^6.0.0"
+ruff = "^0.1.6"
+mypy = "^1.7.1"
 
 [tool.poetry.scripts]
 loom = "commitloom.cli.main:main"
@@ -58,3 +60,29 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "pass",
 ]
+
+[tool.ruff]
+# Enable pycodestyle (`E`), Pyflakes (`F`), and import sorting (`I`)
+select = ["E", "F", "I", "N", "W", "C90", "B", "UP"]
+ignore = []
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+# Assume Python 3.11
+target-version = "py311"
+
+[tool.ruff.format]
+# Use double quotes for strings.
+quote-style = "double"
+# Indent with spaces, rather than tabs.
+indent-style = "space"
+# Respect magic trailing commas.
+skip-magic-trailing-comma = false
+# Automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[tool.ruff.isort]
+known-first-party = ["commitloom"]
+combine-as-imports = true

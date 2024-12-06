@@ -7,6 +7,22 @@ CommitLoom is an intelligent git assistant that helps you craft meaningful, stru
 [![PyPI version](https://img.shields.io/pypi/v/commitloom.svg)](https://pypi.org/project/commitloom/)
 [![Python versions](https://img.shields.io/pypi/pyversions/commitloom.svg)](https://pypi.org/project/commitloom/)
 [![License](https://img.shields.io/github/license/yourusername/commitloom.svg)](https://github.com/yourusername/commitloom/blob/main/LICENSE)
+[![CI](https://github.com/yourusername/commitloom/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/commitloom/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/yourusername/commitloom/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/commitloom)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Checked with mypy](https://img.shields.io/badge/mypy-checked-blue.svg)](http://mypy-lang.org/)
+[![Downloads](https://pepy.tech/badge/commitloom)](https://pepy.tech/project/commitloom)
+
+## Project Status
+
+- ✅ **CI/CD**: Automated testing, linting, and publishing
+- ✅ **Code Quality**: 
+  - Ruff for linting and formatting
+  - MyPy for static type checking
+  - 70%+ test coverage
+- ✅ **Distribution**: Available on PyPI and GitHub Releases
+- ✅ **Documentation**: Comprehensive README and type hints
+- ✅ **Maintenance**: Actively maintained and accepting contributions
 
 ## ✨ Features
 
