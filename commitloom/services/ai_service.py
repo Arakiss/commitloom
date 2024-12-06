@@ -91,7 +91,7 @@ class AIService:
         # Check if we're dealing with binary files
         if diff.startswith("Binary files changed:"):
             return (
-                "Generate a structured commit message for the following binary file changes:\n\n"
+                "Generate a structured commit message in JSON format for the following binary file changes:\n\n"
                 f"Files changed: {files_summary}\n\n"
                 f"{diff}\n\n"
                 "Requirements:\n"
@@ -99,11 +99,21 @@ class AIService:
                 "gitemoji (📝 for data files), followed by the semantic commit "
                 "type and a brief description.\n"
                 "2. Body: Create a simple summary of the binary file changes.\n"
-                "3. Summary: A brief sentence describing the data updates.\n"
+                "3. Summary: A brief sentence describing the data updates.\n\n"
+                "Return the response in the following JSON format:\n"
+                "{\n"
+                '  "title": "string",\n'
+                '  "body": {\n'
+                '    "category": {\n'
+                '      "changes": ["string"]\n'
+                "    }\n"
+                "  },\n"
+                '  "summary": "string"\n'
+                "}"
             )
 
         return (
-            "Generate a structured commit message for the following git diff, "
+            "Generate a structured commit message in JSON format for the following git diff, "
             "following the semantic commit and gitemoji conventions:\n\n"
             f"Files changed: {files_summary}\n\n"
             "```\n"
@@ -117,7 +127,17 @@ class AIService:
             "have an appropriate emoji and 2-3 bullet points summarizing key "
             "changes.\n"
             "3. Summary: A brief sentence summarizing the overall impact of "
-            "the changes.\n"
+            "the changes.\n\n"
+            "Return the response in the following JSON format:\n"
+            "{\n"
+            '  "title": "string",\n'
+            '  "body": {\n'
+            '    "category": {\n'
+            '      "changes": ["string"]\n'
+            "    }\n"
+            "  },\n"
+            '  "summary": "string"\n'
+            "}"
         )
 
     def generate_commit_message(
