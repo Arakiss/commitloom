@@ -396,14 +396,18 @@ def test_cli_arguments():
 
 @patch("commitloom.cli.main.console")
 @patch("commitloom.cli.main.CommitLoom")
-def test_main_keyboard_interrupt(mock_commit_loom, mock_console):
+@patch("commitloom.cli.main.create_parser")
+def test_main_keyboard_interrupt(mock_create_parser, mock_commit_loom, mock_console):
     """Test handling of KeyboardInterrupt in main."""
+    # Setup mock parser that always returns empty args
+    mock_parser = MagicMock()
+    mock_parser.parse_args.return_value = argparse.Namespace(yes=False, combine=False, verbose=False)
+    mock_create_parser.return_value = mock_parser
+    
     mock_commit_loom.return_value.run.side_effect = KeyboardInterrupt()
 
-    # Mock sys.argv to avoid pytest arguments interfering
-    with patch.object(sys, "argv", ["commitloom"]):
-        with pytest.raises(SystemExit) as exc_info:
-            main()
+    with pytest.raises(SystemExit) as exc_info:
+        main()
 
     assert exc_info.value.code == 1
     mock_console.print_error.assert_called_with("\nOperation cancelled by user.")
