@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for changelog generation
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -43,16 +45,41 @@ jobs:
             exit 1
           fi
           
+      - name: Extract changelog entry
+        id: changelog
+        run: |
+          VERSION=$(poetry version -s)
+          CHANGELOG_ENTRY=$(awk -v ver="$VERSION" '
+            BEGIN { found=0; entry="" }
+            $0 ~ "^## \\[" ver "\\]" { found=1; next }
+            found && /^## / { exit }
+            found { entry = entry $0 "\n" }
+            END { print entry }
+          ' CHANGELOG.md)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_ENTRY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
       - name: Publish to PyPI
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
         run: poetry publish
         
-      - name: Upload to GitHub Release
+      - name: Update GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             dist/*.whl
             dist/*.tar.gz
+          body: |
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## Installation
+            ```bash
+            pip install commitloom==${{ steps.version.outputs.version }}
+            ```
+            
+            ## Documentation
+            For full documentation, visit: https://github.com/akkarinc/commitloom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
