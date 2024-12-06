@@ -1,6 +1,7 @@
 """Git operations and utilities."""
 
 import subprocess
+import logging
 from typing import List, Optional
 from dataclasses import dataclass
 from fnmatch import fnmatch
@@ -8,6 +9,8 @@ import os
 
 from ..config.settings import config
 
+# Configure logger
+logger = logging.getLogger(__name__)
 
 @dataclass
 class GitFile:
@@ -145,7 +148,12 @@ class GitOperations:
                     text=True,
                 )
                 if result.stderr:
-                    raise GitError(f"Warning while staging {file}: {result.stderr.strip()}")
+                    if "warning:" in result.stderr.lower():
+                        logger.warning("Git warning while staging %s: %s", file, result.stderr.strip())
+                    elif "error:" in result.stderr.lower():
+                        raise GitError(f"Error staging {file}: {result.stderr.strip()}")
+                    else:
+                        logger.info("Git message while staging %s: %s", file, result.stderr.strip())
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr.strip() if e.stderr else str(e)
             raise GitError(f"Failed to stage files: {error_msg}")
@@ -170,12 +178,23 @@ class GitOperations:
                 text=True,
             )
             
+            # Check for warnings in the output
+            if result.stderr:
+                if "warning:" in result.stderr.lower():
+                    logger.warning("Git warning during commit: %s", result.stderr.strip())
+                else:
+                    logger.info("Git message during commit: %s", result.stderr.strip())
+            
             # Return True if commit was created successfully
-            return "nothing to commit" not in result.stdout.lower()
+            if "nothing to commit" in result.stdout.lower() or "nothing to commit" in result.stderr.lower():
+                logger.info("No changes to commit")
+                return False
+            return True
 
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr.strip() if e.stderr else str(e)
             if "nothing to commit" in error_msg.lower():
+                logger.info("No changes to commit")
                 return False
             raise GitError(f"Failed to create commit: {error_msg}")
         except GitError:

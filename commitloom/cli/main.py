@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Main CLI module for CommitLoom."""
 
-from typing import List, Dict
-from dotenv import load_dotenv
 import os
-from pathlib import Path
 import sys
 import subprocess
+import logging
+import argparse
+from pathlib import Path
+from typing import List, Dict
+from dotenv import load_dotenv
 
 # Load environment variables at module level
 env_path = Path(__file__).parent.parent.parent / '.env'
@@ -17,6 +19,17 @@ from ..core.analyzer import CommitAnalyzer, CommitAnalysis
 from ..services.ai_service import AIService, CommitSuggestion
 from ..config.settings import config
 from . import console
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s: %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 class CommitLoom:
     """Main application class."""
@@ -76,7 +89,7 @@ class CommitLoom:
         
         return batches
 
-    def run(self) -> None:
+    def run(self, auto_commit: bool = False, combine_commits: bool = False) -> None:
         """Run the main application logic."""
         try:
             console.print_info("Analyzing your changes...")
@@ -101,11 +114,12 @@ class CommitLoom:
             # Print warnings if any
             if analysis.warnings:
                 console.print_warnings(analysis)
+                if not auto_commit and not console.confirm_action("Continue despite warnings?"):
+                    console.print_info("Process cancelled. Please review your changes.")
+                    return
 
             # Si hay más archivos que el límite, iniciamos el proceso por lotes
             if len(changed_files) > config.max_files_threshold:
-                # Preguntar si queremos automatizar todo el proceso
-                auto_commit = console.confirm_action("Would you like to automate the entire process?")
                 batches = self.process_files_in_batches(changed_files, auto_commit)
                 
                 if not batches:
@@ -122,12 +136,11 @@ class CommitLoom:
                 
                 # Si no estamos en modo automático, preguntar cómo manejar los commits
                 if not auto_commit:
-                    if console.confirm_action("Would you like to create individual commits for each batch?"):
+                    if not combine_commits and console.confirm_action("Would you like to create individual commits for each batch?"):
                         for batch in batches:
                             self._create_individual_commit(batch)
                     else:
                         self._create_combined_commit(batches)
-                
             else:
                 # Process as single commit for small changes
                 suggestion, usage = self.ai_service.generate_commit_message(diff, changed_files)
@@ -135,7 +148,7 @@ class CommitLoom:
                 console.print_commit_message(self.ai_service.format_commit_message(suggestion))
                 console.print_token_usage(usage)
                 
-                if console.confirm_action("Create this commit?"):
+                if auto_commit or console.confirm_action("Create this commit?"):
                     try:
                         self.git.create_commit(
                             suggestion.title,
@@ -240,16 +253,48 @@ class CommitLoom:
             except Exception:
                 pass  # Ignore status check errors
 
-def main():
+def create_parser() -> argparse.ArgumentParser:
+    """Create the argument parser for the CLI."""
+    parser = argparse.ArgumentParser(
+        description="CommitLoom - Weave perfect git commits with AI-powered intelligence"
+    )
+    parser.add_argument(
+        "-y", "--yes",
+        action="store_true",
+        help="Auto-confirm all prompts (non-interactive mode)"
+    )
+    parser.add_argument(
+        "-c", "--combine",
+        action="store_true",
+        help="Combine all changes into a single commit"
+    )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Enable verbose logging"
+    )
+    return parser
+
+def main() -> None:
     """Main entry point for the CLI."""
     try:
+        parser = create_parser()
+        args = parser.parse_args()
+
+        # Configure verbose logging if requested
+        if args.verbose:
+            logging.getLogger().setLevel(logging.DEBUG)
+            logger.debug("Verbose logging enabled")
+
         app = CommitLoom()
-        app.run()
+        app.run(auto_commit=args.yes, combine_commits=args.combine)
     except KeyboardInterrupt:
         console.print_error("\nOperation cancelled by user.")
         sys.exit(1)
     except Exception as e:
         console.print_error(f"An error occurred: {str(e)}")
+        if args.verbose:
+            logger.exception("Detailed error information:")
         sys.exit(1)
 
 if __name__ == '__main__':

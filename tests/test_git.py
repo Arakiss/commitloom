@@ -128,14 +128,28 @@ def test_create_commit_success(mock_run, git_operations):
 @patch("subprocess.run")
 def test_create_commit_with_files(mock_run, git_operations):
     """Test commit creation with specific files."""
-    mock_run.return_value = MagicMock(returncode=0)
+    # Mock successful add and commit operations
+    mock_run.side_effect = [
+        # git add file1.py
+        MagicMock(returncode=0, stderr=""),
+        # git add file2.py
+        MagicMock(returncode=0, stderr=""),
+        # git commit
+        MagicMock(returncode=0, stdout="", stderr="")
+    ]
 
     result = git_operations.create_commit(
         "test: add new feature", "Detailed commit message", ["file1.py", "file2.py"]
     )
 
     assert result is True
-    assert mock_run.call_count == 4  # 1 reset + 2 adds + 1 commit
+    assert mock_run.call_count == 3  # 2 adds + 1 commit
+    
+    # Verify the correct commands were called
+    calls = mock_run.call_args_list
+    assert calls[0].args[0] == ["git", "add", "file1.py"]
+    assert calls[1].args[0] == ["git", "add", "file2.py"]
+    assert calls[2].args[0] == ["git", "commit", "-m", "test: add new feature", "-m", "Detailed commit message"]
 
 
 @patch("subprocess.run")
@@ -168,3 +182,75 @@ def test_reset_staged_changes_failure(mock_run, git_operations):
         git_operations.reset_staged_changes()
 
     assert "Failed to reset staged changes" in str(exc_info.value)
+
+
+@patch("subprocess.run")
+@patch("commitloom.core.git.logger")
+def test_stage_files_with_warning(mock_logger, mock_run, git_operations):
+    """Test handling of git warnings during staging."""
+    mock_run.return_value = MagicMock(
+        returncode=0,
+        stderr="warning: LF will be replaced by CRLF in file1.py"
+    )
+
+    git_operations.stage_files(["file1.py"])
+
+    # Verify warning was logged
+    mock_logger.warning.assert_called_once_with(
+        "Git warning while staging %s: %s",
+        "file1.py",
+        "warning: LF will be replaced by CRLF in file1.py"
+    )
+
+@patch("subprocess.run")
+@patch("commitloom.core.git.logger")
+def test_stage_files_with_info(mock_logger, mock_run, git_operations):
+    """Test handling of git info messages during staging."""
+    mock_run.return_value = MagicMock(
+        returncode=0,
+        stderr="Updating index"
+    )
+
+    git_operations.stage_files(["file1.py"])
+
+    # Verify info was logged
+    mock_logger.info.assert_called_once_with(
+        "Git message while staging %s: %s",
+        "file1.py",
+        "Updating index"
+    )
+
+@patch("subprocess.run")
+@patch("commitloom.core.git.logger")
+def test_create_commit_with_warning(mock_logger, mock_run, git_operations):
+    """Test handling of git warnings during commit."""
+    mock_run.return_value = MagicMock(
+        returncode=0,
+        stderr="warning: CRLF will be replaced by LF",
+        stdout=""
+    )
+
+    result = git_operations.create_commit("test", "message")
+
+    assert result is True
+    # Verify warning was logged
+    mock_logger.warning.assert_called_once_with(
+        "Git warning during commit: %s",
+        "warning: CRLF will be replaced by LF"
+    )
+
+@patch("subprocess.run")
+@patch("commitloom.core.git.logger")
+def test_create_commit_nothing_to_commit(mock_logger, mock_run, git_operations):
+    """Test handling of 'nothing to commit' message."""
+    mock_run.return_value = MagicMock(
+        returncode=0,
+        stderr="",
+        stdout="nothing to commit, working tree clean"
+    )
+
+    result = git_operations.create_commit("test", "message")
+
+    assert result is False
+    # Verify info was logged
+    mock_logger.info.assert_called_once_with("No changes to commit")

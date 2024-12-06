@@ -35,19 +35,75 @@ CommitLoom is an intelligent git assistant that helps you craft meaningful, stru
 
 ## 🚀 Quick Start
 
-Install CommitLoom via pip:
+1. Install CommitLoom via pip:
 
 ```bash
 pip install commitloom
 ```
 
-Use it to create your commits:
+2. Set up your OpenAI API key:
 
 ```bash
-loom
+export OPENAI_API_KEY=your-api-key
+# or create a .env file with OPENAI_API_KEY=your-api-key
 ```
 
-That's it! CommitLoom will analyze your staged changes and guide you through creating the perfect commit.
+3. Stage your changes with git:
+
+```bash
+git add .  # or stage specific files
+```
+
+4. Use CommitLoom to create your commit:
+
+```bash
+loom  # Interactive mode
+# or
+loom -y  # Non-interactive mode
+```
+
+## 📝 CLI Usage
+
+CommitLoom can be used in both interactive and non-interactive modes:
+
+```bash
+# Interactive mode (default)
+loom
+
+# Non-interactive mode (auto-confirm all prompts)
+loom -y
+
+# Combine all changes into a single commit
+loom -c
+
+# Enable verbose logging
+loom -v
+
+# Show help
+loom --help
+```
+
+### CLI Options
+
+- `-y, --yes`: Auto-confirm all prompts (non-interactive mode)
+- `-c, --combine`: Combine all changes into a single commit
+- `-v, --verbose`: Enable verbose logging
+- `-h, --help`: Show help message
+
+### Interactive Features
+
+- Analyzes staged changes and suggests commit messages
+- Handles large changes by splitting them into batches
+- Provides warnings for complex changes
+- Shows token usage and cost estimates
+- Allows choosing between individual or combined commits
+
+### Non-Interactive Features
+
+- Perfect for CI/CD pipelines
+- Automatically handles batching and commits
+- Provides clear error messages
+- Maintains high commit quality without user intervention
 
 ## 🎯 Why CommitLoom?
 
