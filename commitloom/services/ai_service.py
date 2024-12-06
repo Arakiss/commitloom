@@ -66,7 +66,7 @@ class AIService:
         formatted_message = commit_data.title + "\n\n"
         
         for category, content in commit_data.body.items():
-            formatted_message += f"{content['emoji']} {category}:\n"
+            formatted_message += f"{category}:\n"
             for change in content["changes"]:
                 formatted_message += f"- {change}\n"
             formatted_message += "\n"
@@ -97,7 +97,7 @@ You must respond ONLY with a valid JSON object in the following format:
 {{
     "title": "Your commit message title here",
     "body": {{
-        "Data Updates": {{
+        "📝 Data Updates": {{
             "emoji": "📝",
             "changes": [
                 "Updated binary files with new data",
@@ -125,14 +125,14 @@ You must respond ONLY with a valid JSON object in the following format:
 {{
     "title": "Your commit message title here",
     "body": {{
-        "Category1": {{
+        "🔧 Category1": {{
             "emoji": "🔧",
             "changes": [
                 "First change in category 1",
                 "Second change in category 1"
             ]
         }},
-        "Category2": {{
+        "✨ Category2": {{
             "emoji": "✨",
             "changes": [
                 "First change in category 2",
