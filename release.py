@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 # mypy: disable-error-code="union-attr"
 import argparse
+import json
+import os
 import re
 import subprocess
-import json
+import urllib.error
+import urllib.request
 from datetime import datetime
 from pathlib import Path
-from typing import Literal, Match, Optional, cast
-import urllib.request
-import urllib.error
-import os
+from typing import Literal
 
 VERSION_TYPES = Literal["major", "minor", "patch"]
 
@@ -27,12 +27,12 @@ def get_changelog_entry(version: str) -> str:
     changelog_path = Path("CHANGELOG.md")
     with open(changelog_path) as f:
         content = f.read()
-    
+
     pattern = rf"## \[{version}\].*?\n\n(.*?)(?=\n## \[|\Z)"
     match = re.search(pattern, content, re.DOTALL)
     if match is None:
         return ""
-    
+
     return match.group(1).strip()  # type: ignore[union-attr]
 
 def update_changelog(version: str) -> None:
@@ -100,13 +100,13 @@ def create_github_release(version: str, dry_run: bool = False) -> None:
                     headers=headers,
                     method="POST"
                 )
-                
+
                 with urllib.request.urlopen(request) as response:
                     if response.status == 201:
                         print(" Created GitHub Release")
                     else:
                         print(f"⚠️ GitHub Release creation returned status {response.status}")
-            
+
             except Exception as e:
                 print(f"⚠️ Could not create GitHub Release: {str(e)}")
                 print("You may need to set the GITHUB_TOKEN environment variable")
