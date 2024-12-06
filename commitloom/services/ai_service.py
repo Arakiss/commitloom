@@ -91,52 +91,63 @@ class AIService:
         # Check if we're dealing with binary files
         if diff.startswith("Binary files changed:"):
             return (
-                "Generate a structured commit message in JSON format for the following binary file changes:\n\n"
+                "Generate a structured commit message in JSON format for the following binary file changes.\n"
+                "The commit MUST follow conventional commits format with a gitemoji prefix.\n\n"
                 f"Files changed: {files_summary}\n\n"
                 f"{diff}\n\n"
                 "Requirements:\n"
-                "1. Title: Maximum 50 characters, starting with an appropriate "
-                "gitemoji (📝 for data files), followed by the semantic commit "
-                "type and a brief description.\n"
+                "1. Title: Maximum 50 characters, MUST start with an appropriate "
+                "gitemoji (e.g. 📝, ✨, 🐛), followed by the semantic commit "
+                "type (feat, fix, etc) and a brief description.\n"
                 "2. Body: Create a simple summary of the binary file changes.\n"
                 "3. Summary: A brief sentence describing the data updates.\n\n"
                 "Return the response in the following JSON format:\n"
                 "{\n"
-                '  "title": "string",\n'
+                '  "title": "✨ feat: example title",\n'
                 '  "body": {\n'
-                '    "category": {\n'
-                '      "changes": ["string"]\n'
+                '    "Changes": {\n'
+                '      "changes": [\n'
+                '        "✨ Added new feature X",\n'
+                '        "🔧 Updated configuration Y"\n'
+                "      ]\n"
                 "    }\n"
                 "  },\n"
-                '  "summary": "string"\n'
+                '  "summary": "This change implements feature X with updated configuration."\n'
                 "}"
             )
 
         return (
-            "Generate a structured commit message in JSON format for the following git diff, "
-            "following the semantic commit and gitemoji conventions:\n\n"
+            "Generate a structured commit message in JSON format for the following git diff.\n"
+            "The commit MUST follow conventional commits format with a gitemoji prefix.\n\n"
             f"Files changed: {files_summary}\n\n"
             "```\n"
             f"{diff}\n"
             "```\n\n"
             "Requirements:\n"
-            "1. Title: Maximum 50 characters, starting with an appropriate "
-            "gitemoji, followed by the semantic commit type and a brief "
-            "description.\n"
+            "1. Title: Maximum 50 characters, MUST start with an appropriate "
+            "gitemoji (e.g. 📝, ✨, 🐛), followed by the semantic commit "
+            "type (feat, fix, etc) and a brief description.\n"
             "2. Body: Organize changes into categories. Each category should "
-            "have an appropriate emoji and 2-3 bullet points summarizing key "
+            "have an appropriate emoji and bullet points summarizing key "
             "changes.\n"
-            "3. Summary: A brief sentence summarizing the overall impact of "
-            "the changes.\n\n"
+            "3. Summary: A brief sentence summarizing the overall impact.\n\n"
             "Return the response in the following JSON format:\n"
             "{\n"
-            '  "title": "string",\n'
+            '  "title": "✨ feat: example title",\n'
             '  "body": {\n'
-            '    "category": {\n'
-            '      "changes": ["string"]\n'
+            '    "Features": {\n'
+            '      "changes": [\n'
+            '        "✨ Added new feature X",\n'
+            '        "🔧 Updated configuration Y"\n'
+            "      ]\n"
+            "    },\n"
+            '    "Fixes": {\n'
+            '      "changes": [\n'
+            '        "🐛 Fixed issue Z"\n'
+            "      ]\n"
             "    }\n"
             "  },\n"
-            '  "summary": "string"\n'
+            '  "summary": "This change implements feature X with configuration updates and bug fixes."\n'
             "}"
         )
 
