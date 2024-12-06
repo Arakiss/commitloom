@@ -2,6 +2,14 @@
 
 > Weave perfect git commits with AI-powered intelligence
 
+[![PyPI version](https://badge.fury.io/py/commitloom.svg)](https://badge.fury.io/py/commitloom)
+[![Python Version](https://img.shields.io/pypi/pyversions/commitloom)](https://pypi.org/project/commitloom)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![codecov](https://codecov.io/github/Arakiss/commitloom/branch/main/graph/badge.svg?token=NH2X51V6IA)](https://codecov.io/github/Arakiss/commitloom)
+[![CI](https://github.com/Arakiss/commitloom/actions/workflows/ci.yml/badge.svg)](https://github.com/Arakiss/commitloom/actions/workflows/ci.yml)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
+
 CommitLoom is an intelligent git assistant I created to help developers craft meaningful, structured commits. Like a master weaver's loom, it brings together all the threads of your changes into beautiful, well-organized commits.
 
 ## 🎯 Why CommitLoom?
