@@ -168,13 +168,29 @@ class CommitLoom:
             try:
                 # Stage and commit the files
                 self.git.stage_files(files)
-                self.git.create_commit(
+                if not self.git.create_commit(
                     commit_data.title,
                     self.ai_service.format_commit_message(commit_data)
-                )
+                ):
+                    console.print_warning("No changes were committed. Files may already be committed.")
+                    return
                 console.print_success("Commit created successfully!")
             except GitError as e:
-                console.print_error(str(e))
+                console.print_error(f"Failed to create commit: {str(e)}")
+                # Show git status for debugging
+                try:
+                    status = subprocess.run(
+                        ["git", "status", "--short"],
+                        capture_output=True,
+                        text=True,
+                        check=True
+                    )
+                    if status.stdout:
+                        console.print_info("\nCurrent git status:")
+                        for line in status.stdout.splitlines():
+                            console.print_info(f"  {line}")
+                except Exception:
+                    pass  # Ignore status check errors
 
     def _create_combined_commit(self, batches: List[Dict]) -> None:
         """Create a combined commit from all batches."""
@@ -200,13 +216,29 @@ class CommitLoom:
         try:
             # Stage and commit all files
             self.git.stage_files(all_files)
-            self.git.create_commit(
+            if not self.git.create_commit(
                 combined_commit.title,
                 self.ai_service.format_commit_message(combined_commit)
-            )
+            ):
+                console.print_warning("No changes were committed. Files may already be committed.")
+                return
             console.print_success("Combined commit created successfully!")
         except GitError as e:
-            console.print_error(str(e))
+            console.print_error(f"Failed to create commit: {str(e)}")
+            # Show git status for debugging
+            try:
+                status = subprocess.run(
+                    ["git", "status", "--short"],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                if status.stdout:
+                    console.print_info("\nCurrent git status:")
+                    for line in status.stdout.splitlines():
+                        console.print_info(f"  {line}")
+            except Exception:
+                pass  # Ignore status check errors
 
 def main():
     """Main entry point for the CLI."""

@@ -138,14 +138,17 @@ class GitOperations:
         try:
             # Stage the specified files
             for file in files:
-                subprocess.run(
+                result = subprocess.run(
                     ["git", "add", file],
                     check=True,
                     capture_output=True,
                     text=True,
                 )
+                if result.stderr:
+                    raise GitError(f"Warning while staging {file}: {result.stderr.strip()}")
         except subprocess.CalledProcessError as e:
-            raise GitError(f"Failed to stage files: {e.stderr.strip()}")
+            error_msg = e.stderr.strip() if e.stderr else str(e)
+            raise GitError(f"Failed to stage files: {error_msg}")
 
     @staticmethod
     def create_commit(
@@ -171,9 +174,13 @@ class GitOperations:
             return "nothing to commit" not in result.stdout.lower()
 
         except subprocess.CalledProcessError as e:
-            if "nothing to commit" in e.stderr.lower():
+            error_msg = e.stderr.strip() if e.stderr else str(e)
+            if "nothing to commit" in error_msg.lower():
                 return False
-            raise GitError(f"Failed to create commit: {e.stderr.strip()}")
+            raise GitError(f"Failed to create commit: {error_msg}")
+        except GitError:
+            # Re-raise GitError without modification
+            raise
 
     @staticmethod
     def reset_staged_changes() -> None:
