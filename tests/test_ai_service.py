@@ -155,8 +155,8 @@ def test_format_commit_message(ai_service):
     commit_data = CommitSuggestion(
         title="✨ feat: new feature",
         body={
-            "Features": {"emoji": "✨", "changes": ["Change 1", "Change 2"]},
-            "Fixes": {"emoji": "🐛", "changes": ["Fix 1"]},
+            "✨ Features": {"emoji": "✨", "changes": ["Change 1", "Change 2"]},
+            "🐛 Fixes": {"emoji": "🐛", "changes": ["Fix 1"]},
         },
         summary="Added new features and fixed bugs",
     )

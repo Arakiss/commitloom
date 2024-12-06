@@ -99,9 +99,13 @@ def test_print_token_usage(mock_console):
     assert "Completion Tokens: 50" in call_args
     assert "Total Tokens: 150" in call_args
     assert "Cost Breakdown" in call_args
-    assert "Input Cost: €0.01000000" in call_args
-    assert "Output Cost: €0.02000000" in call_args
-    assert "Total Cost: €0.03000000" in call_args
+    # Check both human-readable and precise formats
+    assert "1.00¢ (cents)" in call_args  # Input cost
+    assert "(€0.01000000)" in call_args  # Input cost precise
+    assert "2.00¢ (cents)" in call_args  # Output cost
+    assert "(€0.02000000)" in call_args  # Output cost precise
+    assert "3.00¢ (cents)" in call_args  # Total cost
+    assert "(€0.03000000)" in call_args  # Total cost precise
 
 
 def test_print_commit_message(mock_console):
