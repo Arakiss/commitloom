@@ -109,9 +109,16 @@ class GitOperations:
                 return diff_message
 
             # For text files, proceed with normal diff
-            return subprocess.check_output(["git", "diff", "--staged", "--"]).decode(
-                "utf-8"
-            )
+            if files:
+                # Get diff only for specified files
+                file_paths = [f.path for f in files]
+                return subprocess.check_output(
+                    ["git", "diff", "--staged", "--"] + file_paths
+                ).decode("utf-8")
+            else:
+                return subprocess.check_output(
+                    ["git", "diff", "--staged", "--"]
+                ).decode("utf-8")
         except subprocess.CalledProcessError as e:
             raise GitError(f"Failed to get diff: {str(e)}")
 
@@ -125,46 +132,45 @@ class GitOperations:
         return f"{size:.2f} TB"
 
     @staticmethod
+    def stage_files(files: List[str]) -> None:
+        """Stage specific files for commit."""
+        try:
+            # First unstage everything
+            subprocess.run(["git", "reset"], check=True)
+            
+            # Then stage only the specified files
+            for file in files:
+                subprocess.run(
+                    ["git", "add", file],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+        except subprocess.CalledProcessError as e:
+            raise GitError(f"Failed to stage files: {str(e)}")
+
+    @staticmethod
     def create_commit(
-        title: str, message: str, files: Optional[List[str]] = None
+        title: str,
+        message: str,
+        files: Optional[List[str]] = None
     ) -> bool:
-        """
-        Create a git commit with the specified message.
-
-        Args:
-            title: The commit title
-            message: The detailed commit message
-            files: Optional list of specific files to commit
-
-        Returns:
-            bool: True if commit was successful, False otherwise
-        """
+        """Create a git commit with the specified message."""
         try:
             if files:
-                # Add specific files to the commit
-                for file in files:
-                    subprocess.run(
-                        ["git", "add", file],
-                        check=True,
-                        capture_output=True,
-                        text=True,
-                    )
-
-            # Create the commit
-            subprocess.run(
-                [
-                    "git",
-                    "commit",
-                    "-m",
-                    title,
-                    "-m",
-                    message,
-                ],
+                # Stage only the specified files
+                GitOperations.stage_files(files)
+            
+            # Create the commit with the staged changes
+            result = subprocess.run(
+                ["git", "commit", "-m", title, "-m", message],
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            return True
+            
+            # Return True if commit was created successfully
+            return "nothing to commit" not in result.stdout.lower()
 
         except subprocess.CalledProcessError as e:
             raise GitError(f"Failed to create commit: {str(e)}")
@@ -176,3 +182,29 @@ class GitOperations:
             subprocess.run(["git", "reset"], check=True)
         except subprocess.CalledProcessError as e:
             raise GitError(f"Failed to reset staged changes: {str(e)}")
+
+    @staticmethod
+    def stash_changes() -> None:
+        """Stash any uncommitted changes."""
+        try:
+            subprocess.run(["git", "stash", "-u"], check=True)
+        except subprocess.CalledProcessError as e:
+            raise GitError(f"Failed to stash changes: {str(e)}")
+
+    @staticmethod
+    def pop_stashed_changes() -> None:
+        """Pop the most recent stashed changes."""
+        try:
+            subprocess.run(["git", "stash", "pop"], check=True)
+        except subprocess.CalledProcessError as e:
+            raise GitError(f"Failed to pop stashed changes: {str(e)}")
+
+    @staticmethod
+    def get_staged_files() -> List[str]:
+        """Get list of currently staged files."""
+        try:
+            return subprocess.check_output(
+                ["git", "diff", "--staged", "--name-only"]
+            ).decode().splitlines()
+        except subprocess.CalledProcessError as e:
+            raise GitError(f"Failed to get staged files: {str(e)}")

@@ -163,16 +163,27 @@ class CommitLoom:
         )
         
         if auto_confirm or console.confirm_action("Create this commit?"):
-            self.git.reset_staged_changes()
             try:
+                # Stash any changes that aren't part of this batch
+                self.git.stash_changes()
+                
+                # Stage and commit only the files for this batch
+                self.git.stage_files(files)
                 self.git.create_commit(
                     commit_data.title,
-                    self.ai_service.format_commit_message(commit_data),
-                    files
+                    self.ai_service.format_commit_message(commit_data)
                 )
                 console.print_success("Commit created successfully!")
+                
+                # Restore any stashed changes
+                self.git.pop_stashed_changes()
             except GitError as e:
                 console.print_error(str(e))
+                # Try to restore stashed changes even if commit failed
+                try:
+                    self.git.pop_stashed_changes()
+                except GitError:
+                    pass
 
     def _create_combined_commit(self, batches: List[Dict]) -> None:
         """Create a combined commit from all batches."""
