@@ -131,17 +131,13 @@ def test_create_commit_with_files(mock_run, git_operations):
     # Mock successful status, add and commit operations
     mock_run.side_effect = [
         # git status call
-        MagicMock(
-            stdout=" M file1.py\n M file2.py\n",
-            stderr="",
-            returncode=0
-        ),
+        MagicMock(stdout=" M file1.py\n M file2.py\n", stderr="", returncode=0),
         # git add file1.py
         MagicMock(returncode=0, stderr=""),
         # git add file2.py
         MagicMock(returncode=0, stderr=""),
         # git commit
-        MagicMock(returncode=0, stdout="", stderr="")
+        MagicMock(returncode=0, stdout="", stderr=""),
     ]
 
     result = git_operations.create_commit(
@@ -190,16 +186,11 @@ def test_stage_files_with_warning(mock_logger, mock_run, git_operations):
     """Test handling of git warnings during staging."""
     mock_run.side_effect = [
         # git status call
-        MagicMock(
-            stdout=" M file1.py\n",
-            stderr="",
-            returncode=0
-        ),
+        MagicMock(stdout=" M file1.py\n", stderr="", returncode=0),
         # git add call
         MagicMock(
-            returncode=0,
-            stderr="warning: LF will be replaced by CRLF in file1.py"
-        )
+            returncode=0, stderr="warning: LF will be replaced by CRLF in file1.py"
+        ),
     ]
 
     git_operations.stage_files(["file1.py"])
@@ -208,8 +199,9 @@ def test_stage_files_with_warning(mock_logger, mock_run, git_operations):
     mock_logger.warning.assert_called_once_with(
         "Git warning while staging %s: %s",
         "file1.py",
-        "warning: LF will be replaced by CRLF in file1.py"
+        "warning: LF will be replaced by CRLF in file1.py",
     )
+
 
 @patch("subprocess.run")
 @patch("commitloom.core.git.logger")
@@ -217,35 +209,25 @@ def test_stage_files_with_info(mock_logger, mock_run, git_operations):
     """Test handling of git info messages during staging."""
     mock_run.side_effect = [
         # git status call
-        MagicMock(
-            stdout=" M file1.py\n",
-            stderr="",
-            returncode=0
-        ),
+        MagicMock(stdout=" M file1.py\n", stderr="", returncode=0),
         # git add call
-        MagicMock(
-            returncode=0,
-            stderr="Updating index"
-        )
+        MagicMock(returncode=0, stderr="Updating index"),
     ]
 
     git_operations.stage_files(["file1.py"])
 
     # Verify info was logged
     mock_logger.info.assert_called_once_with(
-        "Git message while staging %s: %s",
-        "file1.py",
-        "Updating index"
+        "Git message while staging %s: %s", "file1.py", "Updating index"
     )
+
 
 @patch("subprocess.run")
 @patch("commitloom.core.git.logger")
 def test_create_commit_with_warning(mock_logger, mock_run, git_operations):
     """Test handling of git warnings during commit."""
     mock_run.return_value = MagicMock(
-        returncode=0,
-        stderr="warning: CRLF will be replaced by LF",
-        stdout=""
+        returncode=0, stderr="warning: CRLF will be replaced by LF", stdout=""
     )
 
     result = git_operations.create_commit("test", "message")
@@ -253,18 +235,16 @@ def test_create_commit_with_warning(mock_logger, mock_run, git_operations):
     assert result is True
     # Verify warning was logged
     mock_logger.warning.assert_called_once_with(
-        "Git warning during commit: %s",
-        "warning: CRLF will be replaced by LF"
+        "Git warning during commit: %s", "warning: CRLF will be replaced by LF"
     )
+
 
 @patch("subprocess.run")
 @patch("commitloom.core.git.logger")
 def test_create_commit_nothing_to_commit(mock_logger, mock_run, git_operations):
     """Test handling of 'nothing to commit' message."""
     mock_run.return_value = MagicMock(
-        returncode=0,
-        stderr="",
-        stdout="nothing to commit, working tree clean"
+        returncode=0, stderr="", stdout="nothing to commit, working tree clean"
     )
 
     result = git_operations.create_commit("test", "message")
@@ -273,66 +253,45 @@ def test_create_commit_nothing_to_commit(mock_logger, mock_run, git_operations):
     # Verify info was logged
     mock_logger.info.assert_called_once_with("No changes to commit")
 
+
 @patch("subprocess.run")
 def test_stage_deleted_files(mock_run):
     """Test staging deleted files."""
     # Mock git status to show a deleted file
     mock_run.side_effect = [
         # git status call
-        MagicMock(
-            stdout=" D file1.txt\n M file2.txt\n",
-            stderr="",
-            returncode=0
-        ),
+        MagicMock(stdout=" D file1.txt\n M file2.txt\n", stderr="", returncode=0),
         # git rm call for deleted file
         MagicMock(stdout="", stderr="", returncode=0),
         # git add call for modified file
-        MagicMock(stdout="", stderr="", returncode=0)
+        MagicMock(stdout="", stderr="", returncode=0),
     ]
-    
+
     GitOperations.stage_files(["file1.txt", "file2.txt"])
-    
+
     # Verify correct commands were called
     assert mock_run.call_args_list == [
         call(
-            ["git", "status", "--porcelain"],
-            check=True,
-            capture_output=True,
-            text=True
+            ["git", "status", "--porcelain"], check=True, capture_output=True, text=True
         ),
-        call(
-            ["git", "rm", "file1.txt"],
-            check=True,
-            capture_output=True,
-            text=True
-        ),
-        call(
-            ["git", "add", "file2.txt"],
-            check=True,
-            capture_output=True,
-            text=True
-        )
+        call(["git", "rm", "file1.txt"], check=True, capture_output=True, text=True),
+        call(["git", "add", "file2.txt"], check=True, capture_output=True, text=True),
     ]
+
 
 @patch("subprocess.run")
 def test_stage_nonexistent_file(mock_run):
     """Test staging a file that doesn't exist in git status."""
     # Mock git status with no files
-    mock_run.return_value = MagicMock(
-        stdout="",
-        stderr="",
-        returncode=0
-    )
-    
+    mock_run.return_value = MagicMock(stdout="", stderr="", returncode=0)
+
     GitOperations.stage_files(["nonexistent.txt"])
-    
+
     # Verify only status was checked
     mock_run.assert_called_once_with(
-        ["git", "status", "--porcelain"],
-        check=True,
-        capture_output=True,
-        text=True
+        ["git", "status", "--porcelain"], check=True, capture_output=True, text=True
     )
+
 
 @patch("subprocess.run")
 def test_get_changed_files_error(mock_run, git_operations):
@@ -340,9 +299,10 @@ def test_get_changed_files_error(mock_run, git_operations):
     mock_run.side_effect = subprocess.CalledProcessError(
         1, "git diff", stderr=b"fatal: not a git repository"
     )
-    
+
     with pytest.raises(GitError, match="Failed to get changed files"):
         git_operations.get_changed_files()
+
 
 @patch("subprocess.run")
 def test_get_changed_files_binary(mock_run, git_operations):
@@ -354,33 +314,31 @@ def test_get_changed_files_binary(mock_run, git_operations):
         # ls-files call fails
         subprocess.CalledProcessError(128, "git ls-files", stderr=b"error"),
         # cat-file call fails
-        subprocess.CalledProcessError(128, "git cat-file", stderr=b"error")
+        subprocess.CalledProcessError(128, "git cat-file", stderr=b"error"),
     ]
-    
+
     files = git_operations.get_changed_files()
     assert len(files) == 1
     assert files[0].path == "binary.bin"
     assert files[0].size is None
     assert files[0].hash is None
 
+
 @patch("subprocess.run")
 def test_stage_files_error(mock_run, git_operations):
     """Test error handling in stage_files."""
     mock_run.side_effect = [
         # git status call
-        MagicMock(
-            stdout=" M file1.py\n",
-            stderr="",
-            returncode=0
-        ),
+        MagicMock(stdout=" M file1.py\n", stderr="", returncode=0),
         # git add call fails
         subprocess.CalledProcessError(
             128, "git add", stderr=b"fatal: pathspec 'file1.py' did not match any files"
-        )
+        ),
     ]
-    
+
     with pytest.raises(GitError, match="Error staging file1.py"):
         git_operations.stage_files(["file1.py"])
+
 
 @patch("subprocess.run")
 def test_create_commit_nothing_to_commit(mock_run, git_operations):
@@ -391,23 +349,22 @@ def test_create_commit_nothing_to_commit(mock_run, git_operations):
         # git commit call
         subprocess.CalledProcessError(
             1, "git commit", stderr=b"nothing to commit, working tree clean"
-        )
+        ),
     ]
-    
+
     result = git_operations.create_commit("test", "message")
     assert result is False
+
 
 @patch("subprocess.run")
 def test_reset_staged_changes(mock_run, git_operations):
     """Test resetting staged changes."""
     mock_run.return_value = MagicMock(returncode=0)
-    
+
     git_operations.reset_staged_changes()
-    
-    mock_run.assert_called_once_with(
-        ["git", "reset"],
-        check=True
-    )
+
+    mock_run.assert_called_once_with(["git", "reset"], check=True)
+
 
 @patch("subprocess.run")
 def test_reset_staged_changes_error(mock_run, git_operations):
@@ -415,23 +372,22 @@ def test_reset_staged_changes_error(mock_run, git_operations):
     mock_run.side_effect = subprocess.CalledProcessError(
         1, "git reset", stderr=b"fatal: not a git repository"
     )
-    
+
     with pytest.raises(GitError, match="Failed to reset staged changes"):
         git_operations.reset_staged_changes()
+
 
 @patch("subprocess.run")
 def test_stash_changes(mock_run, git_operations):
     """Test stashing changes."""
     mock_run.return_value = MagicMock(returncode=0)
-    
+
     git_operations.stash_changes()
-    
+
     mock_run.assert_called_once_with(
-        ["git", "stash", "-u"],
-        check=True,
-        capture_output=True,
-        text=True
+        ["git", "stash", "-u"], check=True, capture_output=True, text=True
     )
+
 
 @patch("subprocess.run")
 def test_stash_changes_error(mock_run, git_operations):
@@ -439,23 +395,22 @@ def test_stash_changes_error(mock_run, git_operations):
     mock_run.side_effect = subprocess.CalledProcessError(
         1, "git stash", stderr=b"fatal: not a git repository"
     )
-    
+
     with pytest.raises(GitError, match="Failed to stash changes"):
         git_operations.stash_changes()
+
 
 @patch("subprocess.run")
 def test_pop_stashed_changes(mock_run, git_operations):
     """Test popping stashed changes."""
     mock_run.return_value = MagicMock(returncode=0)
-    
+
     git_operations.pop_stashed_changes()
-    
+
     mock_run.assert_called_once_with(
-        ["git", "stash", "pop"],
-        check=True,
-        capture_output=True,
-        text=True
+        ["git", "stash", "pop"], check=True, capture_output=True, text=True
     )
+
 
 @patch("subprocess.run")
 def test_pop_stashed_changes_no_stash(mock_run, git_operations):
@@ -463,9 +418,10 @@ def test_pop_stashed_changes_no_stash(mock_run, git_operations):
     mock_run.side_effect = subprocess.CalledProcessError(
         1, "git stash pop", stderr=b"No stash entries found."
     )
-    
+
     # Should not raise an error
     git_operations.pop_stashed_changes()
+
 
 @patch("subprocess.run")
 def test_pop_stashed_changes_error(mock_run, git_operations):
@@ -473,6 +429,6 @@ def test_pop_stashed_changes_error(mock_run, git_operations):
     mock_run.side_effect = subprocess.CalledProcessError(
         1, "git stash pop", stderr=b"fatal: not a git repository"
     )
-    
+
     with pytest.raises(GitError, match="Failed to pop stashed changes"):
         git_operations.pop_stashed_changes()

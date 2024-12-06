@@ -70,7 +70,7 @@ def test_process_files_in_batches_multiple_batches(mock_confirm, commit_loom):
         MagicMock(),
     )
     mock_confirm.return_value = True
-    
+
     # Set max_files_threshold to 5 to force multiple batches
     commit_loom.analyzer.config.max_files_threshold = 5
 
@@ -102,7 +102,7 @@ First summary Second summary"""
                 title="feat: first change",
                 body={"Features": {"emoji": "✨", "changes": ["Change 1"]}},
                 summary="First summary",
-            )
+            ),
         },
         {
             "files": [GitFile(path="file2.py")],
@@ -110,7 +110,7 @@ First summary Second summary"""
                 title="fix: second change",
                 body={"Fixes": {"emoji": "🐛", "changes": ["Fix 1"]}},
                 summary="Second summary",
-            )
+            ),
         },
     ]
 
@@ -119,14 +119,14 @@ First summary Second summary"""
     # Verify that git.create_commit was called with the correct arguments
     commit_loom.git.create_commit.assert_called_once()
     args = commit_loom.git.create_commit.call_args[0]
-    
+
     assert args[0] == "📦 chore: combine multiple changes"
     assert "Features" in args[1]
     assert "Fixes" in args[1]
     assert "Change 1" in args[1]
     assert "Fix 1" in args[1]
     assert "First summary Second summary" in args[1]
-    
+
     # Verify success message was printed
     mock_print_success.assert_called_once_with("Combined commit created successfully!")
 
@@ -198,10 +198,12 @@ def test_run_with_warnings(mock_console, commit_loom):
     commit_loom.run()
 
     # Verify all expected messages were printed
-    mock_console.print_info.assert_has_calls([
-        call("Analyzing your changes..."),
-        call("Process cancelled. Please review your changes.")
-    ])
+    mock_console.print_info.assert_has_calls(
+        [
+            call("Analyzing your changes..."),
+            call("Process cancelled. Please review your changes."),
+        ]
+    )
     mock_console.print_warnings.assert_called_once()
 
 
@@ -235,10 +237,9 @@ def test_run_with_warnings_continue(mock_console, commit_loom):
 
     # Verify expected messages and actions
     mock_console.print_warnings.assert_called_once()
-    mock_console.print_info.assert_has_calls([
-        call("Analyzing your changes..."),
-        call("\nGenerated Commit Message:")
-    ])
+    mock_console.print_info.assert_has_calls(
+        [call("Analyzing your changes..."), call("\nGenerated Commit Message:")]
+    )
     commit_loom.git.create_commit.assert_called_once()
 
 
@@ -292,7 +293,7 @@ def test_batch_processing(mock_console, commit_loom):
     # Setup test data with more files than threshold
     files = [GitFile(path=f"test{i}.py") for i in range(6)]  # 6 files
     commit_loom.analyzer.config.max_files_threshold = 5  # Set threshold to 5
-    
+
     commit_loom.git.get_changed_files.return_value = files
     commit_loom.git.get_diff.return_value = "test diff"
     commit_loom.analyzer.analyze_diff_complexity.return_value = CommitAnalysis(
@@ -302,7 +303,7 @@ def test_batch_processing(mock_console, commit_loom):
         warnings=[],
         is_complex=False,
     )
-    
+
     # Mock AI service responses for each batch
     commit_loom.ai_service.generate_commit_message.return_value = (
         CommitSuggestion(
@@ -312,16 +313,17 @@ def test_batch_processing(mock_console, commit_loom):
         ),
         MagicMock(),
     )
-    
+
     # User confirms individual commits
     mock_console.confirm_action.side_effect = [True, True, True]
     mock_console.confirm_batch_continue.return_value = True
-    
+
     commit_loom.run()
-    
+
     # Verify batch processing occurred
     assert mock_console.print_batch_info.call_count > 0
     assert commit_loom.git.create_commit.call_count > 0
+
 
 @patch("commitloom.cli.main.console")
 def test_combined_commits(mock_console, commit_loom):
@@ -329,7 +331,7 @@ def test_combined_commits(mock_console, commit_loom):
     # Setup test data with more files than threshold
     files = [GitFile(path=f"test{i}.py") for i in range(6)]
     commit_loom.analyzer.config.max_files_threshold = 5
-    
+
     commit_loom.git.get_changed_files.return_value = files
     commit_loom.git.get_diff.return_value = "test diff"
     commit_loom.analyzer.analyze_diff_complexity.return_value = CommitAnalysis(
@@ -339,7 +341,7 @@ def test_combined_commits(mock_console, commit_loom):
         warnings=[],
         is_complex=False,
     )
-    
+
     # Mock AI service responses for batches
     commit_loom.ai_service.generate_commit_message.return_value = (
         CommitSuggestion(
@@ -349,62 +351,72 @@ def test_combined_commits(mock_console, commit_loom):
         ),
         MagicMock(),
     )
-    
+
     # User chooses to combine commits
-    mock_console.confirm_action.side_effect = [True, False, True]  # Continue, Don't create individual, Create combined
+    mock_console.confirm_action.side_effect = [
+        True,
+        False,
+        True,
+    ]  # Continue, Don't create individual, Create combined
     mock_console.confirm_batch_continue.return_value = True
-    
+
     # Run with combine_commits=True to force combined commit
     commit_loom.run(combine_commits=True)
-    
+
     # Verify only one combined commit was created
     commit_loom.git.create_commit.assert_called_once()
-    assert commit_loom.git.create_commit.call_args[0][0] == "📦 chore: combine multiple changes"
+    assert (
+        commit_loom.git.create_commit.call_args[0][0]
+        == "📦 chore: combine multiple changes"
+    )
+
 
 def test_cli_arguments():
     """Test CLI argument parsing."""
     parser = create_parser()
-    
+
     # Test default values
     args = parser.parse_args([])
     assert not args.yes
     assert not args.combine
     assert not args.verbose
-    
+
     # Test setting all flags
     args = parser.parse_args(["-y", "-c", "-v"])
     assert args.yes
     assert args.combine
     assert args.verbose
-    
+
     # Test long form arguments
     args = parser.parse_args(["--yes", "--combine", "--verbose"])
     assert args.yes
     assert args.combine
     assert args.verbose
 
+
 @patch("commitloom.cli.main.console")
 @patch("commitloom.cli.main.CommitLoom")
 def test_main_keyboard_interrupt(mock_commit_loom, mock_console):
     """Test handling of KeyboardInterrupt in main."""
     mock_commit_loom.return_value.run.side_effect = KeyboardInterrupt()
-    
+
     with pytest.raises(SystemExit) as exc_info:
         main()
-    
+
     assert exc_info.value.code == 1
     mock_console.print_error.assert_called_with("\nOperation cancelled by user.")
+
 
 @patch("commitloom.cli.main.console")
 @patch("commitloom.cli.main.CommitLoom")
 def test_main_exception_verbose(mock_commit_loom, mock_console):
     """Test handling of exceptions in main with verbose logging."""
     mock_commit_loom.return_value.run.side_effect = Exception("Test error")
-    
+
     # Mock sys.argv to include verbose flag
-    with patch.object(sys, 'argv', ['commitloom', '-v']):
+    with patch.object(sys, "argv", ["commitloom", "-v"]):
         with pytest.raises(SystemExit) as exc_info:
             main()
-    
+
     assert exc_info.value.code == 1
     mock_console.print_error.assert_called_with("An error occurred: Test error")

@@ -12,6 +12,7 @@ from ..config.settings import config
 # Configure logger
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class GitFile:
     """Represents a git file with its metadata."""
@@ -146,18 +147,15 @@ class GitOperations:
                 capture_output=True,
                 text=True,
             ).stdout.splitlines()
-            
+
             # Create a map of file statuses
-            file_statuses = {
-                line[3:]: line[:2].strip() 
-                for line in status
-            }
-            
+            file_statuses = {line[3:]: line[:2].strip() for line in status}
+
             # Stage the specified files
             for file in files:
                 if file in file_statuses:
                     try:
-                        if file_statuses[file] == 'D':
+                        if file_statuses[file] == "D":
                             # For deleted files, use 'git rm'
                             result = subprocess.run(
                                 ["git", "rm", file],
@@ -173,28 +171,38 @@ class GitOperations:
                                 capture_output=True,
                                 text=True,
                             )
-                        
+
                         if result.stderr:
                             if "warning:" in result.stderr.lower():
-                                logger.warning("Git warning while staging %s: %s", file, result.stderr.strip())
+                                logger.warning(
+                                    "Git warning while staging %s: %s",
+                                    file,
+                                    result.stderr.strip(),
+                                )
                             elif "error:" in result.stderr.lower():
-                                raise GitError(f"Error staging {file}: {result.stderr.strip()}")
+                                raise GitError(
+                                    f"Error staging {file}: {result.stderr.strip()}"
+                                )
                             else:
-                                logger.info("Git message while staging %s: %s", file, result.stderr.strip())
+                                logger.info(
+                                    "Git message while staging %s: %s",
+                                    file,
+                                    result.stderr.strip(),
+                                )
                     except subprocess.CalledProcessError as e:
-                        raise GitError(f"Error staging {file}: {e.stderr.decode().strip()}")
+                        raise GitError(
+                            f"Error staging {file}: {e.stderr.decode().strip()}"
+                        )
                 else:
                     logger.warning("File not found in git status: %s", file)
-                    
+
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr.decode().strip() if e.stderr else str(e)
             raise GitError(f"Failed to stage files: {error_msg}")
 
     @staticmethod
     def create_commit(
-        title: str,
-        message: str,
-        files: Optional[List[str]] = None
+        title: str, message: str, files: Optional[List[str]] = None
     ) -> bool:
         """Create a git commit with the specified message."""
         try:
@@ -209,11 +217,11 @@ class GitOperations:
                     capture_output=True,
                     text=True,
                 )
-                
+
                 if "nothing to commit" in status.stdout.lower():
                     logger.info("No changes to commit")
                     return False
-            
+
             # Create the commit with the staged changes
             try:
                 result = subprocess.run(
@@ -222,14 +230,18 @@ class GitOperations:
                     capture_output=True,
                     text=True,
                 )
-                
+
                 # Check for warnings in the output
                 if result.stderr:
                     if "warning:" in result.stderr.lower():
-                        logger.warning("Git warning during commit: %s", result.stderr.strip())
+                        logger.warning(
+                            "Git warning during commit: %s", result.stderr.strip()
+                        )
                     else:
-                        logger.info("Git message during commit: %s", result.stderr.strip())
-                
+                        logger.info(
+                            "Git message during commit: %s", result.stderr.strip()
+                        )
+
                 return True
 
             except subprocess.CalledProcessError as e:
@@ -280,14 +292,18 @@ class GitOperations:
         except subprocess.CalledProcessError as e:
             if b"No stash entries found" in e.stderr:
                 return
-            raise GitError(f"Failed to pop stashed changes: {e.stderr.decode().strip()}")
+            raise GitError(
+                f"Failed to pop stashed changes: {e.stderr.decode().strip()}"
+            )
 
     @staticmethod
     def get_staged_files() -> List[str]:
         """Get list of currently staged files."""
         try:
-            return subprocess.check_output(
-                ["git", "diff", "--staged", "--name-only"]
-            ).decode().splitlines()
+            return (
+                subprocess.check_output(["git", "diff", "--staged", "--name-only"])
+                .decode()
+                .splitlines()
+            )
         except subprocess.CalledProcessError as e:
             raise GitError(f"Failed to get staged files: {str(e)}")

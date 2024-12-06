@@ -7,18 +7,22 @@ from dataclasses import dataclass
 from typing import List, Dict
 
 # Load environment variables at module level
-env_path = Path(__file__).parent.parent.parent / '.env'
+env_path = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
+
 
 @dataclass(frozen=True)
 class ModelCosts:
     """Cost configuration for AI models."""
+
     input: float
     output: float
+
 
 @dataclass(frozen=True)
 class Config:
     """Main configuration settings."""
+
     token_limit: int
     max_files_threshold: int
     cost_warning_threshold: float
@@ -79,6 +83,7 @@ class Config:
             },
             api_key=api_key,
         )
+
 
 # Global configuration instance
 config = Config.from_env()

@@ -4,7 +4,13 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.text import Text
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    TaskProgressColumn,
+)
 from typing import List, Optional
 
 from ..core.analyzer import CommitAnalysis, WarningLevel
@@ -13,6 +19,7 @@ from ..services.ai_service import TokenUsage
 from ..core.analyzer import CommitAnalyzer
 
 console = Console()
+
 
 def create_progress() -> Progress:
     """Create a progress bar with custom styling."""
@@ -24,11 +31,15 @@ def create_progress() -> Progress:
         console=console,
     )
 
+
 def print_changed_files(files: List[GitFile]) -> None:
     """Print list of changed files."""
-    console.print("\n[bold blue]📜 Changes detected in the following files:[/bold blue]")
+    console.print(
+        "\n[bold blue]📜 Changes detected in the following files:[/bold blue]"
+    )
     for file in files:
         console.print(f"  - [cyan]{file.path}[/cyan]")
+
 
 def print_warnings(analysis: CommitAnalysis) -> None:
     """Print analysis warnings."""
@@ -45,16 +56,23 @@ def print_warnings(analysis: CommitAnalysis) -> None:
     console.print(f"  • Estimated cost: €{analysis.estimated_cost:.4f}")
     console.print(f"  • Files changed: {analysis.num_files}")
 
+
 def print_batch_start(batch_num: int, total_batches: int, files: List[GitFile]) -> None:
     """Print information about starting a new batch."""
-    console.print(f"\n[bold blue]📦 Processing Batch {batch_num}/{total_batches}[/bold blue]")
+    console.print(
+        f"\n[bold blue]📦 Processing Batch {batch_num}/{total_batches}[/bold blue]"
+    )
     console.print("[cyan]Files in this batch:[/cyan]")
     for file in files:
         console.print(f"  - [dim]{file.path}[/dim]")
 
+
 def print_batch_complete(batch_num: int, total_batches: int) -> None:
     """Print completion message for a batch."""
-    console.print(f"\n[bold green]✅ Batch {batch_num}/{total_batches} completed successfully[/bold green]")
+    console.print(
+        f"\n[bold green]✅ Batch {batch_num}/{total_batches} completed successfully[/bold green]"
+    )
+
 
 def print_batch_summary(total_files: int, total_batches: int) -> None:
     """Print summary of batch processing plan."""
@@ -63,11 +81,13 @@ def print_batch_summary(total_files: int, total_batches: int) -> None:
     console.print(f"  • Number of batches: [cyan]{total_batches}[/cyan]")
     console.print(f"  • Files per batch: [cyan]~{total_files // total_batches}[/cyan]")
 
+
 def format_cost(cost: float) -> str:
     """Format cost in both human-readable and precise formats."""
     human_cost = CommitAnalyzer.format_cost_for_humans(cost)
     precise_cost = f"(€{cost:.8f})"
     return f"{human_cost} {precise_cost}"
+
 
 def print_token_usage(usage: TokenUsage, batch_num: Optional[int] = None) -> None:
     """Print token usage summary."""
@@ -86,9 +106,11 @@ def print_token_usage(usage: TokenUsage, batch_num: Optional[int] = None) -> Non
 """
     )
 
+
 def print_commit_message(message: str) -> None:
     """Print formatted commit message."""
     console.print(Panel(Text(message), expand=False, border_style="green"))
+
 
 def print_batch_info(batch_number: int, files: List[str]) -> None:
     """Print information about a batch of files."""
@@ -96,34 +118,41 @@ def print_batch_info(batch_number: int, files: List[str]) -> None:
     for file in files:
         console.print(f"  - [cyan]{file}[/cyan]")
 
+
 def confirm_action(prompt: str) -> bool:
     """Ask user to confirm an action."""
     return Confirm.ask(f"\n{prompt}")
+
 
 def confirm_batch_continue() -> bool:
     """Ask user if they want to continue with next batch."""
     return Confirm.ask("\n[bold yellow]🤔 Continue with next batch?[/bold yellow]")
 
+
 def select_commit_strategy() -> str:
     """Ask user how they want to handle multiple commits."""
-    console.print("\n[bold blue]🤔 How would you like to handle the commits?[/bold blue]")
-    return Prompt.ask(
-        "Choose strategy",
-        choices=["individual", "combined"],
-        default="individual"
+    console.print(
+        "\n[bold blue]🤔 How would you like to handle the commits?[/bold blue]"
     )
+    return Prompt.ask(
+        "Choose strategy", choices=["individual", "combined"], default="individual"
+    )
+
 
 def print_success(message: str) -> None:
     """Print success message."""
     console.print(f"\n[bold green]✅ {message}[/bold green]")
 
+
 def print_error(message: str) -> None:
     """Print error message."""
     console.print(f"\n[bold red]❌ {message}[/bold red]")
 
+
 def print_info(message: str) -> None:
     """Print info message."""
     console.print(f"\n[bold blue]ℹ️ {message}[/bold blue]")
+
 
 def print_warning(message: str) -> None:
     """Print warning message."""

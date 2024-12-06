@@ -64,7 +64,7 @@ class AIService:
     def format_commit_message(self, commit_data: CommitSuggestion) -> str:
         """Format a commit message from the suggestion data."""
         formatted_message = commit_data.title + "\n\n"
-        
+
         for category, content in commit_data.body.items():
             formatted_message += f"{category}:\n"
             for change in content["changes"]:
@@ -172,7 +172,9 @@ You must respond ONLY with a valid JSON object in the following format:
 
             if response.status_code == 400:
                 error_data = response.json()
-                error_message = error_data.get("error", {}).get("message", "Unknown error")
+                error_message = error_data.get("error", {}).get(
+                    "message", "Unknown error"
+                )
                 raise ValueError(f"API Error: {error_message}")
 
             response.raise_for_status()
