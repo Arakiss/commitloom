@@ -94,6 +94,8 @@ jobs:
           poetry run pip install -e .
         
       - name: Run tests
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           source .venv/bin/activate
           poetry run pytest --cov=commitloom --cov-report=xml
