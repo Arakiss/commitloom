@@ -2,17 +2,17 @@
 
 > Weave perfect git commits with AI-powered intelligence
 
-CommitLoom is an intelligent git assistant that helps you craft meaningful, structured commits. Like a master weaver's loom, it brings together all the threads of your changes into beautiful, well-organized commits.
+CommitLoom is an intelligent git assistant I created to help developers craft meaningful, structured commits. Like a master weaver's loom, it brings together all the threads of your changes into beautiful, well-organized commits.
 
 ## 🎯 Why CommitLoom?
 
-Managing git commits can be challenging:
+As a developer, I found that managing git commits was often challenging:
 - Writing clear, descriptive commit messages takes time
 - Large changes are hard to organize effectively
-- Maintaining consistency across a team is difficult
+- Maintaining consistency across projects is difficult
 - Binary files require special attention
 
-CommitLoom solves these challenges by:
+I built CommitLoom to solve these challenges by:
 - Automatically generating structured commit messages
 - Intelligently batching large changes
 - Ensuring consistent commit style
@@ -58,9 +58,9 @@ loom -y  # Non-interactive mode
 
 ## 📖 Project History
 
-CommitLoom evolved from a personal script that was being copied across different projects. Its predecessor, GitMuse, experimented with local models like Llama through Ollama, but the results weren't as consistent or high-quality as needed. The rise of cost-effective OpenAI models, particularly gpt-4o-mini, made it possible to create a more reliable and powerful tool.
+CommitLoom evolved from my personal script that I was tired of copying across different projects. Its predecessor, GitMuse, was my experiment with local models like Llama through Ollama, but I couldn't achieve the consistent, high-quality results I needed. The rise of cost-effective OpenAI models, particularly gpt-4o-mini, made it possible for me to create a more reliable and powerful tool.
 
-Key differences from GitMuse:
+Key improvements over GitMuse:
 - Uses OpenAI's models for superior commit message generation
 - More cost-effective with the new gpt-4o-mini model
 - Better structured for distribution and maintenance
@@ -101,11 +101,11 @@ You can change the model by setting the `MODEL_NAME` environment variable. The d
 
 ### Why the name "CommitLoom"?
 
-The name reflects the tool's ability to weave together different aspects of your changes into a coherent commit, like a loom weaving threads into fabric. It emphasizes both the craftsmanship aspect of good commits and the tool's ability to bring structure to complex changes.
+I chose the name to reflect the tool's ability to weave together different aspects of your changes into a coherent commit, like a loom weaving threads into fabric. It emphasizes both the craftsmanship aspect of good commits and the tool's ability to bring structure to complex changes.
 
 ### Why use OpenAI instead of local models?
 
-While local models like Llama are impressive, our experience with GitMuse showed that for specialized tasks like commit message generation, OpenAI's models provide superior results. With the introduction of cost-effective models like gpt-4o-mini, the benefits of cloud-based AI outweigh the advantages of local models for this specific use case.
+While local models like Llama are impressive, my experience with GitMuse showed that for specialized tasks like commit message generation, OpenAI's models provide superior results. With the introduction of cost-effective models like gpt-4o-mini, I found that the benefits of cloud-based AI outweigh the advantages of local models for this specific use case.
 
 ### How much will it cost to use CommitLoom?
 
@@ -142,11 +142,13 @@ CommitLoom automatically:
 
 ## 🤝 Contributing
 
-We welcome contributions! See our [Contributing Guidelines](CONTRIBUTING.md) for:
-- Setting up development
-- Running tests
-- Submitting PRs
-- Code style guidelines
+While I maintain this project personally, I welcome contributions! If you'd like to help improve CommitLoom, please:
+- Check the issues page for current tasks
+- Follow the code style guidelines
+- Add tests for new features
+- Update documentation as needed
+
+See the [Contributing Guidelines](CONTRIBUTING.md) for detailed instructions.
 
 ## 📜 License
 
@@ -154,4 +156,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-<p align="center">Crafted with 🧵 by developers, for developers</p>
+<p align="center">Crafted with 🧵 by <a href="https://github.com/yourusername">@yourusername</a></p>
