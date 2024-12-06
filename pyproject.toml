@@ -1,14 +1,28 @@
 [tool.poetry]
 name = "commitloom"
 version = "0.1.0"
-description = "Weave perfect git commits with AI-powered intelligence"
+description = "Weave perfect git commits with AI-powered intelligence. An intelligent CLI tool that uses OpenAI to generate meaningful, structured commit messages."
 authors = ["Petru Arakiss <petruarakiss@gmail.com>"]
 readme = "README.md"
 license = "MIT"
-homepage = "https://github.com/yourusername/commitloom"
-repository = "https://github.com/yourusername/commitloom"
-documentation = "https://github.com/yourusername/commitloom#readme"
-keywords = ["git", "commit", "ai", "openai", "cli"]
+homepage = "https://github.com/Arakiss/commitloom"
+repository = "https://github.com/Arakiss/commitloom"
+documentation = "https://github.com/Arakiss/commitloom#readme"
+keywords = [
+    "git",
+    "commit",
+    "ai",
+    "openai",
+    "cli",
+    "git-tools",
+    "commit-messages",
+    "developer-tools",
+    "automation",
+    "artificial-intelligence",
+    "gpt",
+    "semantic-commits",
+    "conventional-commits"
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -19,7 +33,17 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Topic :: Software Development :: Version Control :: Git",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Utilities",
+    "Typing :: Typed"
 ]
+packages = [
+    { include = "commitloom" }
+]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/Arakiss/commitloom/issues"
+"Changelog" = "https://github.com/Arakiss/commitloom/blob/main/CHANGELOG.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -33,6 +57,7 @@ pytest-asyncio = "^0.24.0"
 pytest-cov = "^6.0.0"
 ruff = "^0.1.6"
 mypy = "^1.7.1"
+pre-commit = "^3.6.2"
 
 [tool.poetry.scripts]
 loom = "commitloom.cli.main:main"
@@ -63,25 +88,16 @@ exclude_lines = [
 ]
 
 [tool.ruff]
-# Enable pycodestyle (`E`), Pyflakes (`F`), and import sorting (`I`)
 select = ["E", "F", "I", "N", "W", "C90", "B", "UP"]
 ignore = []
-
-# Same as Black.
 line-length = 88
 indent-width = 4
-
-# Assume Python 3.11
 target-version = "py311"
 
 [tool.ruff.format]
-# Use double quotes for strings.
 quote-style = "double"
-# Indent with spaces, rather than tabs.
 indent-style = "space"
-# Respect magic trailing commas.
 skip-magic-trailing-comma = false
-# Automatically detect the appropriate line ending.
 line-ending = "auto"
 
 [tool.ruff.isort]
