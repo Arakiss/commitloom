@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.0] - 2024-12-07
+
+
+### 📦 Build System
+- bump version to 0.7.0
+
+### 🔄 Other Changes
+- ✨ chore: update dependencies and improve code
+
 ## [0.6.0] - 2024-12-07
 
 
