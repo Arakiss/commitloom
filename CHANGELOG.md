@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.0] - 2024-12-07
+
+- 🔧 refactor: improve settings.py type hints
+
 ## [0.4.0] - 2024-12-07
 
 - 🔧 chore: improve configuration setup
