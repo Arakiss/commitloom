@@ -181,7 +181,13 @@ While local models like Llama are impressive, my experience with GitMuse showed 
 With the default gpt-4o-mini model, costs are very low:
 - Input: $0.15 per million tokens
 - Output: $0.60 per million tokens
-For perspective, a typical commit analysis might use 1000-2000 tokens, costing less than $0.002.
+
+For perspective, a typical commit analysis:
+- Uses ~1,000-2,000 tokens
+- Costs less than $0.002 (0.2 cents)
+- That's about 500 commits for $1
+
+This makes it one of the most cost-effective tools in its category, especially when compared to the time saved and quality of commit messages generated.
 
 ### Can I use CommitLoom in CI/CD pipelines?
 
