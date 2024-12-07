@@ -3,11 +3,11 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from dotenv import load_dotenv
 
-def find_env_file() -> Optional[Path]:
+
+def find_env_file() -> Path | None:
     """
     Search for .env file in multiple locations:
     1. Current working directory
@@ -19,7 +19,7 @@ def find_env_file() -> Optional[Path]:
         Path(__file__).parent.parent.parent / ".env",
         Path.home() / ".commitloom" / ".env"
     ]
-    
+
     for path in search_paths:
         if path.is_file():
             return path
@@ -56,16 +56,17 @@ class Config:
             os.getenv("OPENAI_API_KEY") or
             os.getenv("COMMITLOOM_API_KEY")
         )
-        
+
         if not api_key:
             config_file = Path.home() / ".commitloom" / "config"
             if config_file.exists():
-                with open(config_file, "r") as f:
+                with open(config_file) as f:
                     api_key = f.read().strip()
-        
+
         if not api_key:
             raise ValueError(
-                "API key not found. Please set it using one of these methods:\n"
+                "OPENAI_API_KEY environment variable is not set.\n\n"
+                "Please set it using one of these methods:\n"
                 "1. Set OPENAI_API_KEY environment variable\n"
                 "2. Set COMMITLOOM_API_KEY environment variable\n"
                 "3. Create a .env file in your project directory\n"
@@ -73,11 +74,28 @@ class Config:
                 "5. Store your API key in ~/.commitloom/config"
             )
 
+        token_limit = int(os.getenv(
+            "COMMITLOOM_TOKEN_LIMIT",
+            os.getenv("TOKEN_LIMIT", "120000")
+        ))
+        max_files = int(os.getenv(
+            "COMMITLOOM_MAX_FILES",
+            os.getenv("MAX_FILES_THRESHOLD", "5")
+        ))
+        cost_warning = float(os.getenv(
+            "COMMITLOOM_COST_WARNING",
+            os.getenv("COST_WARNING_THRESHOLD", "0.05")
+        ))
+        default_model = os.getenv(
+            "COMMITLOOM_MODEL",
+            os.getenv("MODEL_NAME", "gpt-4o-mini")
+        )
+
         return cls(
-            token_limit=int(os.getenv("COMMITLOOM_TOKEN_LIMIT", os.getenv("TOKEN_LIMIT", "120000"))),
-            max_files_threshold=int(os.getenv("COMMITLOOM_MAX_FILES", os.getenv("MAX_FILES_THRESHOLD", "5"))),
-            cost_warning_threshold=float(os.getenv("COMMITLOOM_COST_WARNING", os.getenv("COST_WARNING_THRESHOLD", "0.05"))),
-            default_model=os.getenv("COMMITLOOM_MODEL", os.getenv("MODEL_NAME", "gpt-4o-mini")),
+            token_limit=token_limit,
+            max_files_threshold=max_files,
+            cost_warning_threshold=cost_warning,
+            default_model=default_model,
             token_estimation_ratio=4,
             ignored_patterns=[
                 "bun.lockb",
