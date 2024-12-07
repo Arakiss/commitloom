@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.0] - 2024-12-07
+
+- 🔧 chore: improve configuration setup
+- 🔧 chore: update permissions for publishing
+
 ## [0.3.0] - 2024-12-06
 
 - 🔧 chore: clean up imports and format code
