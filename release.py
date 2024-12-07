@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime
 from pathlib import Path
-from typing import Literal, Dict, List
+from typing import Literal
 
 VERSION_TYPES = Literal["major", "minor", "patch"]
 
@@ -43,9 +43,9 @@ def parse_commit_message(commit: str) -> tuple[str, str]:
         return match.group(1), match.group(2)
     return "other", commit.strip()
 
-def categorize_commits(commits: List[str]) -> Dict[str, List[str]]:
+def categorize_commits(commits: list[str]) -> dict[str, list[str]]:
     """Categorize commits by type."""
-    categorized: Dict[str, List[str]] = {type_key: [] for type_key in COMMIT_TYPES}
+    categorized: dict[str, list[str]] = {type_key: [] for type_key in COMMIT_TYPES}
     categorized["other"] = []
 
     for commit in commits:

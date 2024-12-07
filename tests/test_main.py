@@ -358,3 +358,83 @@ def test_main_exception_verbose(mock_commit_loom, mock_console):
 
     assert exc_info.value.code == 1
     mock_console.print_error.assert_called_with("An error occurred: Test error")
+
+
+def test_process_files_in_batches_with_commit_error(commit_loom):
+    """Test handling of commit creation error."""
+    # Setup test data
+    files = [GitFile(path="file1.py")]
+    commit_loom.git.get_diff.return_value = "test diff"
+
+    # Mock token usage
+    token_usage_mock = MagicMock()
+    token_usage_mock.prompt_tokens = 100
+    token_usage_mock.completion_tokens = 50
+    token_usage_mock.total_tokens = 150
+    token_usage_mock.input_cost = 0.01
+    token_usage_mock.output_cost = 0.02
+    token_usage_mock.total_cost = 0.03
+
+    commit_loom.ai_service.generate_commit_message.return_value = (
+        CommitSuggestion(
+            title="test commit",
+            body={"Changes": {"emoji": "✨", "changes": ["test change"]}},
+            summary="test summary",
+        ),
+        token_usage_mock,
+    )
+
+    # Mock create_commit to return False (indicating no changes)
+    commit_loom.git.create_commit.return_value = False
+
+    result = commit_loom.process_files_in_batches(files, auto_commit=True)
+    assert len(result) == 0
+
+
+def test_process_files_in_batches_with_git_error(commit_loom):
+    """Test handling of git error during batch processing."""
+    # Setup test data
+    files = [GitFile(path="file1.py")]
+    commit_loom.git.stage_files.side_effect = GitError("Git error")
+
+    result = commit_loom.process_files_in_batches(files, auto_commit=True)
+    assert len(result) == 0
+
+
+@patch("commitloom.cli.console.confirm_action")
+def test_process_files_in_batches_user_cancel(mock_confirm, commit_loom):
+    """Test user cancellation during batch processing."""
+    # Setup test data
+    files = [GitFile(path="file1.py")]
+    commit_loom.git.get_diff.return_value = "test diff"
+
+    # Mock token usage
+    token_usage_mock = MagicMock()
+    token_usage_mock.prompt_tokens = 100
+    token_usage_mock.completion_tokens = 50
+    token_usage_mock.total_tokens = 150
+    token_usage_mock.input_cost = 0.01
+    token_usage_mock.output_cost = 0.02
+    token_usage_mock.total_cost = 0.03
+
+    commit_loom.ai_service.generate_commit_message.return_value = (
+        CommitSuggestion(
+            title="test commit",
+            body={"Changes": {"emoji": "✨", "changes": ["test change"]}},
+            summary="test summary",
+        ),
+        token_usage_mock,
+    )
+
+    # Mock user cancellation
+    mock_confirm.return_value = False
+
+    result = commit_loom.process_files_in_batches(files, auto_commit=False)
+    assert len(result) == 0
+    commit_loom.git.reset_staged_changes.assert_called_once()
+
+
+def test_process_files_in_batches_empty_input(commit_loom):
+    """Test processing with no files."""
+    result = commit_loom.process_files_in_batches([], auto_commit=True)
+    assert len(result) == 0

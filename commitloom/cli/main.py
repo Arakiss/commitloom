@@ -132,7 +132,7 @@ class CommitLoom:
             try:
                 # Stage files for this batch
                 self.git.stage_files([f.path for f in batch])
-                
+
                 # Get diff for batch
                 diff = self.git.get_diff(batch)
                 suggestion, usage = self.ai_service.generate_commit_message(diff, batch)
@@ -141,13 +141,17 @@ class CommitLoom:
                 console.print_commit_message(suggestion.format_body())
                 console.print_token_usage(usage)
 
-                if not auto_commit and not console.confirm_action("Create this batch commit?"):
+                if not auto_commit and not console.confirm_action(
+                    "Create this batch commit?"
+                ):
                     self.git.reset_staged_changes()
                     continue
 
                 # Create the commit
                 if not self.git.create_commit(suggestion.title, suggestion.format_body()):
-                    console.print_warning("No changes were committed. Files may already be committed.")
+                    console.print_warning(
+                        "No changes were committed. Files may already be committed."
+                    )
                     continue
 
                 processed_batches.append({"files": batch, "commit_data": suggestion})

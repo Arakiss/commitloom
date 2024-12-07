@@ -18,8 +18,10 @@ from rich.text import Text
 from ..core.analyzer import (
     CommitAnalysis,
     CommitAnalyzer,
-    Warning as AnalyzerWarning,
     WarningLevel,
+)
+from ..core.analyzer import (
+    Warning as AnalyzerWarning,
 )
 from ..core.git import GitFile
 from ..services.ai_service import TokenUsage
