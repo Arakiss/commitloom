@@ -77,18 +77,62 @@ Key improvements over GitMuse:
 
 ## ⚙️ Configuration
 
-Configure via environment variables or `.env` file:
+CommitLoom offers multiple ways to configure your API key and settings:
+
+### API Key Configuration
+
+You can set your API key using any of these methods (in order of precedence):
+
+1. Environment variables:
+
+```bash
+export OPENAI_API_KEY=your-api-key
+# or
+export COMMITLOOM_API_KEY=your-api-key
+```
+
+2. Project-level `.env` file:
 
 ```env
-# Required
 OPENAI_API_KEY=your-api-key
+# or
+COMMITLOOM_API_KEY=your-api-key
+```
 
-# Optional with defaults
+3. Global configuration file:
+
+```bash
+# Create global config directory
+mkdir -p ~/.commitloom
+# Store your API key
+echo "your-api-key" > ~/.commitloom/config
+```
+
+4. Global `.env` file in `~/.commitloom/.env`
+
+### Other Settings
+
+Configure additional settings via environment variables or `.env` files:
+
+```env
+# New environment variable names (recommended)
+COMMITLOOM_TOKEN_LIMIT=120000
+COMMITLOOM_MAX_FILES=5
+COMMITLOOM_COST_WARNING=0.05
+COMMITLOOM_MODEL=gpt-4o-mini
+
+# Legacy names (still supported)
 TOKEN_LIMIT=120000
 MAX_FILES_THRESHOLD=5
 COST_WARNING_THRESHOLD=0.05
-MODEL_NAME=gpt-4o-mini  # Default and most cost-effective model
+MODEL_NAME=gpt-4o-mini
 ```
+
+Configuration files are searched in this order:
+1. Current working directory `.env`
+2. Project root directory `.env`
+3. Global `~/.commitloom/.env`
+4. System environment variables
 
 ### 🤖 Model Configuration
 

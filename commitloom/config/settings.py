@@ -3,26 +3,42 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv
 
-# Load environment variables at module level
-env_path = Path(__file__).parent.parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
+def find_env_file() -> Optional[Path]:
+    """
+    Search for .env file in multiple locations:
+    1. Current working directory
+    2. Project root directory
+    3. User's home directory
+    """
+    search_paths = [
+        Path.cwd() / ".env",
+        Path(__file__).parent.parent.parent / ".env",
+        Path.home() / ".commitloom" / ".env"
+    ]
+    
+    for path in search_paths:
+        if path.is_file():
+            return path
+    return None
 
+# Try to load environment variables from the first .env file found
+env_file = find_env_file()
+if env_file:
+    load_dotenv(dotenv_path=env_file)
 
 @dataclass(frozen=True)
 class ModelCosts:
     """Cost configuration for AI models."""
-
     input: float
     output: float
-
 
 @dataclass(frozen=True)
 class Config:
     """Main configuration settings."""
-
     token_limit: int
     max_files_threshold: int
     cost_warning_threshold: float
@@ -35,15 +51,33 @@ class Config:
     @classmethod
     def from_env(cls) -> "Config":
         """Create configuration from environment variables."""
-        api_key = os.getenv("OPENAI_API_KEY")
+        # Try to get API key from multiple sources
+        api_key = (
+            os.getenv("OPENAI_API_KEY") or
+            os.getenv("COMMITLOOM_API_KEY")
+        )
+        
         if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is not set.")
+            config_file = Path.home() / ".commitloom" / "config"
+            if config_file.exists():
+                with open(config_file, "r") as f:
+                    api_key = f.read().strip()
+        
+        if not api_key:
+            raise ValueError(
+                "API key not found. Please set it using one of these methods:\n"
+                "1. Set OPENAI_API_KEY environment variable\n"
+                "2. Set COMMITLOOM_API_KEY environment variable\n"
+                "3. Create a .env file in your project directory\n"
+                "4. Create a .env file in ~/.commitloom/\n"
+                "5. Store your API key in ~/.commitloom/config"
+            )
 
         return cls(
-            token_limit=int(os.getenv("TOKEN_LIMIT", "120000")),
-            max_files_threshold=int(os.getenv("MAX_FILES_THRESHOLD", "5")),
-            cost_warning_threshold=float(os.getenv("COST_WARNING_THRESHOLD", "0.05")),
-            default_model=os.getenv("MODEL_NAME", "gpt-4o-mini"),
+            token_limit=int(os.getenv("COMMITLOOM_TOKEN_LIMIT", os.getenv("TOKEN_LIMIT", "120000"))),
+            max_files_threshold=int(os.getenv("COMMITLOOM_MAX_FILES", os.getenv("MAX_FILES_THRESHOLD", "5"))),
+            cost_warning_threshold=float(os.getenv("COMMITLOOM_COST_WARNING", os.getenv("COST_WARNING_THRESHOLD", "0.05"))),
+            default_model=os.getenv("COMMITLOOM_MODEL", os.getenv("MODEL_NAME", "gpt-4o-mini")),
             token_estimation_ratio=4,
             ignored_patterns=[
                 "bun.lockb",
@@ -83,7 +117,6 @@ class Config:
             },
             api_key=api_key,
         )
-
 
 # Global configuration instance
 config = Config.from_env()
