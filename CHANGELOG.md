@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.1] - 2024-12-07
+
+
+### 📦 Build System
+- bump version to 0.9.1
+
+### 🔄 Other Changes
+- 💡 docs: enhance README with cost analysis details
+- ✨ feat: add version verification step
+
 ## [0.9.0] - 2024-12-07
 
 
