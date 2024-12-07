@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.2] - 2024-12-08
+
+
+### 📦 Build System
+- bump version to 0.9.2
+
+### 🔄 Other Changes
+- 🔧 refactor: improve commit processing logic
+- ✨ feat: restructure CI workflow for publishing
+
 ## [0.9.1] - 2024-12-07
 
 
