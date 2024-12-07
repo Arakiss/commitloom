@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.0] - 2024-12-07
+
+
+### 📦 Build System
+- bump version to 0.9.0
+
+### 🔄 Other Changes
+- ✨ feat: add CLI command aliases and usage info
+
 ## [0.8.0] - 2024-12-07
 
 
