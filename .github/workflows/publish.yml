@@ -6,19 +6,22 @@ on:
 
 permissions:
   contents: write
-  packages: write
+  id-token: write  # Required for trusted publishing
 
 jobs:
-  publish:
-    name: Publish to PyPI
+  release-build:
+    name: Build Release
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      changelog: ${{ steps.changelog.outputs.changelog }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Fetch all history for changelog generation
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           
@@ -65,11 +68,29 @@ jobs:
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG_ENTRY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-          
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+  pypi-publish:
+    name: Publish to PyPI
+    needs: [release-build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
       - name: Publish to PyPI
-        env:
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
-        run: poetry publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
         
       - name: Update GitHub Release
         uses: softprops/action-gh-release@v1
@@ -78,14 +99,14 @@ jobs:
             dist/*.whl
             dist/*.tar.gz
           body: |
-            ${{ steps.changelog.outputs.changelog }}
+            ${{ needs.release-build.outputs.changelog }}
             
             ## Installation
             ```bash
-            pip install commitloom==${{ steps.version.outputs.version }}
+            pip install commitloom==${{ needs.release-build.outputs.version }}
             ```
             
             ## Documentation
-            For full documentation, visit: https://github.com/akkarinc/commitloom
+            For full documentation, visit: https://github.com/Arakiss/commitloom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
