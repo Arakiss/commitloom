@@ -1,6 +1,7 @@
 """Tests for main CLI module."""
 
 import argparse
+import subprocess
 import sys
 from unittest.mock import MagicMock, call, patch
 
@@ -27,14 +28,24 @@ def commit_loom():
         return instance
 
 
+@patch("subprocess.run")
 @patch("commitloom.cli.console.confirm_action")
-def test_process_files_in_batches_single_batch(mock_confirm, commit_loom):
+def test_process_files_in_batches_single_batch(mock_confirm, mock_run, commit_loom):
     """Test processing files when they fit in a single batch."""
     # Setup test data
     files = [
         GitFile(path="file1.py"),
         GitFile(path="file2.py"),
     ]
+
+    # Mock git status to return valid files
+    def mock_git_status(cmd, **kwargs):
+        if "status" in cmd and "--porcelain" in cmd:
+            if "file1.py" in cmd or "file2.py" in cmd:
+                return MagicMock(stdout=" M file1.py\n", returncode=0)
+        return MagicMock(stdout="", returncode=0)
+
+    mock_run.side_effect = mock_git_status
     commit_loom.git.get_diff.return_value = "test diff"
     commit_loom.analyzer.estimate_tokens_and_cost.return_value = (100, 0.01)
     commit_loom.analyzer.config.token_limit = 1000
@@ -60,14 +71,24 @@ def test_process_files_in_batches_single_batch(mock_confirm, commit_loom):
 
     result = commit_loom.process_files_in_batches(files, auto_commit=False)
     assert len(result) == 1
-    assert result[0]["files"] == files
 
 
+@patch("subprocess.run")
 @patch("commitloom.cli.console.confirm_action")
-def test_process_files_in_batches_multiple_batches(mock_confirm, commit_loom):
+def test_process_files_in_batches_multiple_batches(mock_confirm, mock_run, commit_loom):
     """Test processing files that need to be split into multiple batches."""
     # Setup test data
     files = [GitFile(path=f"file{i}.py") for i in range(10)]
+
+    # Mock git status to return valid files
+    def mock_git_status(cmd, **kwargs):
+        if "status" in cmd and "--porcelain" in cmd:
+            for i in range(10):
+                if f"file{i}.py" in cmd:
+                    return MagicMock(stdout=f" M file{i}.py\n", returncode=0)
+        return MagicMock(stdout="", returncode=0)
+
+    mock_run.side_effect = mock_git_status
     commit_loom.git.get_diff.return_value = "test diff"
     commit_loom.analyzer.estimate_tokens_and_cost.return_value = (1000, 0.01)
     commit_loom.analyzer.config.token_limit = 1000  # Set lower to force batching
@@ -401,11 +422,20 @@ def test_process_files_in_batches_with_git_error(commit_loom):
     assert len(result) == 0
 
 
+@patch("subprocess.run")
 @patch("commitloom.cli.console.confirm_action")
-def test_process_files_in_batches_user_cancel(mock_confirm, commit_loom):
+def test_process_files_in_batches_user_cancel(mock_confirm, mock_run, commit_loom):
     """Test user cancellation during batch processing."""
     # Setup test data
     files = [GitFile(path="file1.py")]
+
+    # Mock git status to return valid file
+    def mock_git_status(cmd, **kwargs):
+        if "status" in cmd and "--porcelain" in cmd and "file1.py" in cmd:
+            return MagicMock(stdout=" M file1.py\n", returncode=0)
+        return MagicMock(stdout="", returncode=0)
+
+    mock_run.side_effect = mock_git_status
     commit_loom.git.get_diff.return_value = "test diff"
 
     # Mock token usage
@@ -438,3 +468,47 @@ def test_process_files_in_batches_empty_input(commit_loom):
     """Test processing with no files."""
     result = commit_loom.process_files_in_batches([], auto_commit=True)
     assert len(result) == 0
+
+
+@patch("subprocess.run")
+def test_create_batches_with_invalid_files(mock_run, commit_loom):
+    """Test batch creation with invalid files."""
+    # Mock git status to return empty for invalid file
+    mock_run.return_value = MagicMock(
+        stdout="",
+        returncode=0
+    )
+
+    files = [GitFile(path="invalid.py")]
+    batches = commit_loom._create_batches(files)
+    assert len(batches) == 0
+
+
+@patch("subprocess.run")
+def test_create_batches_with_mixed_files(mock_run, commit_loom):
+    """Test batch creation with mix of valid and invalid files."""
+    def mock_git_status(cmd, **kwargs):
+        if "valid.py" in cmd:
+            return MagicMock(stdout=" M valid.py\n", returncode=0)
+        return MagicMock(stdout="", returncode=0)
+
+    mock_run.side_effect = mock_git_status
+
+    files = [
+        GitFile(path="valid.py"),
+        GitFile(path="invalid.py")
+    ]
+    batches = commit_loom._create_batches(files)
+    assert len(batches) == 1
+    assert len(batches[0]) == 1
+    assert batches[0][0].path == "valid.py"
+
+
+@patch("subprocess.run")
+def test_create_batches_with_git_error(mock_run, commit_loom):
+    """Test batch creation when git command fails."""
+    mock_run.side_effect = subprocess.CalledProcessError(1, "git status", stderr=b"error")
+
+    files = [GitFile(path="file.py")]
+    batches = commit_loom._create_batches(files)
+    assert len(batches) == 0

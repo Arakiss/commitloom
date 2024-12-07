@@ -4,6 +4,7 @@
 import argparse
 import logging
 import os
+import subprocess
 import sys
 
 from dotenv import load_dotenv
@@ -107,9 +108,32 @@ class CommitLoom:
         if not changed_files:
             return []
 
+        # Verify files exist in git status
+        valid_files = []
+        for file in changed_files:
+            try:
+                # Check if file exists in git status
+                status = subprocess.run(
+                    ["git", "status", "--porcelain", file.path],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout.strip()
+
+                if status:
+                    valid_files.append(file)
+                else:
+                    console.print_warning(f"File not found in git status: {file.path}")
+            except subprocess.CalledProcessError:
+                console.print_warning(f"File not found in git status: {file.path}")
+
+        if not valid_files:
+            return []
+
+        # Create batches from valid files
         batches = []
-        for i in range(0, len(changed_files), config.max_files_threshold):
-            batch = changed_files[i : i + config.max_files_threshold]
+        for i in range(0, len(valid_files), config.max_files_threshold):
+            batch = valid_files[i : i + config.max_files_threshold]
             batches.append(batch)
 
         return batches
@@ -120,6 +144,7 @@ class CommitLoom:
         """Process files in batches."""
         batches = self._create_batches(changed_files)
         if not batches:
+            console.print_warning("No valid files to process.")
             return []
 
         console.print_info("\nProcessing files in batches...")
