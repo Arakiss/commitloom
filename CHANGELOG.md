@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.0] - 2024-12-07
+
+
+### 📦 Build System
+- bump version to 0.6.0
+
+### 🔄 Other Changes
+- ✨ feat: enhance release management with categories
+- ✨ feat: stage files and commit improvements
+
 ## [0.5.0] - 2024-12-07
 
 - 🔧 refactor: improve settings.py type hints
