@@ -288,7 +288,8 @@ def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "CommitLoom - Weave perfect git commits with "
-            "AI-powered intelligence"
+            "AI-powered intelligence\n\n"
+            "This tool can be invoked using either 'loom' or 'cl' command."
         )
     )
     parser.add_argument(

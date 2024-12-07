@@ -326,6 +326,10 @@ def test_cli_arguments():
     """Test CLI argument parsing."""
     parser = create_parser()
 
+    # Test command names in help text
+    help_text = parser.format_help()
+    assert "loom" in help_text and "cl" in help_text, "Help text should mention both command names"
+
     # Test default values
     args = parser.parse_args([])
     assert not args.yes

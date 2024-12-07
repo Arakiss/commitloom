@@ -79,6 +79,23 @@ Key improvements over GitMuse:
 
 CommitLoom offers multiple ways to configure your API key and settings:
 
+### Command Usage
+
+CommitLoom can be invoked using either of these commands:
+
+```bash
+# Using the full name
+loom [options]
+
+# Using the short alias
+cl [options]
+```
+
+Both commands support the same options:
+- `-y, --yes`: Auto-confirm all prompts (non-interactive mode)
+- `-c, --combine`: Combine all changes into a single commit
+- `-v, --verbose`: Enable verbose logging
+
 ### API Key Configuration
 
 You can set your API key using any of these methods (in order of precedence):

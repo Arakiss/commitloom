@@ -42,12 +42,14 @@ requests = "^2.32.3"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
 pytest-cov = "^6.0.0"
+pytest-asyncio = "^0.23.8"
 ruff = "^0.1.6"
 mypy = "^1.7.1"
 types-requests = "^2.32.0"
 
 [tool.poetry.scripts]
 loom = "commitloom.cli.main:main"
+cl = "commitloom.cli.main:main"
 
 [build-system]
 requires = ["poetry-core"]
@@ -64,7 +66,6 @@ addopts = """
     --strict-config
 """
 asyncio_mode = "strict"
-asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
 source = ["commitloom"]
