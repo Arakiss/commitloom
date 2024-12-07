@@ -130,6 +130,9 @@ class CommitLoom:
             console.print_batch_start(i, len(batches), batch)
 
             try:
+                # Stage files for this batch
+                self.git.stage_files([f.path for f in batch])
+                
                 # Get diff for batch
                 diff = self.git.get_diff(batch)
                 suggestion, usage = self.ai_service.generate_commit_message(diff, batch)
@@ -139,6 +142,12 @@ class CommitLoom:
                 console.print_token_usage(usage)
 
                 if not auto_commit and not console.confirm_action("Create this batch commit?"):
+                    self.git.reset_staged_changes()
+                    continue
+
+                # Create the commit
+                if not self.git.create_commit(suggestion.title, suggestion.format_body()):
+                    console.print_warning("No changes were committed. Files may already be committed.")
                     continue
 
                 processed_batches.append({"files": batch, "commit_data": suggestion})
@@ -146,6 +155,7 @@ class CommitLoom:
 
             except (GitError, ValueError) as e:
                 console.print_error(f"Failed to process batch {i}: {str(e)}")
+                self.git.reset_staged_changes()
                 continue
 
         if not processed_batches:
