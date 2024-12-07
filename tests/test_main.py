@@ -41,14 +41,15 @@ def test_process_files_in_batches_single_batch(mock_confirm, mock_run, commit_lo
     # Mock git status to return valid files
     def mock_git_status(cmd, **kwargs):
         if "status" in cmd and "--porcelain" in cmd:
-            if "file1.py" in cmd or "file2.py" in cmd:
-                return MagicMock(stdout=" M file1.py\n", returncode=0)
+            # Return both files as modified in a single line
+            return MagicMock(stdout="M  file1.py\nM  file2.py\n", returncode=0)
         return MagicMock(stdout="", returncode=0)
 
     mock_run.side_effect = mock_git_status
     commit_loom.git.get_diff.return_value = "test diff"
     commit_loom.analyzer.estimate_tokens_and_cost.return_value = (100, 0.01)
     commit_loom.analyzer.config.token_limit = 1000
+    commit_loom.analyzer.config.max_files_threshold = 5  # Ensure we can fit both files in one batch
 
     # Create a properly configured TokenUsage mock
     token_usage_mock = MagicMock()
@@ -71,6 +72,9 @@ def test_process_files_in_batches_single_batch(mock_confirm, mock_run, commit_lo
 
     result = commit_loom.process_files_in_batches(files, auto_commit=False)
     assert len(result) == 1
+    assert len(result[0]["files"]) == 2
+    assert result[0]["files"][0].path == "file1.py"
+    assert result[0]["files"][1].path == "file2.py"
 
 
 @patch("subprocess.run")
@@ -83,9 +87,9 @@ def test_process_files_in_batches_multiple_batches(mock_confirm, mock_run, commi
     # Mock git status to return valid files
     def mock_git_status(cmd, **kwargs):
         if "status" in cmd and "--porcelain" in cmd:
-            for i in range(10):
-                if f"file{i}.py" in cmd:
-                    return MagicMock(stdout=f" M file{i}.py\n", returncode=0)
+            # Return all files as modified
+            status_lines = [f" M file{i}.py" for i in range(10)]
+            return MagicMock(stdout="\n".join(status_lines) + "\n", returncode=0)
         return MagicMock(stdout="", returncode=0)
 
     mock_run.side_effect = mock_git_status
@@ -435,7 +439,7 @@ def test_process_files_in_batches_user_cancel(mock_confirm, mock_run, commit_loo
 
     # Mock git status to return valid file
     def mock_git_status(cmd, **kwargs):
-        if "status" in cmd and "--porcelain" in cmd and "file1.py" in cmd:
+        if "status" in cmd and "--porcelain" in cmd:
             return MagicMock(stdout=" M file1.py\n", returncode=0)
         return MagicMock(stdout="", returncode=0)
 
@@ -492,8 +496,9 @@ def test_create_batches_with_invalid_files(mock_run, commit_loom):
 def test_create_batches_with_mixed_files(mock_run, commit_loom):
     """Test batch creation with mix of valid and invalid files."""
     def mock_git_status(cmd, **kwargs):
-        if "valid.py" in cmd:
-            return MagicMock(stdout=" M valid.py\n", returncode=0)
+        if "status" in cmd and "--porcelain" in cmd:
+            # Return a properly formatted git status output with a modified file
+            return MagicMock(stdout="M  valid.py\n", returncode=0)
         return MagicMock(stdout="", returncode=0)
 
     mock_run.side_effect = mock_git_status
