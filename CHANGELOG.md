@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.5] - 2024-12-08
+
+
+### 📦 Build System
+- bump version to 0.9.5
+
+### 🔄 Other Changes
+- ✨ feat: improve file processing and validation
+
 ## [0.9.4] - 2024-12-08
 
 
