@@ -109,39 +109,16 @@ class CommitLoom:
 
     def _create_batches(self, changed_files: list[GitFile]) -> list[list[GitFile]]:
         """Create batches of files for processing."""
-        if not changed_files:
-            return []
-
         try:
-            # Get all files in git status
-            status_output = subprocess.run(
-                ["git", "status", "--porcelain"],
-                check=True,
-                capture_output=True,
-                text=True,
-            ).stdout.strip()
-
-            # Create a set of modified files from git status
-            git_files = set()
-            for line in status_output.splitlines():
-                if line:  # Skip empty lines
-                    # Git status format is "XY filename" where X and Y are status codes
-                    # We need to handle both "M  file" and " M file" formats
-                    parts = line.strip().split(maxsplit=1)
-                    if len(parts) == 2:
-                        status_code, file_path = parts
-                        # If status is just spaces, skip this line
-                        if status_code.strip():
-                            git_files.add(file_path.strip())
-
+            # Separate valid and invalid files
             valid_files = []
             invalid_files = []
+
             for file in changed_files:
-                if file.path in git_files:
-                    valid_files.append(file)
-                else:
+                if self.git.should_ignore_file(file.path):
                     invalid_files.append(file)
-                    console.print_warning(f"File not found in git status: {file.path}")
+                else:
+                    valid_files.append(file)
 
             if invalid_files:
                 self.git.reset_staged_changes()
@@ -152,7 +129,7 @@ class CommitLoom:
 
             # Create batches from valid files
             batches = []
-            batch_size = self.analyzer.config.max_files_threshold
+            batch_size = config.max_files_threshold
             for i in range(0, len(valid_files), batch_size):
                 batch = valid_files[i:i + batch_size]
                 batches.append(batch)
