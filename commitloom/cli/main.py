@@ -152,10 +152,17 @@ class CommitLoom:
         results = []
         total_batches = len(batches)
 
+        console.print_info("\nProcessing files in batches...")
+        console.print_batch_summary(len(changed_files), total_batches)
+
         for i, batch in enumerate(batches, 1):
+            # Process current batch
+            console.print_batch_start(i, total_batches, batch)
             result = self._handle_batch(batch, i, total_batches, auto_commit, False)
             if result:
                 results.append(result)
+            elif i < total_batches:  # Only reset if there are more batches to process
+                self.git.reset_staged_changes()
 
         return results
 
@@ -219,12 +226,21 @@ class CommitLoom:
 
             # Process files in batches if needed
             if len(changed_files) > config.max_files_threshold:
-                batches = self.process_files_in_batches(changed_files, auto_commit)
-                if not batches:
-                    return
+                # Save current state and unstage all files
+                self.git.stash_changes()
+                self.git.reset_staged_changes()
 
-                if combine_commits:
-                    self._create_combined_commit(batches)
+                try:
+                    # Process files in batches
+                    batches = self.process_files_in_batches(changed_files, auto_commit)
+                    if not batches:
+                        return
+
+                    if combine_commits:
+                        self._create_combined_commit(batches)
+                finally:
+                    # Restore any stashed changes
+                    self.git.pop_stashed_changes()
             else:
                 # Process as single commit
                 suggestion, usage = self.ai_service.generate_commit_message(diff, changed_files)
