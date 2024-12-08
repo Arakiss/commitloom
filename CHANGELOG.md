@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.4] - 2024-12-08
+
+
+### 📦 Build System
+- bump version to 0.9.4
+
+### 🔄 Other Changes
+- 🔧 refactor: improve file validation logic
+
 ## [0.9.3] - 2024-12-08
 
 
