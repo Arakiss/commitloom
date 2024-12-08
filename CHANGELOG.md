@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.6] - 2024-12-08
+
+
+### 📦 Build System
+- bump version to 0.9.6
+
+### 🔄 Other Changes
+- ✨ feat: enhance batch processing and stashing
+
 ## [0.9.5] - 2024-12-08
 
 
