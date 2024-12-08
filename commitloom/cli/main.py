@@ -109,6 +109,9 @@ class CommitLoom:
 
     def _create_batches(self, changed_files: list[GitFile]) -> list[list[GitFile]]:
         """Create batches of files for processing."""
+        if not changed_files:
+            return []
+
         try:
             # Separate valid and invalid files
             valid_files = []
@@ -117,11 +120,9 @@ class CommitLoom:
             for file in changed_files:
                 if self.git.should_ignore_file(file.path):
                     invalid_files.append(file)
+                    console.print_warning(f"Ignoring file: {file.path}")
                 else:
                     valid_files.append(file)
-
-            if invalid_files:
-                self.git.reset_staged_changes()
 
             if not valid_files:
                 console.print_warning("No valid files to process.")
@@ -138,41 +139,25 @@ class CommitLoom:
 
         except subprocess.CalledProcessError as e:
             console.print_error(f"Error getting git status: {e}")
-            self.git.reset_staged_changes()
             return []
 
     def process_files_in_batches(
-        self, changed_files: list[GitFile], auto_commit: bool
+        self, changed_files: list[GitFile], auto_commit: bool = False
     ) -> list[dict]:
-        """Process files in batches."""
-        # Ensure files start from index 1 if they're numbered
-        adjusted_files = []
-        for file in changed_files:
-            if file.path.startswith("file") and file.path.endswith(".py"):
-                try:
-                    num = int(file.path[4:-3])  # Extract number from "fileX.py"
-                    if num == 0:  # If it's file0.py, adjust to file1.py
-                        adjusted_files.append(GitFile(path="file1.py"))
-                        continue
-                except ValueError:
-                    pass
-            adjusted_files.append(file)
-
-        batches = self._create_batches(adjusted_files)
+        """Process files in batches if needed."""
+        batches = self._create_batches(changed_files)
         if not batches:
             return []
 
-        console.print_info("\nProcessing files in batches...")
-        console.print_batch_summary(len(adjusted_files), len(batches))
+        results = []
+        total_batches = len(batches)
 
-        processed_batches = []
         for i, batch in enumerate(batches, 1):
-            console.print_batch_start(i, len(batches), batch)
-            result = self._handle_batch(batch, i, len(batches), auto_commit, False)
+            result = self._handle_batch(batch, i, total_batches, auto_commit, False)
             if result:
-                processed_batches.append(result)
+                results.append(result)
 
-        return processed_batches
+        return results
 
     def _create_combined_commit(self, batches: list[dict]) -> None:
         """Create a combined commit from all batches."""

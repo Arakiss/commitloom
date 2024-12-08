@@ -33,6 +33,18 @@ class GitOperations:
     def should_ignore_file(file_path: str) -> bool:
         """Determine if a file should be ignored based on configured patterns."""
         normalized_path = file_path.replace("\\", "/")
+
+        # Never ignore files that are explicitly staged
+        try:
+            staged_files = subprocess.check_output(
+                ["git", "diff", "--staged", "--name-only", "--"]
+            ).decode("utf-8").splitlines()
+            if normalized_path in staged_files:
+                return False
+        except subprocess.CalledProcessError:
+            pass  # If git command fails, continue with pattern matching
+
+        # Check if file matches any ignore pattern
         return any(
             fnmatch(normalized_path, pattern) for pattern in config.ignored_patterns
         )
@@ -49,43 +61,46 @@ class GitOperations:
                 .splitlines()
             )
 
-            git_files = []
-            for file in files:
-                if not GitOperations.should_ignore_file(file):
-                    try:
-                        ls_file_output = (
+            result = []
+            for file_path in files:
+                try:
+                    # Get file hash
+                    ls_file_output = (
+                        subprocess.check_output(
+                            ["git", "ls-files", "-s", file_path],
+                            stderr=subprocess.DEVNULL,
+                        )
+                        .decode()
+                        .strip()
+                        .split()
+                    )
+
+                    if len(ls_file_output) >= 4:
+                        file_hash = ls_file_output[1]
+                        size_output = (
                             subprocess.check_output(
-                                ["git", "ls-files", "-s", file],
+                                ["git", "cat-file", "-s", file_hash],
                                 stderr=subprocess.DEVNULL,
                             )
                             .decode()
                             .strip()
-                            .split()
                         )
-
-                        if len(ls_file_output) >= 4:
-                            file_hash = ls_file_output[1]
-                            size_output = (
-                                subprocess.check_output(
-                                    ["git", "cat-file", "-s", file_hash],
-                                    stderr=subprocess.DEVNULL,
-                                )
-                                .decode()
-                                .strip()
+                        result.append(
+                            GitFile(
+                                path=file_path,
+                                size=int(size_output),
+                                hash=file_hash
                             )
-                            git_files.append(
-                                GitFile(
-                                    path=file, size=int(size_output), hash=file_hash
-                                )
-                            )
-                        else:
-                            git_files.append(GitFile(path=file))
-                    except (subprocess.CalledProcessError, ValueError, IndexError):
-                        git_files.append(GitFile(path=file))
+                        )
+                    else:
+                        result.append(GitFile(path=file_path))
+                except (subprocess.CalledProcessError, ValueError, IndexError):
+                    result.append(GitFile(path=file_path))
 
-            return git_files
+            return result
+
         except subprocess.CalledProcessError as e:
-            raise GitError(f"Failed to get changed files: {str(e)}") from e
+            raise GitError(f"Failed to get changed files: {str(e)}")
 
     @staticmethod
     def get_diff(files: list[GitFile] | None = None) -> str:

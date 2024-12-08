@@ -38,7 +38,7 @@ def test_process_files_in_batches_single_batch(mock_confirm, mock_run, commit_lo
         GitFile(path="file2.py"),
     ]
 
-    # Mock git status to return valid files
+    # Mock git status and ignore check
     def mock_git_status(cmd, **kwargs):
         if "status" in cmd and "--porcelain" in cmd:
             # Return both files as modified in a single line
@@ -46,6 +46,7 @@ def test_process_files_in_batches_single_batch(mock_confirm, mock_run, commit_lo
         return MagicMock(stdout="", returncode=0)
 
     mock_run.side_effect = mock_git_status
+    commit_loom.git.should_ignore_file.return_value = False  # Don't ignore test files
     commit_loom.git.get_diff.return_value = "test diff"
     commit_loom.analyzer.estimate_tokens_and_cost.return_value = (100, 0.01)
     commit_loom.analyzer.config.token_limit = 1000
@@ -84,7 +85,7 @@ def test_process_files_in_batches_multiple_batches(mock_confirm, mock_run, commi
     # Setup test data
     files = [GitFile(path=f"file{i}.py") for i in range(10)]
 
-    # Mock git status to return valid files
+    # Mock git status and ignore check
     def mock_git_status(cmd, **kwargs):
         if "status" in cmd and "--porcelain" in cmd:
             # Return all files as modified
@@ -93,6 +94,7 @@ def test_process_files_in_batches_multiple_batches(mock_confirm, mock_run, commi
         return MagicMock(stdout="", returncode=0)
 
     mock_run.side_effect = mock_git_status
+    commit_loom.git.should_ignore_file.return_value = False  # Don't ignore test files
     commit_loom.git.get_diff.return_value = "test diff"
     commit_loom.analyzer.estimate_tokens_and_cost.return_value = (1000, 0.01)
     commit_loom.analyzer.config.token_limit = 1000  # Set lower to force batching
@@ -437,13 +439,14 @@ def test_process_files_in_batches_user_cancel(mock_confirm, mock_run, commit_loo
     # Setup test data
     files = [GitFile(path="file1.py")]
 
-    # Mock git status to return valid file
+    # Mock git status and ignore check
     def mock_git_status(cmd, **kwargs):
         if "status" in cmd and "--porcelain" in cmd:
             return MagicMock(stdout=" M file1.py\n", returncode=0)
         return MagicMock(stdout="", returncode=0)
 
     mock_run.side_effect = mock_git_status
+    commit_loom.git.should_ignore_file.return_value = False  # Don't ignore test files
     commit_loom.git.get_diff.return_value = "test diff"
 
     # Mock token usage
@@ -502,6 +505,7 @@ def test_create_batches_with_mixed_files(mock_run, commit_loom):
         return MagicMock(stdout="", returncode=0)
 
     mock_run.side_effect = mock_git_status
+    commit_loom.git.should_ignore_file.side_effect = lambda x: x == "invalid.py"
 
     files = [
         GitFile(path="valid.py"),
