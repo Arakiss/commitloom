@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.3] - 2024-12-08
+
+
+### 📦 Build System
+- bump version to 0.9.3
+
+### 🔄 Other Changes
+- 🔧 chore: update publish workflow configuration
+- 🔧 chore: refine publish workflow for PyPI
+
 ## [0.9.2] - 2024-12-08
 
 
