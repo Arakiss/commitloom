@@ -26,10 +26,10 @@ def main(yes: bool, combine: bool, debug: bool) -> None:
         loom.run(auto_commit=yes, combine_commits=combine, debug=debug)
     except KeyboardInterrupt:
         console.print_error("\nOperation cancelled by user.")
-        sys.exit(1)
+        raise click.Abort()
     except Exception as e:
         console.print_error(f"An error occurred: {str(e)}")
-        sys.exit(1)
+        raise click.ClickException(str(e))
 
 
 if __name__ == "__main__":
