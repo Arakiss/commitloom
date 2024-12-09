@@ -337,28 +337,30 @@ def test_cli_arguments(mock_commit_loom):
     mock_commit_loom.return_value.run.assert_called_with(auto_commit=True, combine_commits=True, debug=True)
 
 
+@patch("sys.exit")
 @patch("commitloom.cli.cli_handler.console")
 @patch("commitloom.cli.cli_handler.CommitLoom")
-def test_main_keyboard_interrupt(mock_commit_loom, mock_console):
+def test_main_keyboard_interrupt(mock_commit_loom, mock_console, mock_exit):
     """Test handling of KeyboardInterrupt in main."""
     runner = CliRunner()
     mock_commit_loom.return_value.run.side_effect = KeyboardInterrupt()
 
     result = runner.invoke(main)
-    assert result.exit_code == 1
     mock_console.print_error.assert_called_with("\nOperation cancelled by user.")
+    mock_exit.assert_called_with(1)
 
 
+@patch("sys.exit")
 @patch("commitloom.cli.cli_handler.console")
 @patch("commitloom.cli.cli_handler.CommitLoom")
-def test_main_exception_verbose(mock_commit_loom, mock_console):
+def test_main_exception_verbose(mock_commit_loom, mock_console, mock_exit):
     """Test handling of exceptions in main with verbose logging."""
     runner = CliRunner()
     mock_commit_loom.return_value.run.side_effect = Exception("Test error")
 
     result = runner.invoke(main, ["-d"])
-    assert result.exit_code == 1
     mock_console.print_error.assert_called_with("An error occurred: Test error")
+    mock_exit.assert_called_with(1)
 
 
 @patch("commitloom.cli.console.confirm_action", return_value=False)
