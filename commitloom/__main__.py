@@ -3,6 +3,7 @@
 
 import os
 import sys
+from typing import NoReturn
 
 import click
 from dotenv import load_dotenv
@@ -15,6 +16,16 @@ from .cli.cli_handler import CommitLoom
 from .cli import console
 
 
+def handle_error(error: Exception) -> NoReturn:
+    """Handle errors in a consistent way."""
+    if isinstance(error, KeyboardInterrupt):
+        console.print_error("\nOperation cancelled by user.")
+        sys.exit(1)
+    else:
+        console.print_error(f"An error occurred: {str(error)}")
+        sys.exit(1)
+
+
 @click.command()
 @click.option("-y", "--yes", is_flag=True, help="Skip all confirmation prompts")
 @click.option("-c", "--combine", is_flag=True, help="Combine all changes into a single commit")
@@ -24,12 +35,8 @@ def main(yes: bool, combine: bool, debug: bool) -> None:
     try:
         loom = CommitLoom()
         loom.run(auto_commit=yes, combine_commits=combine, debug=debug)
-    except KeyboardInterrupt:
-        console.print_error("\nOperation cancelled by user.")
-        raise click.Abort()
-    except Exception as e:
-        console.print_error(f"An error occurred: {str(e)}")
-        raise click.ClickException(str(e))
+    except (KeyboardInterrupt, Exception) as e:
+        handle_error(e)
 
 
 if __name__ == "__main__":

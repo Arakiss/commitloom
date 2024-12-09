@@ -322,15 +322,15 @@ def test_cli_arguments(mock_commit_loom):
 
     # Test with no arguments (default values)
     mock_commit_loom.return_value.run.return_value = None
-    result = runner.invoke(main, [], catch_exceptions=False)
+    result = runner.invoke(main, [])
     assert result.exit_code == 0
 
     # Test with all flags
-    result = runner.invoke(main, ["-y", "-c", "-d"], catch_exceptions=False)
+    result = runner.invoke(main, ["-y", "-c", "-d"])
     assert result.exit_code == 0
 
     # Test with long form arguments
-    result = runner.invoke(main, ["--yes", "--combine", "--debug"], catch_exceptions=False)
+    result = runner.invoke(main, ["--yes", "--combine", "--debug"])
     assert result.exit_code == 0
 
     # Verify CommitLoom was called with correct arguments
@@ -344,8 +344,8 @@ def test_main_keyboard_interrupt(mock_commit_loom, mock_console):
     runner = CliRunner()
     mock_commit_loom.return_value.run.side_effect = KeyboardInterrupt()
 
-    result = runner.invoke(main, catch_exceptions=False)
-    assert isinstance(result.exception, click.Abort)
+    result = runner.invoke(main)
+    assert result.exit_code == 1
     mock_console.print_error.assert_called_with("\nOperation cancelled by user.")
 
 
@@ -356,9 +356,8 @@ def test_main_exception_verbose(mock_commit_loom, mock_console):
     runner = CliRunner()
     mock_commit_loom.return_value.run.side_effect = Exception("Test error")
 
-    result = runner.invoke(main, ["-d"], catch_exceptions=False)
-    assert isinstance(result.exception, click.ClickException)
-    assert str(result.exception) == "Test error"
+    result = runner.invoke(main, ["-d"])
+    assert result.exit_code == 1
     mock_console.print_error.assert_called_with("An error occurred: Test error")
 
 
