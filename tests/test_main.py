@@ -1,13 +1,14 @@
 """Tests for CLI handler module."""
 
-import argparse
 import subprocess
 import sys
 from unittest.mock import MagicMock, patch
 
+import click
 import pytest
+from click.testing import CliRunner
 
-from commitloom.__main__ import create_parser, main
+from commitloom.__main__ import main
 from commitloom.cli.cli_handler import CommitLoom
 from commitloom.core.analyzer import CommitAnalysis, Warning, WarningLevel
 from commitloom.core.git import GitError, GitFile
@@ -310,65 +311,48 @@ def test_run_with_exception(mock_console, commit_loom):
 
 
 def test_cli_arguments():
-    """Test CLI argument parsing."""
-    parser = create_parser()
+    """Test CLI argument parsing using Click."""
+    runner = CliRunner()
 
-    # Test command names in help text
-    help_text = parser.format_help()
-    assert "loom" in help_text and "cl" in help_text, "Help text should mention both command names"
+    # Test help text
+    result = runner.invoke(main, ["--help"])
+    assert result.exit_code == 0
+    assert "Create structured git commits" in result.output
 
-    # Test default values
-    args = parser.parse_args([])
-    assert not args.yes
-    assert not args.combine
-    assert not args.verbose
+    # Test with no arguments (default values)
+    result = runner.invoke(main, [])
+    assert result.exit_code == 0
 
-    # Test setting all flags
-    args = parser.parse_args(["-y", "-c", "-v"])
-    assert args.yes
-    assert args.combine
-    assert args.verbose
+    # Test with all flags
+    result = runner.invoke(main, ["-y", "-c", "-d"])
+    assert result.exit_code == 0
 
-    # Test long form arguments
-    args = parser.parse_args(["--yes", "--combine", "--verbose"])
-    assert args.yes
-    assert args.combine
-    assert args.verbose
+    # Test with long form arguments
+    result = runner.invoke(main, ["--yes", "--combine", "--debug"])
+    assert result.exit_code == 0
 
 
-@patch("commitloom.__main__.console")
-@patch("commitloom.__main__.CommitLoom")
-@patch("commitloom.__main__.create_parser")
-def test_main_keyboard_interrupt(mock_create_parser, mock_commit_loom, mock_console):
+@patch("commitloom.cli.cli_handler.console")
+@patch("commitloom.cli.cli_handler.CommitLoom")
+def test_main_keyboard_interrupt(mock_commit_loom, mock_console):
     """Test handling of KeyboardInterrupt in main."""
-    # Setup mock parser that always returns empty args
-    mock_parser = MagicMock()
-    mock_parser.parse_args.return_value = argparse.Namespace(
-        yes=False, combine=False, verbose=False
-    )
-    mock_create_parser.return_value = mock_parser
-
+    runner = CliRunner()
     mock_commit_loom.return_value.run.side_effect = KeyboardInterrupt()
 
-    with pytest.raises(SystemExit) as exc_info:
-        main()
-
-    assert exc_info.value.code == 1
+    result = runner.invoke(main)
+    assert result.exit_code == 1
     mock_console.print_error.assert_called_with("\nOperation cancelled by user.")
 
 
-@patch("commitloom.__main__.console")
-@patch("commitloom.__main__.CommitLoom")
+@patch("commitloom.cli.cli_handler.console")
+@patch("commitloom.cli.cli_handler.CommitLoom")
 def test_main_exception_verbose(mock_commit_loom, mock_console):
     """Test handling of exceptions in main with verbose logging."""
+    runner = CliRunner()
     mock_commit_loom.return_value.run.side_effect = Exception("Test error")
 
-    # Mock sys.argv to include verbose flag
-    with patch.object(sys, "argv", ["commitloom", "-v"]):
-        with pytest.raises(SystemExit) as exc_info:
-            main()
-
-    assert exc_info.value.code == 1
+    result = runner.invoke(main, ["-d"])
+    assert result.exit_code == 1
     mock_console.print_error.assert_called_with("An error occurred: Test error")
 
 
