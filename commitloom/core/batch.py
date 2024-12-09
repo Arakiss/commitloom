@@ -2,7 +2,6 @@
 
 import logging
 from dataclasses import dataclass
-from typing import List, Optional
 
 from .git import GitError, GitFile, GitOperations
 
@@ -22,10 +21,10 @@ class BatchProcessor:
     def __init__(self, config: BatchConfig):
         self.config = config
         self.git = GitOperations()
-        self._processing_queue: List[GitFile] = []
-        self._processed_files: List[GitFile] = []
+        self._processing_queue: list[GitFile] = []
+        self._processed_files: list[GitFile] = []
 
-    def _prepare_batch(self, files: List[GitFile]) -> None:
+    def _prepare_batch(self, files: list[GitFile]) -> None:
         """Prepare files for batch processing."""
         # Reset any staged changes
         self.git.reset_staged_changes()
@@ -33,7 +32,7 @@ class BatchProcessor:
         # Add files to processing queue
         self._processing_queue.extend(files)
 
-    def _get_next_batch(self) -> Optional[List[GitFile]]:
+    def _get_next_batch(self) -> list[GitFile] | None:
         """Get next batch of files to process."""
         if not self._processing_queue:
             return None
@@ -44,7 +43,7 @@ class BatchProcessor:
 
         return batch
 
-    def _process_batch(self, batch: List[GitFile]) -> None:
+    def _process_batch(self, batch: list[GitFile]) -> None:
         """Process a single batch of files."""
         try:
             # Stage only the files in this batch
@@ -58,7 +57,7 @@ class BatchProcessor:
             logger.error(f"Failed to process batch: {str(e)}")
             raise
 
-    def process_files(self, files: List[GitFile]) -> None:
+    def process_files(self, files: list[GitFile]) -> None:
         """
         Process files in batches.
 

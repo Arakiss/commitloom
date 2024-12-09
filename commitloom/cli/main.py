@@ -5,15 +5,12 @@ import logging
 import os
 import subprocess
 import sys
-from typing import Optional
 
 from dotenv import load_dotenv
 
-from ..config.settings import config
 from ..core.analyzer import CommitAnalyzer
-from ..core.batch import BatchConfig, BatchProcessor
 from ..core.git import GitError, GitFile, GitOperations
-from ..services.ai_service import AIService, CommitSuggestion
+from ..services.ai_service import AIService
 from . import console
 
 env_path = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
@@ -79,7 +76,7 @@ class CommitLoom:
         batch: list[GitFile],
         batch_num: int,
         total_batches: int,
-    ) -> Optional[dict]:
+    ) -> dict[str, object] | None:
         """Handle a single batch of files."""
         try:
             # Stage files
@@ -158,10 +155,6 @@ class CommitLoom:
             if len(files) <= BATCH_THRESHOLD:
                 self._process_single_commit(files)
                 return
-
-            # Configure batch processor
-            config = BatchConfig(batch_size=BATCH_THRESHOLD)
-            processor = BatchProcessor(config)
 
             # Process files in batches
             batches = self._create_batches(files)
