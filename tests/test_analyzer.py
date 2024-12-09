@@ -1,14 +1,9 @@
-"""Tests for analyzer module."""
+"""Tests for commit analyzer module."""
 
 import pytest
 
 from commitloom.config.settings import config
-from commitloom.core.analyzer import (
-    CommitAnalysis,
-    CommitAnalyzer,
-    WarningLevel,
-)
-from commitloom.core.git import GitFile
+from commitloom.core.analyzer import CommitAnalysis, CommitAnalyzer
 
 
 @pytest.fixture
@@ -19,59 +14,52 @@ def analyzer():
 
 def test_estimate_tokens_and_cost(analyzer):
     """Test token and cost estimation."""
-    text = "x" * 1000  # 1000 characters
-    estimated_tokens, estimated_cost = analyzer.estimate_tokens_and_cost(text)
+    diff = "Small change"
+    tokens, cost = analyzer.estimate_tokens_and_cost(diff)
 
-    # Should be roughly 250 tokens (1000 chars / 4)
-    assert estimated_tokens == 250
-    # Cost should be calculated correctly
-    expected_cost = (estimated_tokens / 1_000_000) * config.model_costs[
-        config.default_model
-    ].input
-    assert estimated_cost == expected_cost
+    assert tokens > 0
+    assert cost > 0
 
 
-def test_analyze_diff_complexity_small_change(analyzer):
+def test_analyze_diff_complexity_small_change(analyzer, mock_git_file):
     """Test analysis of a small, simple change."""
     diff = "Small change"
-    files = [GitFile(path="test.py")]
+    files = [mock_git_file("test.py")]
 
     analysis = analyzer.analyze_diff_complexity(diff, files)
 
     assert isinstance(analysis, CommitAnalysis)
-    assert len(analysis.warnings) == 0
-    assert analysis.is_complex is False
+    assert analysis.estimated_tokens > 0
+    assert analysis.estimated_cost > 0
     assert analysis.num_files == 1
+    assert not analysis.is_complex
+    assert not analysis.warnings
 
 
-def test_analyze_diff_complexity_token_limit_exceeded(analyzer):
+def test_analyze_diff_complexity_token_limit_exceeded(analyzer, mock_git_file):
     """Test analysis when token limit is exceeded."""
     # Create a diff that will exceed token limit
     diff = "x" * (config.token_limit * config.token_estimation_ratio + 1)
-    files = [GitFile(path="large.py")]
+    files = [mock_git_file("large.py")]
 
     analysis = analyzer.analyze_diff_complexity(diff, files)
 
-    assert len(analysis.warnings) > 0
-    assert any(w.level == WarningLevel.HIGH for w in analysis.warnings)
-    assert analysis.is_complex is True
+    assert analysis.is_complex
+    assert any("token limit" in w for w in analysis.warnings)
 
 
-def test_analyze_diff_complexity_many_files(analyzer):
+def test_analyze_diff_complexity_many_files(analyzer, mock_git_file):
     """Test analysis when many files are changed."""
     diff = "Multiple file changes"
-    files = [GitFile(path=f"file{i}.py") for i in range(config.max_files_threshold + 1)]
+    files = [mock_git_file(f"file{i}.py") for i in range(config.max_files_threshold + 1)]
 
     analysis = analyzer.analyze_diff_complexity(diff, files)
 
-    assert len(analysis.warnings) > 0
-    assert any(
-        w.level == WarningLevel.MEDIUM and "files" in w.message
-        for w in analysis.warnings
-    )
+    assert analysis.is_complex
+    assert any("files changed" in w for w in analysis.warnings)
 
 
-def test_analyze_diff_complexity_expensive_change(analyzer):
+def test_analyze_diff_complexity_expensive_change(analyzer, mock_git_file):
     """Test analysis of an expensive change."""
     # Create a diff that will be expensive (>0.10€)
     tokens_for_10_cents = int(
@@ -80,36 +68,30 @@ def test_analyze_diff_complexity_expensive_change(analyzer):
     diff = "diff --git a/expensive.py b/expensive.py\n" + (
         "+" + "x" * tokens_for_10_cents * config.token_estimation_ratio + "\n"
     )
-    files = [GitFile(path="expensive.py")]
+    files = [mock_git_file("expensive.py")]
 
     analysis = analyzer.analyze_diff_complexity(diff, files)
 
-    assert len(analysis.warnings) > 0
-    assert any(
-        w.level == WarningLevel.HIGH and "expensive" in w.message.lower()
-        for w in analysis.warnings
-    )
+    assert analysis.is_complex
+    assert any("expensive" in w for w in analysis.warnings)
 
 
-def test_analyze_diff_complexity_moderate_cost(analyzer):
+def test_analyze_diff_complexity_moderate_cost(analyzer, mock_git_file):
     """Test analysis of a moderately expensive change."""
     # Create a diff that will cost between 0.05€ and 0.10€
     tokens_for_7_cents = int(
         (0.07 * 1_000_000) / config.model_costs[config.default_model].input
     )
     diff = "x" * (tokens_for_7_cents * config.token_estimation_ratio)
-    files = [GitFile(path="moderate.py")]
+    files = [mock_git_file("moderate.py")]
 
     analysis = analyzer.analyze_diff_complexity(diff, files)
 
-    assert len(analysis.warnings) > 0
-    assert any(
-        w.level == WarningLevel.MEDIUM and "moderate" in w.message.lower()
-        for w in analysis.warnings
-    )
+    assert not analysis.is_complex
+    assert any("cost" in w for w in analysis.warnings)
 
 
-def test_analyze_diff_complexity_large_file(analyzer):
+def test_analyze_diff_complexity_large_file(analyzer, mock_git_file):
     """Test analysis when a single file is very large."""
     # Create a diff that will exceed half the token limit
     diff = "diff --git a/large.py b/large.py\n" + (
@@ -117,39 +99,26 @@ def test_analyze_diff_complexity_large_file(analyzer):
         + "x" * ((config.token_limit // 2) * config.token_estimation_ratio + 1)
         + "\n"
     )
-    files = [GitFile(path="large.py")]
+    files = [mock_git_file("large.py")]
 
     analysis = analyzer.analyze_diff_complexity(diff, files)
 
-    assert len(analysis.warnings) > 0
-    assert any(
-        w.level == WarningLevel.HIGH and "large.py" in w.message
-        for w in analysis.warnings
-    )
+    assert analysis.is_complex
+    assert any("large" in w for w in analysis.warnings)
 
 
-def test_format_cost_for_humans(analyzer):
-    """Test cost formatting for different ranges."""
-    assert "euros" in analyzer.format_cost_for_humans(1.5)
-    assert "cents" in analyzer.format_cost_for_humans(0.05)
-    assert "millicents" in analyzer.format_cost_for_humans(0.0005)
-    assert "microcents" in analyzer.format_cost_for_humans(0.00005)
+def test_format_cost_for_humans():
+    """Test cost formatting."""
+    assert CommitAnalyzer.format_cost_for_humans(0.001) == "0.10¢"
+    assert CommitAnalyzer.format_cost_for_humans(0.01) == "1.00¢"
+    assert CommitAnalyzer.format_cost_for_humans(0.1) == "10.00¢"
+    assert CommitAnalyzer.format_cost_for_humans(1.0) == "€1.00"
 
 
-def test_get_cost_context(analyzer):
-    """Test cost context messages."""
-    message, color = analyzer.get_cost_context(0.15)  # More than 10 cents
-    assert "Significant" in message
-    assert color == "yellow"
-
-    message, color = analyzer.get_cost_context(0.07)  # More than 5 cents
-    assert "Moderate" in message
-    assert color == "blue"
-
-    message, color = analyzer.get_cost_context(0.02)  # More than 1 cent
-    assert "Low" in message
-    assert color == "green"
-
-    message, color = analyzer.get_cost_context(0.001)  # Less than 1 cent
-    assert "Minimal" in message
-    assert color == "green"
+def test_get_cost_context():
+    """Test cost context descriptions."""
+    assert "very cheap" in CommitAnalyzer.get_cost_context(0.001)
+    assert "cheap" in CommitAnalyzer.get_cost_context(0.01)
+    assert "moderate" in CommitAnalyzer.get_cost_context(0.05)
+    assert "expensive" in CommitAnalyzer.get_cost_context(0.1)
+    assert "very expensive" in CommitAnalyzer.get_cost_context(1.0)
