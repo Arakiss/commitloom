@@ -139,12 +139,18 @@ def print_batch_complete(batch_num: int, total_batches: int) -> None:
     )
 
 
-def print_batch_summary(total_files: int, total_batches: int) -> None:
-    """Print summary of batch processing plan."""
-    console.print("\n[bold blue]🔄 Batch Processing Summary:[/bold blue]")
-    console.print(f"  • Total files: [cyan]{total_files}[/cyan]")
-    console.print(f"  • Number of batches: [cyan]{total_batches}[/cyan]")
-    console.print(f"  • Files per batch: [cyan]~{total_files // total_batches}[/cyan]")
+def print_batch_summary(total_files: int, total_batches: int, batch_size: int = 5) -> None:
+    """Print summary of batch processing."""
+    console.print(
+        Panel(
+            f"🔄 Batch Processing Summary:\n"
+            f"  • Total files: {total_files}\n"
+            f"  • Number of batches: {total_batches}\n"
+            f"  • Files per batch: ~{batch_size}",
+            title="",
+            border_style="blue",
+        )
+    )
 
 
 def format_cost(cost: float) -> str:

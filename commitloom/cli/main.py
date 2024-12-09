@@ -38,6 +38,7 @@ class CommitLoom:
         self.ai_service = AIService()
         self.auto_commit = False
         self.combine_commits = False
+        self.console = console
 
     def _handle_batch(
         self,
@@ -151,29 +152,13 @@ class CommitLoom:
         # Configure batch processor
         config = BatchConfig(
             batch_size=5,
-            auto_commit=auto_commit,
-            combine_commits=self.combine_commits
+            auto_commit=auto_commit
         )
         processor = BatchProcessor(config)
-        processor.load_files(files)
 
-        # Only use batches if we have more than 4 files
-        if len(files) <= 4:
-            try:
-                # Process normally
-                file_paths = [f.path for f in files]
-                self.git.stage_files(file_paths)
-                self._handle_batch(files, 1, 1, auto_commit, self.combine_commits)
-            except GitError as e:
-                self.console.print_error(str(e))
-            return
-
-        # Process in batches
-        total_batches = (len(files) + config.batch_size - 1) // config.batch_size
-        self.console.print_batch_summary(len(files), total_batches, config.batch_size)
-
+        # Process files
         try:
-            processor.process_all()
+            processor.process_files(files)
         except GitError as e:
             self.console.print_error(str(e))
             return
@@ -215,40 +200,28 @@ class CommitLoom:
     def run(
         self, auto_commit: bool = False, combine_commits: bool = False, debug: bool = False
     ) -> None:
-        """Run the main application logic."""
-        try:
-            # Configure logging
-            console.setup_logging(debug)
+        """Run the commit process."""
+        if debug:
+            self.console.setup_logging(debug)
 
-            # Get changed files
+        self.auto_commit = auto_commit
+        self.combine_commits = combine_commits
+
+        # Get changed files
+        try:
             changed_files = self.git.get_staged_files()
             if not changed_files:
-                console.print_error("No changes detected in the staging area.")
                 return
 
-            # Print changed files
-            console.print_changed_files(changed_files)
+            self.console.print_changed_files(changed_files)
 
             # Process files in batches
-            batches = self.process_files_in_batches(changed_files, auto_commit)
-            if not batches:
-                return
+            self.process_files_in_batches(changed_files, auto_commit)
 
-            # Handle combined commit if requested
-            if combine_commits and len(batches) > 1:
-                suggestions = [batch["commit_data"] for batch in batches]
-                self._handle_combined_commit(suggestions, auto_commit)
-
-        except GitError as e:
-            console.print_error(str(e))
-            if debug:
-                console.print_debug("Git error details:", exc_info=True)
-            sys.exit(1)
         except Exception as e:
-            console.print_error(f"An unexpected error occurred: {str(e)}")
+            self.console.print_error(f"An unexpected error occurred: {str(e)}")
             if debug:
-                console.print_debug("Error details:", exc_info=True)
-            sys.exit(1)
+                self.console.print_debug("Error details:", exc_info=True)
 
 
 def main() -> None:

@@ -14,10 +14,8 @@ BATCH_THRESHOLD = 4  # Minimum number of files to activate batch processing
 @dataclass
 class BatchConfig:
     """Configuration for batch processing."""
-
     batch_size: int = 5
     auto_commit: bool = False
-    combine_commits: bool = False
 
 
 class BatchProcessor:
@@ -26,63 +24,41 @@ class BatchProcessor:
     def __init__(self, config: BatchConfig):
         self.config = config
         self.git = GitOperations()
-        self.queue: deque[GitFile] = deque()
 
-    def load_files(self, files: list[GitFile]) -> None:
-        """Load files into the processing queue."""
-        self.queue.extend(files)
-
-    def should_batch(self) -> bool:
-        """Check if batch processing should be used."""
-        return len(self.queue) > BATCH_THRESHOLD
-
-    def process_all(self) -> None:
-        """Process all files."""
-        if not self.should_batch():
+    def process_files(self, files: list[GitFile]) -> None:
+        """Process files in batches or normally."""
+        if len(files) <= BATCH_THRESHOLD:
             # Process normally if fewer than threshold
             try:
-                files = [f.path for f in self.queue]
-                self.git.stage_files(files)
+                file_paths = [f.path for f in files]
+                self.git.stage_files(file_paths)
             except GitError as e:
                 logger.error(f"Failed to process files: {str(e)}")
                 raise
             return
 
-        try:
-            # Save initial state
-            self.git.stash_save("commitloom_temp_stash")
+        # Process in batches
+        total_batches = (len(files) + self.config.batch_size - 1) // self.config.batch_size
+        batches = []
+        
+        # Create batches
+        for i in range(total_batches):
+            start = i * self.config.batch_size
+            end = min(start + self.config.batch_size, len(files))
+            batches.append(files[start:end])
 
-            # Process in batches
-            while batch := self.get_next_batch():
-                self.process_batch(batch)
+        # Process each batch
+        for i, batch in enumerate(batches, 1):
+            try:
+                # Stage files in this batch
+                file_paths = [f.path for f in batch]
+                self.git.stage_files(file_paths)
 
-        finally:
-            # Always restore state
-            self.git.stash_pop()
+                # Create commit for this batch
+                title = f"feat: batch {i}/{total_batches} - {len(file_paths)} files"
+                message = "Files in this batch:\n" + "\n".join(f"- {f}" for f in file_paths)
+                self.git.create_commit(title, message)
 
-    def get_next_batch(self) -> list[GitFile] | None:
-        """Get next batch of files from the queue."""
-        if not self.queue:
-            return None
-
-        batch = []
-        while self.queue and len(batch) < self.config.batch_size:
-            batch.append(self.queue.popleft())
-        return batch
-
-    def process_batch(self, batch: list[GitFile]) -> None:
-        """Process a single batch of files."""
-        if not batch:
-            return
-
-        try:
-            # Reset to clean state
-            self.git.reset_staged_changes()
-
-            # Stage all files in batch
-            files_to_stage = [f.path for f in batch]
-            self.git.stage_files(files_to_stage)
-
-        except GitError as e:
-            logger.error(f"Failed to process batch: {str(e)}")
-            raise
+            except GitError as e:
+                logger.error(f"Failed to process batch {i}: {str(e)}")
+                raise

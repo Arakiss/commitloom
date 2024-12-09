@@ -94,19 +94,6 @@ class GitOperations:
                 elif status[1] != " " and status[1] != "?":
                     files.append(GitFile(path=path, status=status[1]))
 
-            # Get staged files
-            result = subprocess.run(
-                ["git", "diff", "--name-only", "--cached"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-
-            # Add staged files that are not already in the list
-            for path in result.stdout.splitlines():
-                if path.strip() and not any(f.path == path for f in files):
-                    files.append(GitFile(path=path, status="A"))
-
             return files
 
         except subprocess.CalledProcessError as e:
