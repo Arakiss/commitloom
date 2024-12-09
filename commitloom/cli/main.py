@@ -197,6 +197,9 @@ class CommitLoom:
         if debug:
             self.console.setup_logging(debug)
 
+        # Set auto-confirm mode based on auto_commit flag
+        console.set_auto_confirm(auto_commit)
+
         self.auto_commit = auto_commit
         self.combine_commits = combine_commits
 

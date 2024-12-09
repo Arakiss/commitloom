@@ -1,6 +1,5 @@
 """Console output formatting and user interaction."""
 
-
 import logging
 from unittest.mock import MagicMock
 
@@ -30,6 +29,13 @@ from ..services.ai_service import TokenUsage
 
 console = Console()
 logger = logging.getLogger("commitloom")
+auto_confirm = False  # Global flag for auto-confirmation
+
+
+def set_auto_confirm(value: bool) -> None:
+    """Set auto-confirm mode."""
+    global auto_confirm
+    auto_confirm = value
 
 
 def setup_logging(debug: bool = False):
@@ -192,16 +198,22 @@ def print_batch_info(batch_number: int, files: list[str]) -> None:
 
 def confirm_action(prompt: str) -> bool:
     """Ask user to confirm an action."""
+    if auto_confirm:
+        return True
     return Confirm.ask(f"\n{prompt}")
 
 
 def confirm_batch_continue() -> bool:
     """Ask user if they want to continue with next batch."""
+    if auto_confirm:
+        return True
     return Confirm.ask("\n[bold yellow]🤔 Continue with next batch?[/bold yellow]")
 
 
 def select_commit_strategy() -> str:
     """Ask user how they want to handle multiple commits."""
+    if auto_confirm:
+        return "individual"
     console.print("\n[bold blue]🤔 How would you like to handle the commits?[/bold blue]")
     return Prompt.ask("Choose strategy", choices=["individual", "combined"], default="individual")
 
