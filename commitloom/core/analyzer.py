@@ -118,7 +118,7 @@ class CommitAnalyzer:
                 Warning(
                     level=WarningLevel.HIGH,
                     message=(
-                        f"You're modifying {len(changed_files)} files. "
+                        f"You're modifying {len(changed_files)} files changed. "
                         "For atomic commits, consider limiting to "
                         f"{config.max_files_threshold} files per commit."
                     ),
@@ -157,12 +157,18 @@ class CommitAnalyzer:
                 # File might be binary or newly added
                 pass
 
+        # Mark as complex if there are any HIGH level warnings
+        # except for token limit warnings
+        is_complex = any(
+            w.level == WarningLevel.HIGH and "token limit" not in str(w) for w in warnings
+        )
+
         return CommitAnalysis(
             estimated_tokens=estimated_tokens,
             estimated_cost=estimated_cost,
             num_files=len(changed_files),
             warnings=warnings,
-            is_complex=any(w.level == WarningLevel.HIGH for w in warnings),
+            is_complex=is_complex,
         )
 
     @staticmethod
@@ -184,7 +190,5 @@ class CommitAnalyzer:
             return "expensive"
         elif total_cost >= 0.01:  # more than 1 cent
             return "moderate"
-        elif total_cost >= 0.001:  # more than 0.1 cents
-            return "cheap"
         else:
             return "very cheap"

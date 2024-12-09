@@ -70,11 +70,9 @@ class AIService:
 
     def __init__(self, api_key: str | None = None):
         """Initialize the AI service."""
-        if api_key is None:
-            if config.api_key is None:
-                raise ValueError("API key is required")
-        else:
-            config.api_key = api_key
+        if api_key is None and config.api_key is None:
+            raise ValueError("API key is required")
+        self.api_key = api_key or config.api_key
 
     @classmethod
     def token_usage_from_api_usage(cls, usage: dict[str, int]) -> TokenUsage:
@@ -159,7 +157,7 @@ class AIService:
 
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {config.api_key}",
+            "Authorization": f"Bearer {self.api_key}",
         }
 
         data = {
