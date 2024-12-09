@@ -10,6 +10,7 @@ from commitloom.core.git import GitFile
 @pytest.fixture
 def mock_git_file():
     """Fixture for creating GitFile instances."""
+
     def _create_git_file(path: str, status: str = "M", size: int = None, hash_: str = None):
         file = GitFile(path=path, status=status)
         if size is not None:
@@ -17,6 +18,7 @@ def mock_git_file():
         if hash_ is not None:
             file.hash = hash_
         return file
+
     return _create_git_file
 
 
@@ -41,12 +43,21 @@ def mock_deps(mocker):
     mock_ai = mocker.patch("commitloom.cli.cli_handler.AIService", autospec=True)
     mocker.patch("commitloom.cli.cli_handler.load_dotenv")
 
-    # Configure analyzer mock
-    mock_analyzer.return_value.config.token_limit = 1000
-    mock_analyzer.return_value.config.max_files_threshold = 5
+    # Configure analyzer mock with config
+    mock_config = MagicMock()
+    mock_config.token_limit = 1000
+    mock_config.max_files_threshold = 5
+    mock_analyzer.return_value.config = mock_config
 
     return {
         "git": mock_git.return_value,
         "analyzer": mock_analyzer.return_value,
         "ai": mock_ai.return_value,
     }
+
+
+@pytest.fixture
+def mock_loom(mocker):
+    """Fixture for mocked CommitLoom."""
+    mock = mocker.patch("commitloom.cli.cli_handler.CommitLoom", autospec=True)
+    return mock.return_value

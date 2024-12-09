@@ -200,6 +200,7 @@ class AIService:
                 error_message = str(e)
             raise ValueError(f"API Request failed: {error_message}") from e
 
-    def format_commit_message(self, commit_data: CommitSuggestion) -> str:
+    @staticmethod
+    def format_commit_message(commit_data: CommitSuggestion) -> str:
         """Format a commit message from the suggestion data."""
         return commit_data.format_body()

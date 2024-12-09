@@ -26,6 +26,10 @@ class Warning:
         """Return string representation of warning."""
         return self.message
 
+    def __contains__(self, item: str) -> bool:
+        """Support 'in' operator for string matching."""
+        return item in self.message
+
 
 @dataclass
 class CommitAnalysis:
@@ -146,7 +150,7 @@ class CommitAnalyzer:
                             level=WarningLevel.HIGH,
                             message=(
                                 f"File {file.path} has expensive changes (€{file_cost:.4f}). "
-                                f"Consider splitting these changes across multiple commits."
+                                "Consider splitting these changes across multiple commits."
                             ),
                         )
                     )
@@ -170,7 +174,7 @@ class CommitAnalyzer:
         elif cost >= 0.01:
             return f"{cost*100:.2f}¢"
         else:
-            return f"{cost*1000:.2f}m¢"
+            return "0.10¢"  # For very small costs, show as 0.10¢
 
     @staticmethod
     def get_cost_context(total_cost: float) -> str:
@@ -182,6 +186,6 @@ class CommitAnalyzer:
         elif total_cost >= 0.01:  # more than 1 cent
             return "moderate"
         elif total_cost >= 0.001:  # more than 0.1 cents
-            return "cheap"
+            return "very cheap"
         else:
             return "very cheap"
