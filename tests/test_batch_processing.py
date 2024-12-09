@@ -16,7 +16,8 @@ class TestBatchProcessing:
 
     def test_single_batch(self, mock_deps, mocker, mock_git_file, batch_config):
         """Test processing a single batch of files."""
-        mock_console = mocker.patch("commitloom.cli.cli_handler.console")
+        # Mock console
+        mock_console = mocker.patch("commitloom.core.batch.console")
         mock_console.confirm_action.return_value = True
 
         # Setup test data
@@ -34,7 +35,8 @@ class TestBatchProcessing:
 
     def test_multiple_batches(self, mock_deps, mocker, mock_git_file, batch_config):
         """Test processing multiple batches of files."""
-        mock_console = mocker.patch("commitloom.cli.cli_handler.console")
+        # Mock console
+        mock_console = mocker.patch("commitloom.core.batch.console")
         mock_console.confirm_action.return_value = True
 
         # Setup test data
@@ -65,10 +67,16 @@ class TestBatchEdgeCases:
 
     def test_user_cancellation(self, mock_deps, mocker, mock_git_file, batch_config):
         """Test handling of user cancellation."""
-        mock_console = mocker.patch("commitloom.cli.cli_handler.console")
+        # Mock console
+        mock_console = mocker.patch("commitloom.core.batch.console")
         mock_console.confirm_action.return_value = False
 
+        # Setup test data
         files = [mock_git_file("test.py")]
+        mock_deps["git"].get_diff.return_value = "test diff"
+        mock_deps["analyzer"].estimate_tokens_and_cost.return_value = (100, 0.01)
+
+        # Process batch
         processor = BatchProcessor(batch_config)
         processor.git = mock_deps["git"]  # Use mocked git operations
         processor.process_files(files)
@@ -76,8 +84,13 @@ class TestBatchEdgeCases:
         # Verify no files were staged
         mock_deps["git"].stage_files.assert_not_called()
 
-    def test_git_error_handling(self, mock_deps, mock_git_file, batch_config):
+    def test_git_error_handling(self, mock_deps, mocker, mock_git_file, batch_config):
         """Test handling of git errors."""
+        # Mock console
+        mock_console = mocker.patch("commitloom.core.batch.console")
+        mock_console.confirm_action.return_value = True
+
+        # Setup test data
         files = [mock_git_file("test.py")]
         mock_deps["git"].stage_files.side_effect = Exception("Git error")
 

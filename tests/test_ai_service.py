@@ -12,7 +12,7 @@ from commitloom.services.ai_service import AIService, CommitSuggestion
 @pytest.fixture
 def ai_service():
     """Fixture for AIService instance."""
-    return AIService()
+    return AIService(api_key="test_key")
 
 
 def test_token_usage_from_api_usage():
@@ -78,9 +78,7 @@ def test_generate_commit_message_success(mock_post, ai_service, mock_git_file):
 
     mock_post.return_value = MagicMock(status_code=200, json=lambda: mock_response)
 
-    suggestion, usage = ai_service.generate_commit_message(
-        "test diff", [mock_git_file("test.py")]
-    )
+    suggestion, usage = ai_service.generate_commit_message("test diff", [mock_git_file("test.py")])
 
     assert isinstance(suggestion, CommitSuggestion)
     assert suggestion.title == "✨ feat: add new feature"
@@ -131,12 +129,7 @@ def test_format_commit_message():
     """Test commit message formatting."""
     suggestion = CommitSuggestion(
         title="✨ feat: add new feature",
-        body={
-            "Features": {
-                "emoji": "✨",
-                "changes": ["Added new functionality"],
-            }
-        },
+        body={"Changes": {"emoji": "✨", "changes": ["Added new functionality"]}},
         summary="Added new feature for better user experience",
     )
 
