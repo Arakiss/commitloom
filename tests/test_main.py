@@ -310,7 +310,8 @@ def test_run_with_exception(mock_console, commit_loom):
     mock_console.print_error.assert_called_with("An unexpected error occurred: Test error")
 
 
-def test_cli_arguments():
+@patch("commitloom.cli.cli_handler.CommitLoom")
+def test_cli_arguments(mock_commit_loom):
     """Test CLI argument parsing using Click."""
     runner = CliRunner()
 
@@ -320,6 +321,7 @@ def test_cli_arguments():
     assert "Create structured git commits" in result.output
 
     # Test with no arguments (default values)
+    mock_commit_loom.return_value.run.return_value = None
     result = runner.invoke(main, [])
     assert result.exit_code == 0
 
@@ -331,6 +333,9 @@ def test_cli_arguments():
     result = runner.invoke(main, ["--yes", "--combine", "--debug"])
     assert result.exit_code == 0
 
+    # Verify CommitLoom was called with correct arguments
+    mock_commit_loom.return_value.run.assert_called_with(auto_commit=True, combine_commits=True, debug=True)
+
 
 @patch("commitloom.cli.cli_handler.console")
 @patch("commitloom.cli.cli_handler.CommitLoom")
@@ -339,7 +344,7 @@ def test_main_keyboard_interrupt(mock_commit_loom, mock_console):
     runner = CliRunner()
     mock_commit_loom.return_value.run.side_effect = KeyboardInterrupt()
 
-    result = runner.invoke(main)
+    result = runner.invoke(main, catch_exceptions=False)
     assert result.exit_code == 1
     mock_console.print_error.assert_called_with("\nOperation cancelled by user.")
 
@@ -351,12 +356,13 @@ def test_main_exception_verbose(mock_commit_loom, mock_console):
     runner = CliRunner()
     mock_commit_loom.return_value.run.side_effect = Exception("Test error")
 
-    result = runner.invoke(main, ["-d"])
+    result = runner.invoke(main, ["-d"], catch_exceptions=False)
     assert result.exit_code == 1
     mock_console.print_error.assert_called_with("An error occurred: Test error")
 
 
-def test_process_files_in_batches_with_commit_error(commit_loom):
+@patch("commitloom.cli.console.confirm_action", return_value=False)
+def test_process_files_in_batches_with_commit_error(mock_confirm, commit_loom):
     """Test handling of commit creation error."""
     # Setup test data
     files = [GitFile(path="file1.py", status="M")]
