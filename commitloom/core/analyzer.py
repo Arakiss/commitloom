@@ -22,6 +22,10 @@ class Warning:
     level: WarningLevel
     message: str
 
+    def __str__(self) -> str:
+        """Return string representation of warning."""
+        return self.message
+
 
 @dataclass
 class CommitAnalysis:
@@ -38,9 +42,7 @@ class CommitAnalyzer:
     """Analyzes commit complexity and provides warnings."""
 
     @staticmethod
-    def estimate_tokens_and_cost(
-        text: str, model: str = config.default_model
-    ) -> tuple[int, float]:
+    def estimate_tokens_and_cost(text: str, model: str = config.default_model) -> tuple[int, float]:
         """
         Estimate the number of tokens and cost for a given text.
 
@@ -58,9 +60,7 @@ class CommitAnalyzer:
         return estimated_tokens, estimated_cost
 
     @staticmethod
-    def analyze_diff_complexity(
-        diff: str, changed_files: list[GitFile]
-    ) -> CommitAnalysis:
+    def analyze_diff_complexity(diff: str, changed_files: list[GitFile]) -> CommitAnalysis:
         """
         Analyzes the complexity of changes and returns warnings if necessary.
 
@@ -112,7 +112,7 @@ class CommitAnalyzer:
         if len(changed_files) > config.max_files_threshold:
             warnings.append(
                 Warning(
-                    level=WarningLevel.MEDIUM,
+                    level=WarningLevel.HIGH,
                     message=(
                         f"You're modifying {len(changed_files)} files. "
                         "For atomic commits, consider limiting to "
@@ -126,9 +126,7 @@ class CommitAnalyzer:
             try:
                 file_diff = diff.split(f"diff --git a/{file.path} b/{file.path}")[1]
                 file_diff = file_diff.split("diff --git")[0]
-                file_tokens, file_cost = CommitAnalyzer.estimate_tokens_and_cost(
-                    file_diff
-                )
+                file_tokens, file_cost = CommitAnalyzer.estimate_tokens_and_cost(file_diff)
 
                 if file_tokens >= config.token_limit // 2:
                     warnings.append(
@@ -168,28 +166,22 @@ class CommitAnalyzer:
     def format_cost_for_humans(cost: float) -> str:
         """Convert cost to human readable format with appropriate unit."""
         if cost >= 1.0:
-            return f"€{cost:.2f} (euros)"
+            return f"€{cost:.2f}"
         elif cost >= 0.01:
-            return f"{cost*100:.2f}¢ (cents)"
-        elif cost >= 0.0001:  # Adjusted threshold for millicents
-            return f"{cost*1000:.2f}m¢ (millicents)"
+            return f"{cost*100:.2f}¢"
         else:
-            return f"{cost*1000000:.2f}µ¢ (microcents)"
+            return f"{cost*1000:.2f}m¢"
 
     @staticmethod
-    def get_cost_context(total_cost: float) -> tuple[str, str]:
-        """
-        Get contextual message about the cost.
-        Returns tuple of (message, color)
-        """
+    def get_cost_context(total_cost: float) -> str:
+        """Get contextual message about the cost."""
         if total_cost >= 0.10:  # more than 10 cents
-            return (
-                "⚠️ Significant cost. Consider splitting changes into smaller commits.",
-                "yellow",
-            )
+            return "very expensive"
         elif total_cost >= 0.05:  # more than 5 cents
-            return "ℹ️ Moderate cost. Within reasonable limits.", "blue"
+            return "expensive"
         elif total_cost >= 0.01:  # more than 1 cent
-            return "✅ Low cost. Perfectly acceptable.", "green"
+            return "moderate"
+        elif total_cost >= 0.001:  # more than 0.1 cents
+            return "cheap"
         else:
-            return "👍 Minimal cost. No concerns.", "green"
+            return "very cheap"

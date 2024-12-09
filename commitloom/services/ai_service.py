@@ -68,16 +68,19 @@ class CommitSuggestion:
 class AIService:
     """Service for interacting with OpenAI API."""
 
-    def __init__(self):
+    def __init__(self, api_key: str | None = None):
         """Initialize the AI service."""
-        # API key is now handled by the config
-        pass
+        if api_key is None and config.api_key is None:
+            raise ValueError("API key is required")
+        if api_key:
+            config.api_key = api_key
 
-    def format_commit_message(self, commit_data: CommitSuggestion) -> str:
-        """Format a commit message from the suggestion data."""
-        return commit_data.format_body()
+    @classmethod
+    def token_usage_from_api_usage(cls, usage: dict[str, int]) -> TokenUsage:
+        """Create TokenUsage from API response usage data."""
+        return TokenUsage.from_api_usage(usage)
 
-    def _generate_prompt(self, diff: str, changed_files: list[GitFile]) -> str:
+    def generate_prompt(self, diff: str, changed_files: list[GitFile]) -> str:
         """Generate the prompt for the AI model."""
         files_summary = ", ".join(f.path for f in changed_files)
 
@@ -151,7 +154,7 @@ class AIService:
         self, diff: str, changed_files: list[GitFile]
     ) -> tuple[CommitSuggestion, TokenUsage]:
         """Generate a commit message using the OpenAI API."""
-        prompt = self._generate_prompt(diff, changed_files)
+        prompt = self.generate_prompt(diff, changed_files)
 
         headers = {
             "Content-Type": "application/json",
@@ -176,9 +179,7 @@ class AIService:
 
             if response.status_code == 400:
                 error_data = response.json()
-                error_message = error_data.get("error", {}).get(
-                    "message", "Unknown error"
-                )
+                error_message = error_data.get("error", {}).get("message", "Unknown error")
                 raise ValueError(f"API Error: {error_message}")
 
             response.raise_for_status()
@@ -190,7 +191,7 @@ class AIService:
                 commit_data = json.loads(content)
                 return CommitSuggestion(**commit_data), TokenUsage.from_api_usage(usage)
             except json.JSONDecodeError as e:
-                raise ValueError(f"Failed to parse API response as JSON: {str(e)}") from e
+                raise ValueError(f"Failed to parse AI response: {str(e)}") from e
 
         except requests.exceptions.RequestException as e:
             if hasattr(e, "response") and e.response is not None and hasattr(e.response, "text"):
@@ -198,3 +199,7 @@ class AIService:
             else:
                 error_message = str(e)
             raise ValueError(f"API Request failed: {error_message}") from e
+
+    def format_commit_message(self, commit_data: CommitSuggestion) -> str:
+        """Format a commit message from the suggestion data."""
+        return commit_data.format_body()
