@@ -97,7 +97,7 @@ select = ["E", "F", "I", "N", "W", "B", "UP"]
 ignore = ["E402"]
 
 [tool.ruff.lint.per-file-ignores]
-"commitloom/cli/main.py" = ["C901"]
+"commitloom/cli/cli_handler.py" = ["C901"]
 "commitloom/core/git.py" = ["B904"]
 
 [tool.ruff.format]

@@ -19,6 +19,7 @@ class GitFile:
 
     path: str
     status: str
+    old_path: str | None = None  # For renamed files
 
 
 class GitOperations:
@@ -66,24 +67,36 @@ class GitOperations:
                     continue
 
                 status = line[:2]
-                path = line[3:].strip()
+                path_info = line[3:].strip()
 
                 # Skip ignored files
                 if status == "!!":
                     continue
 
+                # Handle renamed files
+                if status[0] == "R" or status[1] == "R":
+                    if " -> " in path_info:
+                        old_path, new_path = path_info.split(" -> ")
+                        # Remove quotes if present
+                        if old_path.startswith('"') and old_path.endswith('"'):
+                            old_path = old_path[1:-1]
+                        if new_path.startswith('"') and new_path.endswith('"'):
+                            new_path = new_path[1:-1]
+                        files.append(GitFile(path=new_path, status="R", old_path=old_path))
+                        continue
+
                 # Remove quotes if present
-                if path.startswith('"') and path.endswith('"'):
-                    path = path[1:-1]
+                if path_info.startswith('"') and path_info.endswith('"'):
+                    path_info = path_info[1:-1]
 
                 # Include both staged and modified files
                 # First character is staged status, second is unstaged
                 if status[0] != " " and status[0] != "?":
-                    files.append(GitFile(path=path, status=status[0]))
+                    files.append(GitFile(path=path_info, status=status[0]))
                 if status[1] != " " and status[1] != "?":
                     # Only add if not already added with staged status
-                    if not any(f.path == path for f in files):
-                        files.append(GitFile(path=path, status=status[1]))
+                    if not any(f.path == path_info for f in files):
+                        files.append(GitFile(path=path_info, status=status[1]))
 
             return files
 
@@ -136,7 +149,17 @@ class GitOperations:
         try:
             cmd = ["git", "diff", "--staged"]
             if files:
-                cmd.extend(f.path for f in files)
+                # Only include paths that exist (new paths for renames, skip deleted files)
+                valid_paths = []
+                for f in files:
+                    if f.status == "R" and f.old_path:
+                        # For renames, use the new path
+                        valid_paths.append(f.path)
+                    elif f.status != "D":  # Skip deleted files
+                        valid_paths.append(f.path)
+
+                if valid_paths:
+                    cmd.extend(["--"] + valid_paths)
 
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             return result.stdout
