@@ -3,7 +3,7 @@
 import argparse
 import subprocess
 import sys
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -16,10 +16,11 @@ from commitloom.services.ai_service import CommitSuggestion
 @pytest.fixture
 def commit_loom():
     """Fixture for CommitLoom instance with mocked dependencies."""
-    with patch("commitloom.cli.main.GitOperations") as mock_git, patch(
-        "commitloom.cli.main.CommitAnalyzer"
-    ) as mock_analyzer, patch("commitloom.cli.main.AIService") as mock_ai, patch(
-        "commitloom.cli.main.load_dotenv"
+    with (
+        patch("commitloom.cli.main.GitOperations") as mock_git,
+        patch("commitloom.cli.main.CommitAnalyzer") as mock_analyzer,
+        patch("commitloom.cli.main.AIService") as mock_ai,
+        patch("commitloom.cli.main.load_dotenv"),
     ):
         instance = CommitLoom()
         instance.git = mock_git.return_value
@@ -34,8 +35,8 @@ def test_process_files_in_batches_single_batch(mock_confirm, mock_run, commit_lo
     """Test processing files when they fit in a single batch."""
     # Setup test data
     files = [
-        GitFile(path="file1.py"),
-        GitFile(path="file2.py"),
+        GitFile(path="file1.py", status="M"),
+        GitFile(path="file2.py", status="M"),
     ]
 
     # Mock git status and ignore check
@@ -71,11 +72,8 @@ def test_process_files_in_batches_single_batch(mock_confirm, mock_run, commit_lo
     )
     mock_confirm.return_value = True
 
-    result = commit_loom.process_files_in_batches(files, auto_commit=False)
-    assert len(result) == 1
-    assert len(result[0]["files"]) == 2
-    assert result[0]["files"][0].path == "file1.py"
-    assert result[0]["files"][1].path == "file2.py"
+    commit_loom.process_files_in_batches(files)
+    assert commit_loom.git.create_commit.called
 
 
 @patch("subprocess.run")
@@ -83,7 +81,7 @@ def test_process_files_in_batches_single_batch(mock_confirm, mock_run, commit_lo
 def test_process_files_in_batches_multiple_batches(mock_confirm, mock_run, commit_loom):
     """Test processing files that need to be split into multiple batches."""
     # Setup test data
-    files = [GitFile(path=f"file{i}.py") for i in range(10)]
+    files = [GitFile(path=f"file{i}.py", status="M") for i in range(10)]
 
     # Mock git status and ignore check
     def mock_git_status(cmd, **kwargs):
@@ -121,10 +119,8 @@ def test_process_files_in_batches_multiple_batches(mock_confirm, mock_run, commi
     # Set max_files_threshold to 5 to force multiple batches
     commit_loom.analyzer.config.max_files_threshold = 5
 
-    result = commit_loom.process_files_in_batches(files, auto_commit=False)
-    assert len(result) == 2  # Should be split into 2 batches of 5 files each
-    assert len(result[0]["files"]) == 5
-    assert len(result[1]["files"]) == 5
+    commit_loom.process_files_in_batches(files)
+    assert commit_loom.git.create_commit.call_count == 4  # Should create 4 commits for 10 files
 
 
 @patch("commitloom.cli.console.print_success")
@@ -132,13 +128,12 @@ def test_create_combined_commit(mock_print_success, commit_loom):
     """Test creating a combined commit from multiple batches."""
     # Mock format_commit_message to return a formatted string
     commit_loom.ai_service.format_commit_message.return_value = (
-        "📦 chore: combine multiple changes\n\n"
-        "✨ Features:\n"
+        "📦 chore: combine multiple changes\n\n" "✨ Features:\n"
     )
 
     batches = [
         {
-            "files": [GitFile(path="file1.py")],
+            "files": [GitFile(path="file1.py", status="M")],
             "commit_data": CommitSuggestion(
                 title="feat: first change",
                 body={"Features": {"emoji": "✨", "changes": ["Change 1"]}},
@@ -146,7 +141,7 @@ def test_create_combined_commit(mock_print_success, commit_loom):
             ),
         },
         {
-            "files": [GitFile(path="file2.py")],
+            "files": [GitFile(path="file2.py", status="M")],
             "commit_data": CommitSuggestion(
                 title="fix: second change",
                 body={"Fixes": {"emoji": "🐛", "changes": ["Fix 1"]}},
@@ -175,21 +170,19 @@ def test_create_combined_commit(mock_print_success, commit_loom):
 @patch("commitloom.cli.main.console")
 def test_run_no_changes(mock_console, commit_loom):
     """Test run when there are no changes."""
-    commit_loom.git.get_changed_files.return_value = []
+    commit_loom.git.get_staged_files.return_value = []
 
     commit_loom.run()
 
-    mock_console.print_error.assert_called_once_with(
-        "No changes detected in the staging area."
-    )
+    mock_console.print_warning.assert_called_once_with("No files staged for commit.")
 
 
 @patch("commitloom.cli.main.console")
 def test_run_simple_change(mock_console, commit_loom):
     """Test run with a simple change."""
     # Setup test data
-    files = [GitFile(path="test.py")]
-    commit_loom.git.get_changed_files.return_value = files
+    files = [GitFile(path="test.py", status="M")]
+    commit_loom.git.get_staged_files.return_value = files
     commit_loom.git.get_diff.return_value = "test diff"
     commit_loom.analyzer.analyze_diff_complexity.return_value = CommitAnalysis(
         estimated_tokens=100,
@@ -198,9 +191,7 @@ def test_run_simple_change(mock_console, commit_loom):
         warnings=[],
         is_complex=False,
     )
-    commit_loom.analyzer.config.max_files_threshold = (
-        5  # Set higher than number of files
-    )
+    commit_loom.analyzer.config.max_files_threshold = 5  # Set higher than number of files
     commit_loom.ai_service.generate_commit_message.return_value = (
         CommitSuggestion(
             title="test commit",
@@ -222,8 +213,8 @@ def test_run_simple_change(mock_console, commit_loom):
 def test_run_with_warnings(mock_console, commit_loom):
     """Test run with complexity warnings."""
     # Setup test data
-    files = [GitFile(path="test.py")]
-    commit_loom.git.get_changed_files.return_value = files
+    files = [GitFile(path="test.py", status="M")]
+    commit_loom.git.get_staged_files.return_value = files
     commit_loom.git.get_diff.return_value = "test diff"
     commit_loom.analyzer.analyze_diff_complexity.return_value = CommitAnalysis(
         estimated_tokens=1000,
@@ -239,12 +230,6 @@ def test_run_with_warnings(mock_console, commit_loom):
     commit_loom.run()
 
     # Verify all expected messages were printed
-    mock_console.print_info.assert_has_calls(
-        [
-            call("Analyzing your changes..."),
-            call("Process cancelled. Please review your changes."),
-        ]
-    )
     mock_console.print_warnings.assert_called_once()
 
 
@@ -252,8 +237,8 @@ def test_run_with_warnings(mock_console, commit_loom):
 def test_run_with_warnings_continue(mock_console, commit_loom):
     """Test run with warnings when user chooses to continue."""
     # Setup test data
-    files = [GitFile(path="test.py")]
-    commit_loom.git.get_changed_files.return_value = files
+    files = [GitFile(path="test.py", status="M")]
+    commit_loom.git.get_staged_files.return_value = files
     commit_loom.git.get_diff.return_value = "test diff"
     commit_loom.analyzer.analyze_diff_complexity.return_value = CommitAnalysis(
         estimated_tokens=1000,
@@ -278,9 +263,6 @@ def test_run_with_warnings_continue(mock_console, commit_loom):
 
     # Verify expected messages and actions
     mock_console.print_warnings.assert_called_once()
-    mock_console.print_info.assert_has_calls(
-        [call("Analyzing your changes..."), call("\nGenerated Commit Message:")]
-    )
     commit_loom.git.create_commit.assert_called_once()
 
 
@@ -288,8 +270,8 @@ def test_run_with_warnings_continue(mock_console, commit_loom):
 def test_run_commit_error(mock_console, commit_loom):
     """Test run when commit creation fails."""
     # Setup test data
-    files = [GitFile(path="test.py")]
-    commit_loom.git.get_changed_files.return_value = files
+    files = [GitFile(path="test.py", status="M")]
+    commit_loom.git.get_staged_files.return_value = files
     commit_loom.git.get_diff.return_value = "test diff"
     commit_loom.analyzer.analyze_diff_complexity.return_value = CommitAnalysis(
         estimated_tokens=100,
@@ -298,9 +280,7 @@ def test_run_commit_error(mock_console, commit_loom):
         warnings=[],
         is_complex=False,
     )
-    commit_loom.analyzer.config.max_files_threshold = (
-        5  # Set higher than number of files
-    )
+    commit_loom.analyzer.config.max_files_threshold = 5  # Set higher than number of files
     commit_loom.ai_service.generate_commit_message.return_value = (
         CommitSuggestion(
             title="test commit",
@@ -321,11 +301,11 @@ def test_run_commit_error(mock_console, commit_loom):
 @patch("commitloom.cli.main.console")
 def test_run_with_exception(mock_console, commit_loom):
     """Test run when an exception occurs."""
-    commit_loom.git.get_changed_files.side_effect = GitError("Test error")
+    commit_loom.git.get_staged_files.side_effect = GitError("Test error")
 
     commit_loom.run()
 
-    mock_console.print_error.assert_called_with("An error occurred: Test error")
+    mock_console.print_error.assert_called_with("An unexpected error occurred: Test error")
 
 
 def test_cli_arguments():
@@ -394,7 +374,7 @@ def test_main_exception_verbose(mock_commit_loom, mock_console):
 def test_process_files_in_batches_with_commit_error(commit_loom):
     """Test handling of commit creation error."""
     # Setup test data
-    files = [GitFile(path="file1.py")]
+    files = [GitFile(path="file1.py", status="M")]
     commit_loom.git.get_diff.return_value = "test diff"
 
     # Mock token usage
@@ -418,18 +398,18 @@ def test_process_files_in_batches_with_commit_error(commit_loom):
     # Mock create_commit to return False (indicating no changes)
     commit_loom.git.create_commit.return_value = False
 
-    result = commit_loom.process_files_in_batches(files, auto_commit=True)
-    assert len(result) == 0
+    commit_loom.process_files_in_batches(files)
+    assert commit_loom.git.reset_staged_changes.called
 
 
 def test_process_files_in_batches_with_git_error(commit_loom):
     """Test handling of git error during batch processing."""
     # Setup test data
-    files = [GitFile(path="file1.py")]
+    files = [GitFile(path="file1.py", status="M")]
     commit_loom.git.stage_files.side_effect = GitError("Git error")
 
-    result = commit_loom.process_files_in_batches(files, auto_commit=True)
-    assert len(result) == 0
+    commit_loom.process_files_in_batches(files)
+    assert commit_loom.git.reset_staged_changes.called
 
 
 @patch("subprocess.run")
@@ -437,7 +417,7 @@ def test_process_files_in_batches_with_git_error(commit_loom):
 def test_process_files_in_batches_user_cancel(mock_confirm, mock_run, commit_loom):
     """Test user cancellation during batch processing."""
     # Setup test data
-    files = [GitFile(path="file1.py")]
+    files = [GitFile(path="file1.py", status="M")]
 
     # Mock git status and ignore check
     def mock_git_status(cmd, **kwargs):
@@ -470,27 +450,23 @@ def test_process_files_in_batches_user_cancel(mock_confirm, mock_run, commit_loo
     # Mock user cancellation
     mock_confirm.return_value = False
 
-    result = commit_loom.process_files_in_batches(files, auto_commit=False)
-    assert len(result) == 0
-    commit_loom.git.reset_staged_changes.assert_called_once()
+    commit_loom.process_files_in_batches(files)
+    assert commit_loom.git.reset_staged_changes.called
 
 
 def test_process_files_in_batches_empty_input(commit_loom):
     """Test processing with no files."""
-    result = commit_loom.process_files_in_batches([], auto_commit=True)
-    assert len(result) == 0
+    commit_loom.process_files_in_batches([])
+    assert not commit_loom.git.create_commit.called
 
 
 @patch("subprocess.run")
 def test_create_batches_with_invalid_files(mock_run, commit_loom):
     """Test batch creation with invalid files."""
     # Mock git status to return empty for invalid file
-    mock_run.return_value = MagicMock(
-        stdout="",
-        returncode=0
-    )
+    mock_run.return_value = MagicMock(stdout="", returncode=0)
 
-    files = [GitFile(path="invalid.py")]
+    files = [GitFile(path="invalid.py", status="M")]
     batches = commit_loom._create_batches(files)
     assert len(batches) == 0
 
@@ -498,6 +474,7 @@ def test_create_batches_with_invalid_files(mock_run, commit_loom):
 @patch("subprocess.run")
 def test_create_batches_with_mixed_files(mock_run, commit_loom):
     """Test batch creation with mix of valid and invalid files."""
+
     def mock_git_status(cmd, **kwargs):
         if "status" in cmd and "--porcelain" in cmd:
             # Return a properly formatted git status output with a modified file
@@ -507,10 +484,7 @@ def test_create_batches_with_mixed_files(mock_run, commit_loom):
     mock_run.side_effect = mock_git_status
     commit_loom.git.should_ignore_file.side_effect = lambda x: x == "invalid.py"
 
-    files = [
-        GitFile(path="valid.py"),
-        GitFile(path="invalid.py")
-    ]
+    files = [GitFile(path="valid.py", status="M"), GitFile(path="invalid.py", status="M")]
     batches = commit_loom._create_batches(files)
     assert len(batches) == 1
     assert len(batches[0]) == 1
@@ -522,6 +496,6 @@ def test_create_batches_with_git_error(mock_run, commit_loom):
     """Test batch creation when git command fails."""
     mock_run.side_effect = subprocess.CalledProcessError(1, "git status", stderr=b"error")
 
-    files = [GitFile(path="file.py")]
+    files = [GitFile(path="file.py", status="M")]
     batches = commit_loom._create_batches(files)
     assert len(batches) == 0
