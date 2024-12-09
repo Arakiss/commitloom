@@ -101,4 +101,4 @@ def test_stage_files_with_info(mock_logger, mock_run, git_operations):
     # Verify info was logged
     mock_logger.info.assert_called_once_with(
         "Git message while staging %s: %s", "file1.py", "Updating index"
-    ) 
+    )

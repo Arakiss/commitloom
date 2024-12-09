@@ -83,4 +83,4 @@ def test_get_staged_files_ignores_untracked(mock_run, git_operations):
 
     assert len(files) == 1
     assert files[0].path == "tracked.py"
-    assert files[0].status == "M" 
+    assert files[0].status == "M"

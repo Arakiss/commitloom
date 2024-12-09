@@ -93,4 +93,4 @@ def test_create_commit_nothing_to_commit(mock_logger, mock_run, git_operations):
     result = git_operations.create_commit(title="test", message="message")
 
     assert result is False
-    mock_logger.info.assert_called_once_with("Nothing to commit") 
+    mock_logger.info.assert_called_once_with("Nothing to commit")
