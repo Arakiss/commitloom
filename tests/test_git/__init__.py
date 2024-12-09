@@ -1,1 +1,1 @@
-"""Git test package.""" 
+"""Git test package."""

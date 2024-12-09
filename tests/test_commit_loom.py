@@ -1,10 +1,11 @@
 """Tests for CommitLoom functionality."""
 
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
+
 from commitloom.cli.cli_handler import CommitLoom
-from commitloom.core.analyzer import CommitAnalysis, Warning, WarningLevel
+from commitloom.core.analyzer import CommitAnalysis
 from commitloom.core.git import GitError, GitFile
 from commitloom.services.ai_service import CommitSuggestion
 
@@ -116,4 +117,4 @@ class TestErrorHandling:
         loom = CommitLoom()
         loom.run()
 
-        mock_console.print_error.assert_called() 
+        mock_console.print_error.assert_called()

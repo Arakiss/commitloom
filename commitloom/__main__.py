@@ -11,8 +11,8 @@ from dotenv import load_dotenv
 env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
 load_dotenv(dotenv_path=env_path)
 
-from .cli.cli_handler import CommitLoom
 from .cli import console
+from .cli.cli_handler import CommitLoom
 
 
 def handle_error(error: Exception) -> None:
