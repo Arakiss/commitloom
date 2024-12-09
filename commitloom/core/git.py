@@ -40,25 +40,13 @@ class GitOperations:
             return
 
         try:
-            # Get staged files
-            result = subprocess.run(
-                ["git", "diff", "--name-only", "--cached"],
+            # Stage files directly
+            subprocess.run(
+                ["git", "add", "--"] + files,
                 capture_output=True,
                 text=True,
                 check=True,
             )
-
-            staged_files = set(result.stdout.splitlines())
-
-            # Only stage files that are not already staged
-            files_to_stage = [f for f in files if f not in staged_files]
-            if files_to_stage:
-                subprocess.run(
-                    ["git", "add", "--"] + files_to_stage,
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
             raise GitError(f"Failed to stage files: {error_msg}")
@@ -67,7 +55,7 @@ class GitOperations:
     def get_staged_files() -> list[GitFile]:
         """Get list of staged files."""
         try:
-            # Get status in porcelain format
+            # Get status in porcelain format for both staged and unstaged changes
             result = subprocess.run(
                 ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
             )
@@ -88,11 +76,14 @@ class GitOperations:
                 if path.startswith('"') and path.endswith('"'):
                     path = path[1:-1]
 
-                # Only include modified files
+                # Include both staged and modified files
+                # First character is staged status, second is unstaged
                 if status[0] != " " and status[0] != "?":
                     files.append(GitFile(path=path, status=status[0]))
-                elif status[1] != " " and status[1] != "?":
-                    files.append(GitFile(path=path, status=status[1]))
+                if status[1] != " " and status[1] != "?":
+                    # Only add if not already added with staged status
+                    if not any(f.path == path for f in files):
+                        files.append(GitFile(path=path, status=status[1]))
 
             return files
 
@@ -116,12 +107,24 @@ class GitOperations:
     def create_commit(title: str, message: str | None = None) -> bool:
         """Create a commit with the given title and message."""
         try:
+            # First verify we have staged changes
+            status = subprocess.run(
+                ["git", "diff", "--cached", "--quiet"],
+                capture_output=True,
+                text=True,
+            )
+
+            if status.returncode == 0:
+                # No staged changes
+                return False
+
+            # Create commit
             cmd = ["git", "commit", "-m", title]
             if message:
                 cmd.extend(["-m", message])
 
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            return "nothing to commit" not in result.stdout.lower()
+            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            return True
 
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
@@ -163,3 +166,17 @@ class GitOperations:
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
             raise GitError(f"Failed to pop stash: {error_msg}")
+
+    @staticmethod
+    def unstage_file(file: str) -> None:
+        """Unstage a specific file."""
+        try:
+            subprocess.run(
+                ["git", "reset", "--", file],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
+            error_msg = e.stderr if e.stderr else str(e)
+            raise GitError(f"Failed to unstage file: {error_msg}")
