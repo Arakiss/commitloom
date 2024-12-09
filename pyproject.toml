@@ -30,6 +30,9 @@ classifiers = [
 ]
 packages = [{ include = "commitloom" }]
 
+[tool.poetry.scripts]
+loom = "commitloom.__main__:main"
+
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/Arakiss/commitloom/issues"
 
@@ -47,10 +50,6 @@ pytest-asyncio = "^0.23.8"
 ruff = "^0.1.6"
 mypy = "^1.7.1"
 types-requests = "^2.32.0"
-
-[tool.poetry.scripts]
-loom = "commitloom.cli.main:main"
-cl = "commitloom.cli.main:main"
 
 [build-system]
 requires = ["poetry-core"]

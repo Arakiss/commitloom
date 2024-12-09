@@ -55,9 +55,9 @@ class GitOperations:
         try:
             files = (
                 subprocess.check_output(
-                    ["git", "diff", "--staged", "--name-only", "--"]
+                    ["git", "diff", "--staged", "--name-only", "--"],
+                    text=True
                 )
-                .decode("utf-8")
                 .splitlines()
             )
 
@@ -69,8 +69,8 @@ class GitOperations:
                         subprocess.check_output(
                             ["git", "ls-files", "-s", file_path],
                             stderr=subprocess.DEVNULL,
+                            text=True
                         )
-                        .decode()
                         .strip()
                         .split()
                     )
@@ -81,8 +81,8 @@ class GitOperations:
                             subprocess.check_output(
                                 ["git", "cat-file", "-s", file_hash],
                                 stderr=subprocess.DEVNULL,
+                                text=True
                             )
-                            .decode()
                             .strip()
                         )
                         result.append(
@@ -100,7 +100,8 @@ class GitOperations:
             return result
 
         except subprocess.CalledProcessError as e:
-            raise GitError(f"Failed to get changed files: {str(e)}")
+            error_msg = e.stderr if e.stderr else str(e)
+            raise GitError(f"Failed to get changed files: {error_msg}")
 
     @staticmethod
     def get_diff(files: list[GitFile] | None = None) -> str:
@@ -111,8 +112,10 @@ class GitOperations:
 
             # Check for binary files using --numstat
             numstat = (
-                subprocess.check_output(["git", "diff", "--staged", "--numstat"])
-                .decode("utf-8")
+                subprocess.check_output(
+                    ["git", "diff", "--staged", "--numstat"],
+                    text=True
+                )
                 .strip()
             )
 
@@ -132,14 +135,17 @@ class GitOperations:
                 # Get diff only for specified files
                 file_paths = [f.path for f in files]
                 return subprocess.check_output(
-                    ["git", "diff", "--staged", "--"] + file_paths
-                ).decode("utf-8")
+                    ["git", "diff", "--staged", "--"] + file_paths,
+                    text=True
+                )
             else:
                 return subprocess.check_output(
-                    ["git", "diff", "--staged", "--"]
-                ).decode("utf-8")
+                    ["git", "diff", "--staged", "--"],
+                    text=True
+                )
         except subprocess.CalledProcessError as e:
-            raise GitError(f"Failed to get diff: {str(e)}")
+            error_msg = e.stderr if e.stderr else str(e)
+            raise GitError(f"Failed to get diff: {error_msg}")
 
     @staticmethod
     def format_file_size(size: int) -> str:
@@ -161,10 +167,10 @@ class GitOperations:
                 check=True,
                 capture_output=True,
                 text=True,
-            ).stdout.splitlines()
+            )
 
             # Create a map of file statuses
-            file_statuses = {line[3:]: line[:2].strip() for line in status}
+            file_statuses = {line[3:]: line[:2].strip() for line in status.stdout.splitlines()}
 
             # Stage the specified files
             for file in files:
@@ -205,14 +211,13 @@ class GitOperations:
                                     result.stderr.strip(),
                                 )
                     except subprocess.CalledProcessError as e:
-                        raise GitError(
-                            f"Error staging {file}: {e.stderr.decode().strip()}"
-                        )
+                        error_msg = e.stderr if e.stderr else str(e)
+                        raise GitError(f"Error staging {file}: {error_msg}")
                 else:
                     logger.warning("File not found in git status: %s", file)
 
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr.decode().strip() if e.stderr else str(e)
+            error_msg = e.stderr if e.stderr else str(e)
             raise GitError(f"Failed to stage files: {error_msg}")
 
     @staticmethod
@@ -260,14 +265,14 @@ class GitOperations:
                 return True
 
             except subprocess.CalledProcessError as e:
-                error_msg = e.stderr.decode() if e.stderr else str(e)
+                error_msg = e.stderr if e.stderr else str(e)
                 if "nothing to commit" in error_msg.lower():
                     logger.info("No changes to commit")
                     return False
                 raise GitError(f"Failed to create commit: {error_msg}")
 
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr.decode() if e.stderr else str(e)
+            error_msg = e.stderr if e.stderr else str(e)
             raise GitError(f"Failed to create commit: {error_msg}")
         except GitError:
             # Re-raise GitError without modification
@@ -277,9 +282,15 @@ class GitOperations:
     def reset_staged_changes() -> None:
         """Reset any staged changes."""
         try:
-            subprocess.run(["git", "reset"], check=True)
+            subprocess.run(
+                ["git", "reset"],
+                check=True,
+                capture_output=True,
+                text=True
+            )
         except subprocess.CalledProcessError as e:
-            raise GitError(f"Failed to reset staged changes: {str(e)}") from e
+            error_msg = e.stderr if e.stderr else str(e)
+            raise GitError(f"Failed to reset staged changes: {error_msg}") from e
 
     @staticmethod
     def stash_changes() -> None:
@@ -292,7 +303,8 @@ class GitOperations:
                 text=True,
             )
         except subprocess.CalledProcessError as e:
-            raise GitError(f"Failed to stash changes: {e.stderr.strip()}")
+            error_msg = e.stderr if e.stderr else str(e)
+            raise GitError(f"Failed to stash changes: {error_msg}")
 
     @staticmethod
     def pop_stashed_changes() -> None:
@@ -302,23 +314,23 @@ class GitOperations:
                 ["git", "stash", "pop"],
                 check=True,
                 capture_output=True,
-                text=True,  # Changed from False to True to match test expectations
+                text=True,
             )
         except subprocess.CalledProcessError as e:
-            if b"No stash entries found" in e.stderr:
-                return
-            raise GitError(
-                f"Failed to pop stashed changes: {e.stderr.decode().strip()}"
-            ) from e
+            error_msg = e.stderr if e.stderr else str(e)
+            raise GitError(f"Failed to pop stashed changes: {error_msg}")
 
     @staticmethod
     def get_staged_files() -> list[str]:
         """Get list of currently staged files."""
         try:
             return (
-                subprocess.check_output(["git", "diff", "--staged", "--name-only"])
-                .decode()
+                subprocess.check_output(
+                    ["git", "diff", "--staged", "--name-only"],
+                    text=True
+                )
                 .splitlines()
             )
         except subprocess.CalledProcessError as e:
-            raise GitError(f"Failed to get staged files: {str(e)}")
+            error_msg = e.stderr if e.stderr else str(e)
+            raise GitError(f"Failed to get staged files: {error_msg}")
