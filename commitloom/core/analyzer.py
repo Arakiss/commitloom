@@ -84,8 +84,8 @@ class CommitAnalyzer:
                 Warning(
                     level=WarningLevel.HIGH,
                     message=(
-                        f"The diff is too large ({estimated_tokens:,} estimated tokens). "
-                        f"Exceeds recommended limit of {config.token_limit:,} tokens."
+                        f"The diff exceeds token limit ({estimated_tokens:,} tokens). "
+                        f"Recommended limit is {config.token_limit:,} tokens."
                     ),
                 )
             )
@@ -101,7 +101,7 @@ class CommitAnalyzer:
                     ),
                 )
             )
-        elif estimated_cost >= config.cost_warning_threshold:  # configurable threshold
+        elif estimated_cost >= 0.05:  # more than 5 cents
             warnings.append(
                 Warning(
                     level=WarningLevel.MEDIUM,
@@ -137,8 +137,7 @@ class CommitAnalyzer:
                         Warning(
                             level=WarningLevel.HIGH,
                             message=(
-                                f"File {file.path} has too many changes "
-                                f"({file_tokens:,} estimated tokens). "
+                                f"File {file.path} is too large ({file_tokens:,} tokens). "
                                 "Consider splitting these changes across multiple commits."
                             ),
                         )
@@ -186,6 +185,6 @@ class CommitAnalyzer:
         elif total_cost >= 0.01:  # more than 1 cent
             return "moderate"
         elif total_cost >= 0.001:  # more than 0.1 cents
-            return "very cheap"
+            return "cheap"
         else:
             return "very cheap"

@@ -26,6 +26,7 @@ class TestBatchProcessing:
 
         # Process batch
         processor = BatchProcessor(batch_config)
+        processor.git = mock_deps["git"]  # Use mocked git operations
         processor.process_files(files)
 
         # Verify files were staged
@@ -43,6 +44,7 @@ class TestBatchProcessing:
 
         # Process batches
         processor = BatchProcessor(batch_config)
+        processor.git = mock_deps["git"]  # Use mocked git operations
         processor.process_files(files)
 
         # Verify files were staged in batches
@@ -55,6 +57,7 @@ class TestBatchEdgeCases:
     def test_empty_batch(self, mock_deps, batch_config):
         """Test handling of empty batch."""
         processor = BatchProcessor(batch_config)
+        processor.git = mock_deps["git"]  # Use mocked git operations
         processor.process_files([])
 
         # Verify no operations were performed
@@ -67,6 +70,7 @@ class TestBatchEdgeCases:
 
         files = [mock_git_file("test.py")]
         processor = BatchProcessor(batch_config)
+        processor.git = mock_deps["git"]  # Use mocked git operations
         processor.process_files(files)
 
         # Verify no files were staged
@@ -78,7 +82,8 @@ class TestBatchEdgeCases:
         mock_deps["git"].stage_files.side_effect = Exception("Git error")
 
         processor = BatchProcessor(batch_config)
+        processor.git = mock_deps["git"]  # Use mocked git operations
         with pytest.raises(Exception) as exc_info:
             processor.process_files(files)
 
-        assert "Git error" in str(exc_info.value) 
+        assert "Git error" in str(exc_info.value)

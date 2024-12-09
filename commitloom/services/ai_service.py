@@ -70,9 +70,10 @@ class AIService:
 
     def __init__(self, api_key: str | None = None):
         """Initialize the AI service."""
-        if api_key is None and config.api_key is None:
-            raise ValueError("API key is required")
-        if api_key:
+        if api_key is None:
+            if config.api_key is None:
+                raise ValueError("API key is required")
+        else:
             config.api_key = api_key
 
     @classmethod
