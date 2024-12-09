@@ -1,4 +1,4 @@
-"""Tests for main CLI module."""
+"""Tests for CLI handler module."""
 
 import argparse
 import subprocess
@@ -7,7 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from commitloom.cli.main import CommitLoom, create_parser, main
+from commitloom.__main__ import create_parser, main
+from commitloom.cli.cli_handler import CommitLoom
 from commitloom.core.analyzer import CommitAnalysis, Warning, WarningLevel
 from commitloom.core.git import GitError, GitFile
 from commitloom.services.ai_service import CommitSuggestion
@@ -17,10 +18,10 @@ from commitloom.services.ai_service import CommitSuggestion
 def commit_loom():
     """Fixture for CommitLoom instance with mocked dependencies."""
     with (
-        patch("commitloom.cli.main.GitOperations") as mock_git,
-        patch("commitloom.cli.main.CommitAnalyzer") as mock_analyzer,
-        patch("commitloom.cli.main.AIService") as mock_ai,
-        patch("commitloom.cli.main.load_dotenv"),
+        patch("commitloom.cli.cli_handler.GitOperations") as mock_git,
+        patch("commitloom.cli.cli_handler.CommitAnalyzer") as mock_analyzer,
+        patch("commitloom.cli.cli_handler.AIService") as mock_ai,
+        patch("commitloom.cli.cli_handler.load_dotenv"),
     ):
         instance = CommitLoom()
         instance.git = mock_git.return_value
@@ -167,7 +168,7 @@ def test_create_combined_commit(mock_print_success, commit_loom):
     mock_print_success.assert_called_once_with("Combined commit created successfully!")
 
 
-@patch("commitloom.cli.main.console")
+@patch("commitloom.cli.cli_handler.console")
 def test_run_no_changes(mock_console, commit_loom):
     """Test run when there are no changes."""
     commit_loom.git.get_staged_files.return_value = []
@@ -177,7 +178,7 @@ def test_run_no_changes(mock_console, commit_loom):
     mock_console.print_warning.assert_called_once_with("No files staged for commit.")
 
 
-@patch("commitloom.cli.main.console")
+@patch("commitloom.cli.cli_handler.console")
 def test_run_simple_change(mock_console, commit_loom):
     """Test run with a simple change."""
     # Setup test data
@@ -209,7 +210,7 @@ def test_run_simple_change(mock_console, commit_loom):
     mock_console.print_success.assert_called()
 
 
-@patch("commitloom.cli.main.console")
+@patch("commitloom.cli.cli_handler.console")
 def test_run_with_warnings(mock_console, commit_loom):
     """Test run with complexity warnings."""
     # Setup test data
@@ -233,7 +234,7 @@ def test_run_with_warnings(mock_console, commit_loom):
     mock_console.print_warnings.assert_called_once()
 
 
-@patch("commitloom.cli.main.console")
+@patch("commitloom.cli.cli_handler.console")
 def test_run_with_warnings_continue(mock_console, commit_loom):
     """Test run with warnings when user chooses to continue."""
     # Setup test data
@@ -266,7 +267,7 @@ def test_run_with_warnings_continue(mock_console, commit_loom):
     commit_loom.git.create_commit.assert_called_once()
 
 
-@patch("commitloom.cli.main.console")
+@patch("commitloom.cli.cli_handler.console")
 def test_run_commit_error(mock_console, commit_loom):
     """Test run when commit creation fails."""
     # Setup test data
@@ -298,7 +299,7 @@ def test_run_commit_error(mock_console, commit_loom):
     mock_console.print_error.assert_called()
 
 
-@patch("commitloom.cli.main.console")
+@patch("commitloom.cli.cli_handler.console")
 def test_run_with_exception(mock_console, commit_loom):
     """Test run when an exception occurs."""
     commit_loom.git.get_staged_files.side_effect = GitError("Test error")
@@ -335,9 +336,9 @@ def test_cli_arguments():
     assert args.verbose
 
 
-@patch("commitloom.cli.main.console")
-@patch("commitloom.cli.main.CommitLoom")
-@patch("commitloom.cli.main.create_parser")
+@patch("commitloom.__main__.console")
+@patch("commitloom.__main__.CommitLoom")
+@patch("commitloom.__main__.create_parser")
 def test_main_keyboard_interrupt(mock_create_parser, mock_commit_loom, mock_console):
     """Test handling of KeyboardInterrupt in main."""
     # Setup mock parser that always returns empty args
@@ -356,8 +357,8 @@ def test_main_keyboard_interrupt(mock_create_parser, mock_commit_loom, mock_cons
     mock_console.print_error.assert_called_with("\nOperation cancelled by user.")
 
 
-@patch("commitloom.cli.main.console")
-@patch("commitloom.cli.main.CommitLoom")
+@patch("commitloom.__main__.console")
+@patch("commitloom.__main__.CommitLoom")
 def test_main_exception_verbose(mock_commit_loom, mock_console):
     """Test handling of exceptions in main with verbose logging."""
     mock_commit_loom.return_value.run.side_effect = Exception("Test error")
