@@ -26,10 +26,20 @@ class GitOperations:
     """Basic git operations handler."""
 
     @staticmethod
+    def _handle_git_output(result: subprocess.CompletedProcess, context: str = "") -> None:
+        """Handle git command output and log messages."""
+        if result.stderr:
+            if result.stderr.startswith("warning:"):
+                logger.warning("Git warning%s: %s", f" {context}" if context else "", result.stderr)
+            else:
+                logger.info("Git message%s: %s", f" {context}" if context else "", result.stderr)
+
+    @staticmethod
     def reset_staged_changes() -> None:
         """Reset all staged changes."""
         try:
-            subprocess.run(["git", "reset"], capture_output=True, text=True, check=True)
+            result = subprocess.run(["git", "reset"], capture_output=True, text=True, check=True)
+            GitOperations._handle_git_output(result)
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
             raise GitError(f"Failed to reset staged changes: {error_msg}")
@@ -41,13 +51,18 @@ class GitOperations:
             return
 
         try:
-            # Stage files directly
-            subprocess.run(
-                ["git", "add", "--"] + files,
-                capture_output=True,
-                text=True,
-                check=True,
-            )
+            for file in files:
+                result = subprocess.run(
+                    ["git", "add", "--", file],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                if result.stderr:
+                    if result.stderr.startswith("warning:"):
+                        logger.warning("Git warning while staging %s: %s", file, result.stderr)
+                    else:
+                        logger.info("Git message while staging %s: %s", file, result.stderr)
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
             raise GitError(f"Failed to stage files: {error_msg}")
@@ -129,6 +144,7 @@ class GitOperations:
 
             if status.returncode == 0:
                 # No staged changes
+                logger.info("Nothing to commit")
                 return False
 
             # Create commit
@@ -136,7 +152,12 @@ class GitOperations:
             if message:
                 cmd.extend(["-m", message])
 
-            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            if result.stderr:
+                if result.stderr.startswith("warning:"):
+                    logger.warning("Git warning during commit: %s", result.stderr)
+                else:
+                    logger.info("Git message during commit: %s", result.stderr)
             return True
 
         except subprocess.CalledProcessError as e:
@@ -176,7 +197,8 @@ class GitOperations:
             if message:
                 cmd.extend(["-m", message])
 
-            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            GitOperations._handle_git_output(result, "during stash save")
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
             raise GitError(f"Failed to save stash: {error_msg}")
@@ -185,7 +207,8 @@ class GitOperations:
     def stash_pop() -> None:
         """Pop most recent stash."""
         try:
-            subprocess.run(["git", "stash", "pop"], capture_output=True, text=True, check=True)
+            result = subprocess.run(["git", "stash", "pop"], capture_output=True, text=True, check=True)
+            GitOperations._handle_git_output(result, "during stash pop")
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
             raise GitError(f"Failed to pop stash: {error_msg}")
@@ -194,12 +217,13 @@ class GitOperations:
     def unstage_file(file: str) -> None:
         """Unstage a specific file."""
         try:
-            subprocess.run(
+            result = subprocess.run(
                 ["git", "reset", "--", file],
                 capture_output=True,
                 text=True,
                 check=True,
             )
+            GitOperations._handle_git_output(result, f"while unstaging {file}")
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
             raise GitError(f"Failed to unstage file: {error_msg}")
