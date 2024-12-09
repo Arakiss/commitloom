@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.7] - 2024-12-09
+
+
+### 📦 Build System
+- bump version to 0.9.7
+
+### 🔄 Other Changes
+- ✨ feat: improve batch processing for commits
+
 ## [0.9.6] - 2024-12-08
 
 
