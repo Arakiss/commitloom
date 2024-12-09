@@ -1,12 +1,11 @@
 """Tests for console output and user interaction."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from commitloom.cli import console
 from commitloom.core.analyzer import CommitAnalysis, Warning, WarningLevel
-from commitloom.core.git import GitFile
 from commitloom.services.ai_service import CommitSuggestion
 
 
@@ -77,10 +76,12 @@ def test_print_batch_info():
     console.print_batch_info(1, files)
 
 
-def test_confirm_action():
+@patch("rich.prompt.Confirm.ask")
+def test_confirm_action(mock_ask):
     """Test action confirmation."""
-    with patch("click.confirm", return_value=True):
-        assert console.confirm_action("Test action?") is True
+    mock_ask.return_value = True
+    assert console.confirm_action("Test action?") is True
+    mock_ask.assert_called_once()
 
 
 def test_print_success():
