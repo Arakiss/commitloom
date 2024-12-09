@@ -1,6 +1,6 @@
 """CommitLoom - Weave perfect git commits with AI-powered intelligence."""
 
-from .cli.main import CommitLoom, main
+from .cli.cli_handler import CommitLoom
 from .core.analyzer import CommitAnalysis, CommitAnalyzer, Warning, WarningLevel
 from .core.git import GitError, GitFile, GitOperations
 from .services.ai_service import AIService, CommitSuggestion, TokenUsage
@@ -11,7 +11,6 @@ __email__ = "petruarakiss@gmail.com"
 
 __all__ = [
     "CommitLoom",
-    "main",
     "GitOperations",
     "GitFile",
     "GitError",

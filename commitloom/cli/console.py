@@ -103,7 +103,10 @@ def print_changed_files(files: list[GitFile]) -> None:
     """Print list of changed files."""
     console.print("\n[bold blue]📜 Changes detected in the following files:[/bold blue]")
     for file in files:
-        console.print(f"  - [cyan]{file.path}[/cyan]")
+        if file.status == "R" and file.old_path:
+            console.print(f"  - [cyan]{file.old_path} -> {file.path}[/cyan]")
+        else:
+            console.print(f"  - [cyan]{file.path}[/cyan]")
 
 
 def print_warnings(warnings: list[AnalyzerWarning] | CommitAnalysis) -> None:
@@ -135,7 +138,10 @@ def print_batch_start(batch_num: int, total_batches: int, files: list[GitFile]) 
     console.print(f"\n[bold blue]📦 Processing Batch {batch_num}/{total_batches}[/bold blue]")
     console.print("[cyan]Files in this batch:[/cyan]")
     for file in files:
-        console.print(f"  - [dim]{file.path}[/dim]")
+        if file.status == "R" and file.old_path:
+            console.print(f"  - [dim]{file.old_path} -> {file.path}[/dim]")
+        else:
+            console.print(f"  - [dim]{file.path}[/dim]")
 
 
 def print_batch_complete(batch_num: int, total_batches: int) -> None:
@@ -221,7 +227,11 @@ def select_commit_strategy() -> str:
 def print_analysis(analysis: CommitAnalysis | MagicMock, files: list[GitFile]) -> None:
     """Print analysis results."""
     console.print("\n[bold]Analysis Results:[/bold]")
-    console.print(f"Files: {', '.join(f.path for f in files)}")
+    for file in files:
+        if file.status == "R" and file.old_path:
+            console.print(f"  - [dim]{file.old_path} -> {file.path}[/dim]")
+        else:
+            console.print(f"  - [dim]{file.path}[/dim]")
 
     try:
         if isinstance(analysis, MagicMock):

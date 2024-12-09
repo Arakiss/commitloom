@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Entry point for running commitloom as a module."""
 
-
 import os
 
 import click
@@ -11,7 +10,7 @@ from dotenv import load_dotenv
 env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
 load_dotenv(dotenv_path=env_path)
 
-from .cli.main import CommitLoom
+from .cli.cli_handler import CommitLoom
 
 
 @click.command()
