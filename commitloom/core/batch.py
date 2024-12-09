@@ -8,14 +8,12 @@ from .git import GitError, GitFile, GitOperations
 
 logger = logging.getLogger(__name__)
 
-BATCH_THRESHOLD = 4  # Maximum number of files per batch for atomic commits
-
 
 @dataclass
 class BatchConfig:
     """Configuration for batch processing."""
 
-    batch_size: int = BATCH_THRESHOLD  # Default to BATCH_THRESHOLD for atomic commits
+    batch_size: int  # Maximum number of files per batch
 
 
 class BatchProcessor:
@@ -26,22 +24,6 @@ class BatchProcessor:
         self.git = GitOperations()
         self._processing_queue: List[GitFile] = []
         self._processed_files: List[GitFile] = []
-
-    def _save_current_state(self) -> None:
-        """Save current git state to stash."""
-        try:
-            self.git.stash_save("commitloom_batch_processing_temp")
-        except GitError as e:
-            logger.error(f"Failed to save state: {str(e)}")
-            raise
-
-    def _restore_state(self) -> None:
-        """Restore previously saved git state."""
-        try:
-            self.git.stash_pop()
-        except GitError as e:
-            logger.error(f"Failed to restore state: {str(e)}")
-            raise
 
     def _prepare_batch(self, files: List[GitFile]) -> None:
         """Prepare files for batch processing."""
@@ -56,9 +38,9 @@ class BatchProcessor:
         if not self._processing_queue:
             return None
 
-        # Take up to BATCH_THRESHOLD files
-        batch = self._processing_queue[:BATCH_THRESHOLD]
-        self._processing_queue = self._processing_queue[BATCH_THRESHOLD:]
+        # Take up to batch_size files
+        batch = self._processing_queue[: self.config.batch_size]
+        self._processing_queue = self._processing_queue[self.config.batch_size :]
 
         return batch
 
@@ -78,14 +60,12 @@ class BatchProcessor:
 
     def process_files(self, files: List[GitFile]) -> None:
         """
-        Process files in atomic batches.
+        Process files in batches.
 
-        This method handles the case where files may already be staged.
-        It will:
-        1. Save current state (stash)
-        2. Reset staged changes
-        3. Process files in small batches (3-4 files)
-        4. Restore original state
+        This method handles the core batch processing logic:
+        1. Reset staged changes
+        2. Process files in small batches
+        3. Track processed files
 
         Args:
             files: List of files to process
@@ -94,9 +74,6 @@ class BatchProcessor:
             return
 
         try:
-            # Save current state
-            self._save_current_state()
-
             # Prepare files for processing
             self._prepare_batch(files)
 
@@ -110,15 +87,4 @@ class BatchProcessor:
 
         except GitError as e:
             logger.error(f"Batch processing failed: {str(e)}")
-            # Try to restore state
-            try:
-                self._restore_state()
-            except GitError:
-                pass  # Already logged in _restore_state
             raise
-        finally:
-            # Always try to restore state
-            try:
-                self._restore_state()
-            except GitError:
-                pass  # Already logged in _restore_state

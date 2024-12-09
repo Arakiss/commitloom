@@ -5,6 +5,7 @@ import logging
 import os
 import subprocess
 import sys
+from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -27,6 +28,9 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+# Minimum number of files to activate batch processing
+BATCH_THRESHOLD = 3
+
 
 class CommitLoom:
     """Main application class."""
@@ -40,14 +44,42 @@ class CommitLoom:
         self.combine_commits = False
         self.console = console
 
+    def _process_single_commit(self, files: list[GitFile]) -> None:
+        """Process files as a single commit."""
+        try:
+            # Stage files
+            file_paths = [f.path for f in files]
+            self.git.stage_files(file_paths)
+
+            # Get diff and analyze
+            diff = self.git.get_diff(files)
+            analysis = self.analyzer.analyze_diff_complexity(diff, files)
+
+            # Print analysis
+            console.print_warnings(analysis)
+
+            # Generate commit message
+            suggestion, usage = self.ai_service.generate_commit_message(diff, files)
+            console.print_info("\nGenerated Commit Message:")
+            console.print_commit_message(suggestion.format_body())
+            console.print_token_usage(usage)
+
+            # Create commit
+            if self.git.create_commit(suggestion.title, suggestion.format_body()):
+                console.print_success("Changes committed successfully!")
+            else:
+                console.print_warning("No changes were committed. Files may already be committed.")
+
+        except (GitError, ValueError) as e:
+            console.print_error(str(e))
+            self.git.reset_staged_changes()
+
     def _handle_batch(
         self,
         batch: list[GitFile],
         batch_num: int,
         total_batches: int,
-        auto_commit: bool,
-        combine_commits: bool,
-    ) -> dict | None:
+    ) -> Optional[dict]:
         """Handle a single batch of files."""
         try:
             # Stage files
@@ -61,60 +93,24 @@ class CommitLoom:
             # Print analysis
             console.print_warnings(analysis)
 
-            # If auto_commit is True, proceed even with warnings
-            if analysis.is_complex and not auto_commit:
-                if not console.confirm_action("Continue despite warnings?"):
-                    self.git.reset_staged_changes()
-                    return None
-
             # Generate commit message
             suggestion, usage = self.ai_service.generate_commit_message(diff, batch)
             console.print_info("\nGenerated Commit Message:")
             console.print_commit_message(suggestion.format_body())
             console.print_token_usage(usage)
 
-            # Skip confirmation if auto_commit is True
-            if not auto_commit:
-                if not console.confirm_action("Create this commit?"):
-                    self.git.reset_staged_changes()
-                    return None
+            # Create commit
+            if not self.git.create_commit(suggestion.title, suggestion.format_body()):
+                console.print_warning("No changes were committed. Files may already be committed.")
+                return None
 
-            # Create commit if not combining
-            if not combine_commits:
-                if not self.git.create_commit(suggestion.title, suggestion.format_body()):
-                    console.print_warning(
-                        "No changes were committed. Files may already be committed."
-                    )
-                    return None
-                console.print_batch_complete(batch_num, total_batches)
-
+            console.print_batch_complete(batch_num, total_batches)
             return {"files": batch, "commit_data": suggestion}
 
         except (GitError, ValueError) as e:
             console.print_error(str(e))
             self.git.reset_staged_changes()
             return None
-
-    def _handle_combined_commit(
-        self, suggestions: list[CommitSuggestion], auto_commit: bool
-    ) -> None:
-        """Handle creating a combined commit from multiple suggestions."""
-        try:
-            combined_message = self.ai_service.format_commit_message(suggestions)
-            console.print_commit_message(combined_message)
-
-            # Skip confirmation if auto_commit is True
-            if not auto_commit:
-                if not console.confirm_action("Create this commit?"):
-                    self.git.reset_staged_changes()
-                    return
-
-            self.git.create_commit(combined_message.title, combined_message.format_body())
-            console.print_success("Combined commit created successfully!")
-
-        except (GitError, ValueError) as e:
-            console.print_error(str(e))
-            self.git.reset_staged_changes()
 
     def _create_batches(self, changed_files: list[GitFile]) -> list[list[GitFile]]:
         """Create batches of files for processing."""
@@ -141,7 +137,7 @@ class CommitLoom:
 
             # Create batches from valid files
             batches = []
-            batch_size = config.max_files_threshold
+            batch_size = BATCH_THRESHOLD
             for i in range(0, len(valid_files), batch_size):
                 batch = valid_files[i : i + batch_size]
                 batches.append(batch)
@@ -152,18 +148,19 @@ class CommitLoom:
             console.print_error(f"Error getting git status: {e}")
             return []
 
-    def process_files_in_batches(self, files: list[GitFile], auto_commit: bool = False) -> None:
-        """Process files in batches."""
+    def process_files_in_batches(self, files: list[GitFile]) -> None:
+        """Process files in batches if needed."""
         if not files:
             return
 
         try:
-            # First stage all files to ensure they're tracked
-            file_paths = [f.path for f in files]
-            self.git.stage_files(file_paths)
+            # Only use batch processing if we have more than BATCH_THRESHOLD files
+            if len(files) <= BATCH_THRESHOLD:
+                self._process_single_commit(files)
+                return
 
             # Configure batch processor
-            config = BatchConfig(batch_size=4)  # Set to 4 for atomic commits
+            config = BatchConfig(batch_size=BATCH_THRESHOLD)
             processor = BatchProcessor(config)
 
             # Process files in batches
@@ -175,16 +172,9 @@ class CommitLoom:
                 self.git.reset_staged_changes()
 
                 # Process this batch
-                result = self._handle_batch(
-                    batch, i, len(batches), auto_commit, self.combine_commits
-                )
-
+                result = self._handle_batch(batch, i, len(batches))
                 if result:
                     processed_batches.append(result)
-
-            # If combining commits, create the combined commit
-            if self.combine_commits and processed_batches:
-                self._create_combined_commit(processed_batches)
 
         except GitError as e:
             self.console.print_error(str(e))
@@ -212,8 +202,8 @@ class CommitLoom:
 
             self.console.print_changed_files(changed_files)
 
-            # Process files in batches
-            self.process_files_in_batches(changed_files, auto_commit)
+            # Process files (in batches if needed)
+            self.process_files_in_batches(changed_files)
 
         except Exception as e:
             self.console.print_error(f"An unexpected error occurred: {str(e)}")
