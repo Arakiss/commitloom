@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.8] - 2024-12-09
+
+
+### 📦 Build System
+- bump version to 0.9.8
+
+### 🔄 Other Changes
+- ✨ feat: enhance commit process with CLI options
+
 ## [0.9.7] - 2024-12-09
 
 
