@@ -132,7 +132,7 @@ class CommitLoom:
             batches = []
             batch_size = config.max_files_threshold
             for i in range(0, len(valid_files), batch_size):
-                batch = valid_files[i:i + batch_size]
+                batch = valid_files[i : i + batch_size]
                 batches.append(batch)
 
             return batches
@@ -155,16 +155,30 @@ class CommitLoom:
         console.print_info("\nProcessing files in batches...")
         console.print_batch_summary(len(changed_files), total_batches)
 
-        for i, batch in enumerate(batches, 1):
-            # Process current batch
-            console.print_batch_start(i, total_batches, batch)
-            result = self._handle_batch(batch, i, total_batches, auto_commit, False)
-            if result:
-                results.append(result)
-            elif i < total_batches:  # Only reset if there are more batches to process
-                self.git.reset_staged_changes()
+        try:
+            for i, batch in enumerate(batches, 1):
+                # Stage only the current batch files
+                batch_files = [f.path for f in batch]
+                self.git.stage_files(batch_files)
 
-        return results
+                # Process current batch
+                console.print_batch_start(i, total_batches, batch)
+                result = self._handle_batch(batch, i, total_batches, auto_commit, False)
+
+                if result:
+                    results.append(result)
+                    # Only unstage if there are more batches to process
+                    if i < total_batches:
+                        self.git.reset_staged_changes()
+                else:
+                    # _handle_batch already called reset_staged_changes
+                    break
+
+            return results
+        except GitError as e:
+            console.print_error(f"Error during batch processing: {str(e)}")
+            self.git.reset_staged_changes()
+            return []
 
     def _create_combined_commit(self, batches: list[dict]) -> None:
         """Create a combined commit from all batches."""
@@ -194,9 +208,7 @@ class CommitLoom:
                 combined_commit.title,
                 combined_commit.format_body(),
             ):
-                console.print_warning(
-                    "No changes were committed. Files may already be committed."
-                )
+                console.print_warning("No changes were committed. Files may already be committed.")
                 return
             console.print_success("Combined commit created successfully!")
         except GitError as e:
@@ -286,9 +298,7 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Combine all changes into a single commit",
     )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Enable verbose logging"
-    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging")
     return parser
 
 
