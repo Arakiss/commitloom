@@ -50,6 +50,7 @@ pytest-asyncio = "^0.23.8"
 ruff = "^0.1.6"
 mypy = "^1.7.1"
 types-requests = "^2.32.0"
+pytest-mock = "^3.14.0"
 
 [build-system]
 requires = ["poetry-core"]

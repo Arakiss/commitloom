@@ -1,17 +1,19 @@
-"""Tests for console output module."""
+"""Tests for console output and user interaction."""
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from commitloom.cli.console import console
-from commitloom.services.ai_service import CommitSuggestion, TokenUsage
+from commitloom.cli import console
+from commitloom.core.analyzer import CommitAnalysis, Warning, WarningLevel
+from commitloom.core.git import GitFile
+from commitloom.services.ai_service import CommitSuggestion
 
 
 @pytest.fixture
-def mock_console():
+def mock_console(mocker):
     """Fixture for mocked console."""
-    return MagicMock()
+    return mocker.patch("commitloom.cli.console.console")
 
 
 def test_print_changed_files(mock_console, mock_git_file):
@@ -23,16 +25,35 @@ def test_print_changed_files(mock_console, mock_git_file):
 
     console.print_changed_files(files)
 
+    mock_console.print.assert_called()
+
 
 def test_print_warnings():
     """Test printing warnings."""
-    warnings = ["Warning 1", "Warning 2"]
-    console.print_warnings(warnings)
+    warnings = [
+        Warning(level=WarningLevel.HIGH, message="Warning 1"),
+        Warning(level=WarningLevel.MEDIUM, message="Warning 2"),
+    ]
+    analysis = CommitAnalysis(
+        estimated_tokens=100,
+        estimated_cost=0.01,
+        num_files=2,
+        warnings=warnings,
+        is_complex=False,
+    )
+    console.print_warnings(analysis)
 
 
 def test_print_warnings_no_warnings():
     """Test printing empty warnings list."""
-    console.print_warnings([])
+    analysis = CommitAnalysis(
+        estimated_tokens=100,
+        estimated_cost=0.01,
+        num_files=2,
+        warnings=[],
+        is_complex=False,
+    )
+    console.print_warnings(analysis)
 
 
 def test_print_token_usage(mock_token_usage):
@@ -47,12 +68,13 @@ def test_print_commit_message():
         body={"Changes": {"emoji": "✨", "changes": ["test change"]}},
         summary="test summary",
     )
-    console.print_commit_message(suggestion)
+    console.print_commit_message(suggestion.format_body())
 
 
 def test_print_batch_info():
     """Test printing batch information."""
-    console.print_batch_info(1, 3)
+    files = ["file1.py", "file2.py"]
+    console.print_batch_info(1, files)
 
 
 def test_confirm_action():
