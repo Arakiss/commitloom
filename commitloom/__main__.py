@@ -2,6 +2,7 @@
 """Entry point for running commitloom as a module."""
 
 import os
+import sys
 
 import click
 from dotenv import load_dotenv
@@ -11,6 +12,7 @@ env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
 load_dotenv(dotenv_path=env_path)
 
 from .cli.cli_handler import CommitLoom
+from .cli import console
 
 
 @click.command()
@@ -19,8 +21,15 @@ from .cli.cli_handler import CommitLoom
 @click.option("-d", "--debug", is_flag=True, help="Enable debug logging")
 def main(yes: bool, combine: bool, debug: bool) -> None:
     """Create structured git commits with AI-generated messages."""
-    loom = CommitLoom()
-    loom.run(auto_commit=yes, combine_commits=combine, debug=debug)
+    try:
+        loom = CommitLoom()
+        loom.run(auto_commit=yes, combine_commits=combine, debug=debug)
+    except KeyboardInterrupt:
+        console.print_error("\nOperation cancelled by user.")
+        sys.exit(1)
+    except Exception as e:
+        console.print_error(f"An error occurred: {str(e)}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

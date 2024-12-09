@@ -344,7 +344,7 @@ def test_main_keyboard_interrupt(mock_commit_loom, mock_console):
     runner = CliRunner()
     mock_commit_loom.return_value.run.side_effect = KeyboardInterrupt()
 
-    result = runner.invoke(main, catch_exceptions=False)
+    result = runner.invoke(main)
     assert result.exit_code == 1
     mock_console.print_error.assert_called_with("\nOperation cancelled by user.")
 
@@ -356,7 +356,7 @@ def test_main_exception_verbose(mock_commit_loom, mock_console):
     runner = CliRunner()
     mock_commit_loom.return_value.run.side_effect = Exception("Test error")
 
-    result = runner.invoke(main, ["-d"], catch_exceptions=False)
+    result = runner.invoke(main, ["-d"])
     assert result.exit_code == 1
     mock_console.print_error.assert_called_with("An error occurred: Test error")
 
