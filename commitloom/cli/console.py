@@ -1,9 +1,11 @@
 """Console output formatting and user interaction."""
 
 
+import logging
 from unittest.mock import MagicMock
 
 from rich.console import Console
+from rich.logging import RichHandler
 from rich.panel import Panel
 from rich.progress import (
     BarColumn,
@@ -27,6 +29,57 @@ from ..core.git import GitFile
 from ..services.ai_service import TokenUsage
 
 console = Console()
+logger = logging.getLogger("commitloom")
+
+
+def setup_logging(debug: bool = False):
+    """Configure logging with optional debug mode."""
+    level = logging.DEBUG if debug else logging.INFO
+
+    # Configure rich handler
+    rich_handler = RichHandler(rich_tracebacks=True, markup=True, show_time=debug, show_path=debug)
+    rich_handler.setLevel(level)
+
+    # Configure logger
+    logger.setLevel(level)
+    logger.addHandler(rich_handler)
+
+    if debug:
+        logger.debug("Debug mode enabled")
+
+
+def print_debug(message: str, exc_info: bool = False) -> None:
+    """Print debug message if debug mode is enabled.
+
+    Args:
+        message: The message to print
+        exc_info: Whether to include exception info in the log
+    """
+    logger.debug(f"🔍 {message}", exc_info=exc_info)
+
+
+def print_info(message: str) -> None:
+    """Print info message."""
+    logger.info(f"ℹ️ {message}")
+    console.print(f"\n[bold blue]ℹ️ {message}[/bold blue]")
+
+
+def print_warning(message: str) -> None:
+    """Print warning message."""
+    logger.warning(f"⚠️ {message}")
+    console.print(f"\n[bold yellow]⚠️ {message}[/bold yellow]")
+
+
+def print_error(message: str) -> None:
+    """Print error message."""
+    logger.error(f"❌ {message}")
+    console.print(f"\n[bold red]❌ {message}[/bold red]")
+
+
+def print_success(message: str) -> None:
+    """Print success message."""
+    logger.info(f"✅ {message}")
+    console.print(f"\n[bold green]✅ {message}[/bold green]")
 
 
 def create_progress() -> Progress:
@@ -42,9 +95,7 @@ def create_progress() -> Progress:
 
 def print_changed_files(files: list[GitFile]) -> None:
     """Print list of changed files."""
-    console.print(
-        "\n[bold blue]📜 Changes detected in the following files:[/bold blue]"
-    )
+    console.print("\n[bold blue]📜 Changes detected in the following files:[/bold blue]")
     for file in files:
         console.print(f"  - [cyan]{file.path}[/cyan]")
 
@@ -66,7 +117,7 @@ def print_warnings(warnings: list[AnalyzerWarning] | CommitAnalysis) -> None:
         icon = "🔴" if warning.level == WarningLevel.HIGH else "🟡"
         console.print(f"{icon} {warning.message}")
 
-    if 'analysis' in locals():
+    if "analysis" in locals():
         console.print("\n[cyan]📊 Commit Statistics:[/cyan]")
         console.print(f"  • Estimated tokens: {analysis.estimated_tokens:,}")
         console.print(f"  • Estimated cost: €{analysis.estimated_cost:.4f}")
@@ -75,9 +126,7 @@ def print_warnings(warnings: list[AnalyzerWarning] | CommitAnalysis) -> None:
 
 def print_batch_start(batch_num: int, total_batches: int, files: list[GitFile]) -> None:
     """Print information about starting a new batch."""
-    console.print(
-        f"\n[bold blue]📦 Processing Batch {batch_num}/{total_batches}[/bold blue]"
-    )
+    console.print(f"\n[bold blue]📦 Processing Batch {batch_num}/{total_batches}[/bold blue]")
     console.print("[cyan]Files in this batch:[/cyan]")
     for file in files:
         console.print(f"  - [dim]{file.path}[/dim]")
@@ -147,32 +196,8 @@ def confirm_batch_continue() -> bool:
 
 def select_commit_strategy() -> str:
     """Ask user how they want to handle multiple commits."""
-    console.print(
-        "\n[bold blue]🤔 How would you like to handle the commits?[/bold blue]"
-    )
-    return Prompt.ask(
-        "Choose strategy", choices=["individual", "combined"], default="individual"
-    )
-
-
-def print_success(message: str) -> None:
-    """Print success message."""
-    console.print(f"\n[bold green]✅ {message}[/bold green]")
-
-
-def print_error(message: str) -> None:
-    """Print error message."""
-    console.print(f"\n[bold red]❌ {message}[/bold red]")
-
-
-def print_info(message: str) -> None:
-    """Print info message."""
-    console.print(f"\n[bold blue]ℹ️ {message}[/bold blue]")
-
-
-def print_warning(message: str) -> None:
-    """Print warning message."""
-    console.print(f"\n[bold yellow]⚠️ {message}[/bold yellow]")
+    console.print("\n[bold blue]🤔 How would you like to handle the commits?[/bold blue]")
+    return Prompt.ask("Choose strategy", choices=["individual", "combined"], default="individual")
 
 
 def print_analysis(analysis: CommitAnalysis | MagicMock, files: list[GitFile]) -> None:

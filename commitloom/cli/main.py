@@ -144,41 +144,91 @@ class CommitLoom:
     def process_files_in_batches(
         self, changed_files: list[GitFile], auto_commit: bool = False
     ) -> list[dict]:
-        """Process files in batches if needed."""
+        """Process files in batches if needed.
+
+        This method implements a queue-based approach to process files in batches:
+        1. First unstages all files to start from a clean state (only if multiple batches)
+        2. Creates batches of files to process
+        3. For each batch:
+           - Stages only the files in the current batch
+           - Processes the batch
+           - If successful, keeps the commit and moves to next batch
+           - If failed, unstages and stops
+        """
+        console.print_debug("Starting batch processing")
+
+        # Create work queue
+        console.print_debug(f"Creating batches from {len(changed_files)} files")
         batches = self._create_batches(changed_files)
         if not batches:
+            console.print_debug("No valid files to process")
             return []
 
-        results = []
+        # Print batch processing plan
+        total_files = len(changed_files)
         total_batches = len(batches)
-
         console.print_info("\nProcessing files in batches...")
-        console.print_batch_summary(len(changed_files), total_batches)
+        console.print_batch_summary(total_files, total_batches)
 
-        try:
-            for i, batch in enumerate(batches, 1):
-                # Stage only the current batch files
+        # Start with a clean state only if we have multiple batches
+        if total_batches > 1:
+            console.print_debug("Multiple batches detected, resetting staged changes")
+            self.git.reset_staged_changes()
+        else:
+            console.print_debug("Single batch detected, proceeding without reset")
+
+        # Process each batch atomically
+        results = []
+        for batch_num, batch in enumerate(batches, 1):
+            try:
+                # 1. Stage current batch
                 batch_files = [f.path for f in batch]
+                console.print_debug(
+                    f"Staging files for batch {batch_num}: {', '.join(batch_files)}"
+                )
                 self.git.stage_files(batch_files)
+                console.print_batch_start(batch_num, total_batches, batch)
 
-                # Process current batch
-                console.print_batch_start(i, total_batches, batch)
-                result = self._handle_batch(batch, i, total_batches, auto_commit, False)
+                # 2. Process batch
+                console.print_debug(f"Processing batch {batch_num}/{total_batches}")
+                result = self._handle_batch(
+                    batch=batch,
+                    batch_num=batch_num,
+                    total_batches=total_batches,
+                    auto_commit=auto_commit,
+                    combine_commits=False,
+                )
 
+                # 3. Handle result
                 if result:
+                    # Batch processed successfully
+                    console.print_debug(f"Batch {batch_num} processed successfully")
                     results.append(result)
-                    # Only unstage if there are more batches to process
-                    if i < total_batches:
+                    # Clean staged files if more batches pending
+                    if batch_num < total_batches:
+                        console.print_debug("Cleaning staged files for next batch")
                         self.git.reset_staged_changes()
                 else:
+                    # Batch processing was cancelled or failed
+                    console.print_debug(f"Batch {batch_num} processing cancelled or failed")
                     # _handle_batch already called reset_staged_changes
                     break
 
-            return results
-        except GitError as e:
-            console.print_error(f"Error during batch processing: {str(e)}")
-            self.git.reset_staged_changes()
-            return []
+            except GitError as e:
+                console.print_error(f"Error processing batch {batch_num}: {str(e)}")
+                console.print_debug(f"Stack trace for batch {batch_num} error:", exc_info=True)
+                self.git.reset_staged_changes()
+                if not auto_commit and not console.confirm_action(
+                    "Continue with remaining batches?"
+                ):
+                    console.print_debug("User chose to stop batch processing after error")
+                    break
+                console.print_debug("Continuing with next batch after error")
+
+        console.print_debug(
+            f"Batch processing completed. Processed {len(results)}/{total_batches} batches"
+        )
+        return results
 
     def _create_combined_commit(self, batches: list[dict]) -> None:
         """Create a combined commit from all batches."""
@@ -214,18 +264,30 @@ class CommitLoom:
         except GitError as e:
             console.print_error(f"Failed to create commit: {str(e)}")
 
-    def run(self, auto_commit: bool = False, combine_commits: bool = False) -> None:
-        """Run the main application logic."""
+    def run(
+        self, auto_commit: bool = False, combine_commits: bool = False, debug: bool = False
+    ) -> None:
+        """Run the commit creation process.
+
+        Args:
+            auto_commit: Whether to skip confirmation prompts
+            combine_commits: Whether to combine all changes into a single commit
+            debug: Whether to enable debug logging
+        """
         try:
-            console.print_info("Analyzing your changes...")
+            # Setup logging
+            console.setup_logging(debug)
+            console.print_debug("Starting CommitLoom")
 
             # Get and validate changed files
+            console.print_info("Analyzing your changes...")
             changed_files = self.git.get_changed_files()
             if not changed_files:
                 console.print_error("No changes detected in the staging area.")
                 return
 
             # Get diff and analyze complexity
+            console.print_debug("Getting diff and analyzing complexity")
             diff = self.git.get_diff(changed_files)
             analysis = self.analyzer.analyze_diff_complexity(diff, changed_files)
 
@@ -238,23 +300,17 @@ class CommitLoom:
 
             # Process files in batches if needed
             if len(changed_files) > config.max_files_threshold:
-                # Save current state and unstage all files
-                self.git.stash_changes()
-                self.git.reset_staged_changes()
+                console.print_debug("Processing files in batches")
+                batches = self.process_files_in_batches(changed_files, auto_commit)
+                if not batches:
+                    return
 
-                try:
-                    # Process files in batches
-                    batches = self.process_files_in_batches(changed_files, auto_commit)
-                    if not batches:
-                        return
-
-                    if combine_commits:
-                        self._create_combined_commit(batches)
-                finally:
-                    # Restore any stashed changes
-                    self.git.pop_stashed_changes()
+                if combine_commits:
+                    console.print_debug("Combining commits")
+                    self._create_combined_commit(batches)
             else:
                 # Process as single commit
+                console.print_debug("Processing as single commit")
                 suggestion, usage = self.ai_service.generate_commit_message(diff, changed_files)
                 console.print_info("\nGenerated Commit Message:")
                 console.print_commit_message(suggestion.format_body())
@@ -268,11 +324,15 @@ class CommitLoom:
 
         except GitError as e:
             console.print_error(f"An error occurred: {str(e)}")
+            if debug:
+                console.print_debug("Git error details:", exc_info=True)
         except KeyboardInterrupt:
             console.print_warning("\nOperation cancelled by user")
             self.git.reset_staged_changes()
         except Exception as e:
             console.print_error(f"An unexpected error occurred: {str(e)}")
+            if debug:
+                console.print_debug("Unexpected error details:", exc_info=True)
             self.git.reset_staged_changes()
             raise
 
