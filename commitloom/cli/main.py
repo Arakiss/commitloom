@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Main CLI module for CommitLoom."""
 
+import argparse
 import logging
 import os
 import subprocess
@@ -27,6 +28,34 @@ logger = logging.getLogger(__name__)
 
 # Minimum number of files to activate batch processing
 BATCH_THRESHOLD = 3
+
+
+def create_parser() -> argparse.ArgumentParser:
+    """Create argument parser for CLI."""
+    parser = argparse.ArgumentParser(
+        description="CommitLoom: Weave perfect git commits with AI-powered intelligence",
+        prog="loom",
+        epilog="Also available as 'cl' command",
+    )
+    parser.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Auto-confirm all prompts (non-interactive mode)",
+    )
+    parser.add_argument(
+        "-c",
+        "--combine",
+        action="store_true",
+        help="Combine all changes into a single commit",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging",
+    )
+    return parser
 
 
 class CommitLoom:
@@ -61,11 +90,18 @@ class CommitLoom:
             console.print_commit_message(suggestion.format_body())
             console.print_token_usage(usage)
 
+            # Confirm commit if not in auto mode
+            if not self.auto_commit and not console.confirm_action("Proceed with commit?"):
+                console.print_warning("Commit cancelled by user.")
+                self.git.reset_staged_changes()
+                return
+
             # Create commit
             if self.git.create_commit(suggestion.title, suggestion.format_body()):
                 console.print_success("Changes committed successfully!")
             else:
                 console.print_warning("No changes were committed. Files may already be committed.")
+                self.git.reset_staged_changes()
 
         except (GitError, ValueError) as e:
             console.print_error(str(e))
@@ -99,6 +135,7 @@ class CommitLoom:
             # Create commit
             if not self.git.create_commit(suggestion.title, suggestion.format_body()):
                 console.print_warning("No changes were committed. Files may already be committed.")
+                self.git.reset_staged_changes()
                 return None
 
             console.print_batch_complete(batch_num, total_batches)
@@ -145,6 +182,51 @@ class CommitLoom:
             console.print_error(f"Error getting git status: {e}")
             return []
 
+    def _create_combined_commit(self, batches: list[dict]) -> None:
+        """Create a combined commit from multiple batches."""
+        try:
+            # Extract commit data
+            all_changes = {}
+            summary_points = []
+            all_files: list[str] = []
+
+            for batch in batches:
+                commit_data = batch["commit_data"]
+                for category, content in commit_data.body.items():
+                    if category not in all_changes:
+                        all_changes[category] = {"emoji": content["emoji"], "changes": []}
+                    all_changes[category]["changes"].extend(content["changes"])
+                summary_points.append(commit_data.summary)
+                all_files.extend(f.path for f in batch["files"])
+
+            # Create combined commit message
+            title = "📦 chore: combine multiple changes"
+            body = "\n\n".join(
+                [
+                    title,
+                    "\n".join(
+                        f"{data['emoji']} {category}:" for category, data in all_changes.items()
+                    ),
+                    "\n".join(
+                        f"- {change}" for data in all_changes.values() for change in data["changes"]
+                    ),
+                    " ".join(summary_points),
+                ]
+            )
+
+            # Stage and commit all files
+            self.git.stage_files(all_files)
+            if not self.git.create_commit(title, body):
+                console.print_warning("No changes were committed. Files may already be committed.")
+                self.git.reset_staged_changes()
+                return
+
+            console.print_success("Combined commit created successfully!")
+
+        except (GitError, ValueError) as e:
+            console.print_error(str(e))
+            self.git.reset_staged_changes()
+
     def process_files_in_batches(self, files: list[GitFile]) -> None:
         """Process files in batches if needed."""
         if not files:
@@ -168,10 +250,18 @@ class CommitLoom:
                 result = self._handle_batch(batch, i, len(batches))
                 if result:
                     processed_batches.append(result)
+                else:
+                    # If batch processing failed or was cancelled, reset and return
+                    self.git.reset_staged_changes()
+                    return
 
-        except GitError as e:
-            self.console.print_error(str(e))
-            return
+            # If combining commits, create the combined commit
+            if self.combine_commits and processed_batches:
+                self._create_combined_commit(processed_batches)
+
+        except (GitError, ValueError) as e:
+            console.print_error(str(e))
+            self.git.reset_staged_changes()
 
     def run(
         self, auto_commit: bool = False, combine_commits: bool = False, debug: bool = False
@@ -198,8 +288,8 @@ class CommitLoom:
             # Process files (in batches if needed)
             self.process_files_in_batches(changed_files)
 
-        except Exception as e:
-            self.console.print_error(f"An unexpected error occurred: {str(e)}")
+        except GitError as e:
+            console.print_error(f"An unexpected error occurred: {str(e)}")
             if debug:
                 self.console.print_debug("Error details:", exc_info=True)
 
@@ -207,8 +297,11 @@ class CommitLoom:
 def main() -> None:
     """Main entry point for the CLI."""
     try:
+        parser = create_parser()
+        args = parser.parse_args()
+
         app = CommitLoom()
-        app.run()
+        app.run(auto_commit=args.yes, combine_commits=args.combine, debug=args.verbose)
     except KeyboardInterrupt:
         console.print_error("\nOperation cancelled by user.")
         sys.exit(1)
