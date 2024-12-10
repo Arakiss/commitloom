@@ -1,5 +1,7 @@
 """Tests for CLI main module."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 from click.testing import CliRunner
 
@@ -12,6 +14,16 @@ def runner():
     return CliRunner()
 
 
+@pytest.fixture
+def mock_loom():
+    """Fixture for mocked CommitLoom."""
+    with patch("commitloom.__main__.CommitLoom", autospec=True) as mock_commit_loom:
+        mock_instance = mock_commit_loom.return_value
+        mock_instance.run = MagicMock()
+        mock_commit_loom.return_value = mock_instance
+        return mock_instance
+
+
 class TestCliBasic:
     """Test basic CLI functionality."""
 
@@ -21,48 +33,46 @@ class TestCliBasic:
         assert result.exit_code == 0
         assert "Usage:" in result.output
 
-    def test_basic_run(self, runner, mock_loom, mocker):
+    def test_basic_run(self, runner, mock_loom):
         """Test basic run without arguments."""
-        # Mock the CommitLoom class
-        mock_commit_loom = mocker.patch("commitloom.__main__.CommitLoom")
-        mock_commit_loom.return_value = mock_loom
+        with patch("commitloom.__main__.CommitLoom", return_value=mock_loom) as mock_commit_loom:
+            result = runner.invoke(main)
+            assert result.exit_code == 0
+            mock_commit_loom.assert_called_once_with(test_mode=True)
+            mock_loom.run.assert_called_once_with(
+                auto_commit=False, combine_commits=False, debug=False
+            )
 
-        result = runner.invoke(main)
-        assert result.exit_code == 0
-        mock_loom.run.assert_called_once_with(auto_commit=False, combine_commits=False, debug=False)
-
-    def test_all_flags(self, runner, mock_loom, mocker):
+    def test_all_flags(self, runner, mock_loom):
         """Test run with all flags enabled."""
-        # Mock the CommitLoom class
-        mock_commit_loom = mocker.patch("commitloom.__main__.CommitLoom")
-        mock_commit_loom.return_value = mock_loom
-
-        result = runner.invoke(main, ["-y", "-c", "-d"])
-        assert result.exit_code == 0
-        mock_loom.run.assert_called_once_with(auto_commit=True, combine_commits=True, debug=True)
+        with patch("commitloom.__main__.CommitLoom", return_value=mock_loom) as mock_commit_loom:
+            result = runner.invoke(main, ["-y", "-c", "-d"])
+            assert result.exit_code == 0
+            mock_commit_loom.assert_called_once_with(test_mode=True)
+            mock_loom.run.assert_called_once_with(
+                auto_commit=True, combine_commits=True, debug=True
+            )
 
 
 class TestCliErrors:
     """Test CLI error handling."""
 
-    def test_keyboard_interrupt(self, runner, mock_loom, mocker):
+    def test_keyboard_interrupt(self, runner, mock_loom):
         """Test handling of keyboard interrupt."""
-        # Mock the CommitLoom class
-        mock_commit_loom = mocker.patch("commitloom.__main__.CommitLoom")
-        mock_commit_loom.return_value = mock_loom
-        mock_loom.run.side_effect = KeyboardInterrupt()
+        with patch("commitloom.__main__.CommitLoom", return_value=mock_loom) as mock_commit_loom:
+            mock_loom.run.side_effect = KeyboardInterrupt()
 
-        result = runner.invoke(main)
-        assert result.exit_code == 1
-        assert "Operation cancelled by user" in result.output
+            result = runner.invoke(main)
+            assert result.exit_code == 1
+            mock_commit_loom.assert_called_once_with(test_mode=True)
+            assert "Operation cancelled by user" in result.output
 
-    def test_general_error(self, runner, mock_loom, mocker):
+    def test_general_error(self, runner, mock_loom):
         """Test handling of general errors."""
-        # Mock the CommitLoom class
-        mock_commit_loom = mocker.patch("commitloom.__main__.CommitLoom")
-        mock_commit_loom.return_value = mock_loom
-        mock_loom.run.side_effect = Exception("Test error")
+        with patch("commitloom.__main__.CommitLoom", return_value=mock_loom) as mock_commit_loom:
+            mock_loom.run.side_effect = Exception("Test error")
 
-        result = runner.invoke(main)
-        assert result.exit_code == 1
-        assert "Test error" in result.output
+            result = runner.invoke(main)
+            assert result.exit_code == 1
+            mock_commit_loom.assert_called_once_with(test_mode=True)
+            assert "Test error" in result.output
