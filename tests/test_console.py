@@ -81,7 +81,7 @@ def test_print_batch_info_with_files():
 
 def test_confirm_action():
     """Test action confirmation."""
-    with patch.object(Confirm, "ask", return_value=True):
+    with patch("rich.prompt.Confirm.ask", return_value=True):
         console.set_auto_confirm(False)  # Ensure auto_confirm is off
         result = console.confirm_action("Test action?")
         assert result is True
@@ -90,14 +90,16 @@ def test_confirm_action():
 def test_confirm_action_auto():
     """Test confirm action with auto-confirm enabled."""
     console.set_auto_confirm(True)
-    result = console.confirm_action("Test?")
-    assert result is True
-    console.set_auto_confirm(False)  # Reset auto_confirm
+    try:
+        result = console.confirm_action("Test?")
+        assert result is True
+    finally:
+        console.set_auto_confirm(False)  # Reset auto_confirm
 
 
 def test_confirm_action_invalid_input():
     """Test confirm action with invalid input."""
-    with patch.object(Confirm, "ask", side_effect=Exception("Invalid input")):
+    with patch("rich.prompt.Confirm.ask", side_effect=Exception("Invalid input")):
         console.set_auto_confirm(False)  # Ensure auto_confirm is off
         result = console.confirm_action("Test?")
         assert result is False
@@ -169,14 +171,16 @@ def test_print_success_with_details():
 def test_confirm_batch_continue_auto():
     """Test batch continuation with auto-confirm."""
     console.set_auto_confirm(True)
-    result = console.confirm_batch_continue()
-    assert result is True
-    console.set_auto_confirm(False)  # Reset auto_confirm
+    try:
+        result = console.confirm_batch_continue()
+        assert result is True
+    finally:
+        console.set_auto_confirm(False)  # Reset auto_confirm
 
 
 def test_confirm_batch_continue():
     """Test batch continuation prompt."""
-    with patch.object(Confirm, "ask", return_value=True):
+    with patch("rich.prompt.Confirm.ask", return_value=True):
         console.set_auto_confirm(False)  # Ensure auto_confirm is off
         result = console.confirm_batch_continue()
         assert result is True
@@ -185,14 +189,16 @@ def test_confirm_batch_continue():
 def test_select_commit_strategy_auto():
     """Test commit strategy selection with auto-confirm."""
     console.set_auto_confirm(True)
-    result = console.select_commit_strategy()
-    assert result == "individual"
-    console.set_auto_confirm(False)  # Reset auto_confirm
+    try:
+        result = console.select_commit_strategy()
+        assert result == "individual"
+    finally:
+        console.set_auto_confirm(False)  # Reset auto_confirm
 
 
 def test_select_commit_strategy():
     """Test commit strategy selection prompt."""
-    with patch.object(Confirm, "ask", return_value=True):
+    with patch("rich.prompt.Prompt.ask", return_value="combined"):
         console.set_auto_confirm(False)  # Ensure auto_confirm is off
         result = console.select_commit_strategy()
-        assert result == "individual"
+        assert result == "combined"

@@ -17,11 +17,9 @@ def runner():
 @pytest.fixture
 def mock_loom():
     """Fixture for mocked CommitLoom."""
-    with patch("commitloom.__main__.CommitLoom", autospec=True) as mock_commit_loom:
-        mock_instance = mock_commit_loom.return_value
-        mock_instance.run = MagicMock()
-        mock_commit_loom.return_value = mock_instance
-        return mock_instance
+    mock = MagicMock()
+    mock.run = MagicMock()
+    return mock
 
 
 class TestCliBasic:
@@ -35,8 +33,10 @@ class TestCliBasic:
 
     def test_basic_run(self, runner, mock_loom):
         """Test basic run without arguments."""
-        with patch("commitloom.__main__.CommitLoom", return_value=mock_loom) as mock_commit_loom:
+        with patch("commitloom.__main__.CommitLoom") as mock_commit_loom:
+            mock_commit_loom.return_value = mock_loom
             result = runner.invoke(main)
+
             assert result.exit_code == 0
             mock_commit_loom.assert_called_once_with(test_mode=True)
             mock_loom.run.assert_called_once_with(
@@ -45,8 +45,10 @@ class TestCliBasic:
 
     def test_all_flags(self, runner, mock_loom):
         """Test run with all flags enabled."""
-        with patch("commitloom.__main__.CommitLoom", return_value=mock_loom) as mock_commit_loom:
+        with patch("commitloom.__main__.CommitLoom") as mock_commit_loom:
+            mock_commit_loom.return_value = mock_loom
             result = runner.invoke(main, ["-y", "-c", "-d"])
+
             assert result.exit_code == 0
             mock_commit_loom.assert_called_once_with(test_mode=True)
             mock_loom.run.assert_called_once_with(
@@ -59,20 +61,24 @@ class TestCliErrors:
 
     def test_keyboard_interrupt(self, runner, mock_loom):
         """Test handling of keyboard interrupt."""
-        with patch("commitloom.__main__.CommitLoom", return_value=mock_loom) as mock_commit_loom:
+        with patch("commitloom.__main__.CommitLoom") as mock_commit_loom:
+            mock_commit_loom.return_value = mock_loom
             mock_loom.run.side_effect = KeyboardInterrupt()
 
             result = runner.invoke(main)
+
             assert result.exit_code == 1
             mock_commit_loom.assert_called_once_with(test_mode=True)
             assert "Operation cancelled by user" in result.output
 
     def test_general_error(self, runner, mock_loom):
         """Test handling of general errors."""
-        with patch("commitloom.__main__.CommitLoom", return_value=mock_loom) as mock_commit_loom:
+        with patch("commitloom.__main__.CommitLoom") as mock_commit_loom:
+            mock_commit_loom.return_value = mock_loom
             mock_loom.run.side_effect = Exception("Test error")
 
             result = runner.invoke(main)
+
             assert result.exit_code == 1
             mock_commit_loom.assert_called_once_with(test_mode=True)
             assert "Test error" in result.output

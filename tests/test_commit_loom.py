@@ -6,7 +6,7 @@ import pytest
 
 from commitloom.cli.cli_handler import CommitLoom
 from commitloom.core.analyzer import CommitAnalysis
-from commitloom.core.git import GitError, GitFile
+from commitloom.core.git import GitError, GitFile, GitOperations
 from commitloom.services.ai_service import CommitSuggestion, TokenUsage
 
 
@@ -56,33 +56,42 @@ def mock_deps():
         }
 
 
+@pytest.fixture
+def loom(mock_deps):
+    """Fixture for CommitLoom instance."""
+    instance = CommitLoom(test_mode=True)
+    instance.git = mock_deps["git"]
+    instance.analyzer = mock_deps["analyzer"]
+    instance.ai_service = mock_deps["ai"]
+    return instance
+
+
 class TestBasicOperations:
     """Test basic CommitLoom operations."""
 
-    def test_no_changes(self, mock_deps):
+    def test_no_changes(self, loom):
         """Test behavior when there are no changes."""
-        mock_deps["git"].get_staged_files.return_value = []
+        loom.git.get_staged_files.return_value = []
 
         with patch("commitloom.cli.cli_handler.console") as mock_console:
-            loom = CommitLoom(test_mode=True)
             with pytest.raises(SystemExit) as exc_info:
                 loom.run()
 
             assert exc_info.value.code == 0
             mock_console.print_warning.assert_called_once_with("No files staged for commit.")
 
-    def test_simple_commit(self, mock_deps, mock_token_usage):
+    def test_simple_commit(self, loom, mock_token_usage):
         """Test a simple commit operation."""
         with patch("commitloom.cli.cli_handler.console") as mock_console:
             mock_console.confirm_action.return_value = True
 
             # Setup test data
             files = [GitFile(path="test.py", status="M")]
-            mock_deps["git"].get_staged_files.return_value = files
-            mock_deps["git"].get_diff.return_value = "test diff"
+            loom.git.get_staged_files.return_value = files
+            loom.git.get_diff.return_value = "test diff"
 
             # Setup AI service mock
-            mock_deps["ai"].generate_commit_message.return_value = (
+            loom.ai_service.generate_commit_message.return_value = (
                 CommitSuggestion(
                     title="test commit",
                     body={"Changes": {"emoji": "✨", "changes": ["test change"]}},
@@ -92,42 +101,40 @@ class TestBasicOperations:
             )
 
             # Setup successful commit
-            mock_deps["git"].create_commit.return_value = True
+            loom.git.create_commit.return_value = True
 
-            loom = CommitLoom(test_mode=True)
             loom.run()
 
-            mock_deps["git"].create_commit.assert_called_once()
+            loom.git.create_commit.assert_called_once()
             mock_console.print_success.assert_called_once_with("Changes committed successfully!")
 
 
 class TestErrorHandling:
     """Test error handling scenarios."""
 
-    def test_git_error(self, mock_deps):
+    def test_git_error(self, loom):
         """Test handling of git errors."""
         with patch("commitloom.cli.cli_handler.console") as mock_console:
-            mock_deps["git"].get_staged_files.side_effect = GitError("Git error")
+            loom.git.get_staged_files.side_effect = GitError("Git error")
 
-            loom = CommitLoom(test_mode=True)
             with pytest.raises(SystemExit) as exc_info:
                 loom.run()
 
             assert exc_info.value.code == 1
             mock_console.print_error.assert_called_with("Git error: Git error")
 
-    def test_commit_error(self, mock_deps, mock_token_usage):
+    def test_commit_error(self, loom, mock_token_usage):
         """Test handling of commit creation errors."""
         with patch("commitloom.cli.cli_handler.console") as mock_console:
             mock_console.confirm_action.return_value = True
 
             # Setup test data
             files = [GitFile(path="test.py", status="M")]
-            mock_deps["git"].get_staged_files.return_value = files
-            mock_deps["git"].get_diff.return_value = "test diff"
+            loom.git.get_staged_files.return_value = files
+            loom.git.get_diff.return_value = "test diff"
 
             # Setup AI service mock
-            mock_deps["ai"].generate_commit_message.return_value = (
+            loom.ai_service.generate_commit_message.return_value = (
                 CommitSuggestion(
                     title="test commit",
                     body={"Changes": {"emoji": "✨", "changes": ["test change"]}},
@@ -137,49 +144,47 @@ class TestErrorHandling:
             )
 
             # Setup git error
-            mock_deps["git"].create_commit.side_effect = GitError("Failed to create commit")
+            loom.git.create_commit.side_effect = GitError("Failed to create commit")
 
-            loom = CommitLoom(test_mode=True)
             with pytest.raises(SystemExit) as exc_info:
                 loom.run()
 
             assert exc_info.value.code == 1
             mock_console.print_error.assert_called_with("Git error: Failed to create commit")
-            mock_deps["git"].reset_staged_changes.assert_called_once()
+            loom.git.reset_staged_changes.assert_called_once()
 
-    def test_api_error(self, mock_deps):
+    def test_api_error(self, loom):
         """Test handling of API errors."""
         with patch("commitloom.cli.cli_handler.console") as mock_console:
             mock_console.confirm_action.return_value = True
 
             # Setup test data
             files = [GitFile(path="test.py", status="M")]
-            mock_deps["git"].get_staged_files.return_value = files
-            mock_deps["git"].get_diff.return_value = "test diff"
+            loom.git.get_staged_files.return_value = files
+            loom.git.get_diff.return_value = "test diff"
 
             # Setup API error
-            mock_deps["ai"].generate_commit_message.side_effect = Exception("API error")
+            loom.ai_service.generate_commit_message.side_effect = Exception("API error")
 
-            loom = CommitLoom(test_mode=True)
             with pytest.raises(SystemExit) as exc_info:
                 loom.run()
 
             assert exc_info.value.code == 1
             mock_console.print_error.assert_called_with("API error: API error")
-            mock_deps["git"].reset_staged_changes.assert_called_once()
+            loom.git.reset_staged_changes.assert_called_once()
 
-    def test_user_abort(self, mock_deps, mock_token_usage):
+    def test_user_abort(self, loom, mock_token_usage):
         """Test user aborting the commit."""
         with patch("commitloom.cli.cli_handler.console") as mock_console:
             mock_console.confirm_action.return_value = False
 
             # Setup test data
             files = [GitFile(path="test.py", status="M")]
-            mock_deps["git"].get_staged_files.return_value = files
-            mock_deps["git"].get_diff.return_value = "test diff"
+            loom.git.get_staged_files.return_value = files
+            loom.git.get_diff.return_value = "test diff"
 
             # Setup AI service mock
-            mock_deps["ai"].generate_commit_message.return_value = (
+            loom.ai_service.generate_commit_message.return_value = (
                 CommitSuggestion(
                     title="test commit",
                     body={"Changes": {"emoji": "✨", "changes": ["test change"]}},
@@ -188,10 +193,9 @@ class TestErrorHandling:
                 mock_token_usage,
             )
 
-            loom = CommitLoom(test_mode=True)
             with pytest.raises(SystemExit) as exc_info:
                 loom.run()
 
             assert exc_info.value.code == 0
             mock_console.print_warning.assert_called_with("Commit cancelled by user.")
-            mock_deps["git"].reset_staged_changes.assert_called_once()
+            loom.git.reset_staged_changes.assert_called_once()
