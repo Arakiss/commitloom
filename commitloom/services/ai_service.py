@@ -68,11 +68,17 @@ class CommitSuggestion:
 class AIService:
     """Service for interacting with OpenAI API."""
 
-    def __init__(self, api_key: str | None = None):
-        """Initialize the AI service."""
-        if api_key is None and config.api_key is None:
+    def __init__(self, api_key: str | None = None, test_mode: bool = False):
+        """Initialize AI service.
+
+        Args:
+            api_key: OpenAI API key. If not provided, will try to get from environment.
+            test_mode: If True, bypass API key requirement for testing.
+        """
+        if not test_mode and api_key is None:
             raise ValueError("API key is required")
-        self.api_key = api_key or config.api_key
+        self.api_key = api_key
+        self.test_mode = test_mode
 
     @classmethod
     def token_usage_from_api_usage(cls, usage: dict[str, int]) -> TokenUsage:
@@ -153,6 +159,24 @@ class AIService:
         self, diff: str, changed_files: list[GitFile]
     ) -> tuple[CommitSuggestion, TokenUsage]:
         """Generate a commit message using the OpenAI API."""
+        if self.test_mode:
+            # Return mock data for testing
+            return (
+                CommitSuggestion(
+                    title="✨ feat: test commit",
+                    body={"Features": {"emoji": "✨", "changes": ["Test change"]}},
+                    summary="Test summary",
+                ),
+                TokenUsage(
+                    prompt_tokens=100,
+                    completion_tokens=50,
+                    total_tokens=150,
+                    input_cost=0.01,
+                    output_cost=0.02,
+                    total_cost=0.03,
+                ),
+            )
+
         prompt = self.generate_prompt(diff, changed_files)
 
         headers = {

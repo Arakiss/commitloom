@@ -1,6 +1,7 @@
 """Git operations module."""
 
 import logging
+import os
 import subprocess
 from dataclasses import dataclass
 
@@ -15,11 +16,23 @@ class GitError(Exception):
 
 @dataclass
 class GitFile:
-    """Represents a file tracked by git with its status."""
+    """Represents a file in git."""
 
     path: str
     status: str
-    old_path: str | None = None  # For renamed files
+    old_path: str | None = None
+    size: int | None = None
+    hash: str | None = None
+
+    @property
+    def is_binary(self) -> bool:
+        """Check if file is binary."""
+        return bool(self.size is not None and self.hash is not None)
+
+    @property
+    def is_renamed(self) -> bool:
+        """Check if file was renamed."""
+        return self.status == "R" and self.old_path is not None
 
 
 class GitOperations:
@@ -33,6 +46,37 @@ class GitOperations:
                 logger.warning("Git warning%s: %s", f" {context}" if context else "", result.stderr)
             else:
                 logger.info("Git message%s: %s", f" {context}" if context else "", result.stderr)
+
+    @staticmethod
+    def _is_binary_file(path: str) -> tuple[bool, int | None, str | None]:
+        """Check if a file is binary and get its size and hash."""
+        try:
+            # Check if file exists
+            if not os.path.exists(path):
+                return False, None, None
+
+            # Get file size
+            size = os.path.getsize(path)
+
+            # Get file hash
+            result = subprocess.run(
+                ["git", "hash-object", path], capture_output=True, text=True, check=True
+            )
+            file_hash = result.stdout.strip()
+
+            # Check if file is binary using git's internal mechanism
+            result = subprocess.run(
+                ["git", "diff", "--numstat", "--cached", path],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            # Binary files show up as "-" in numstat output
+            is_binary = "-\t-\t" in result.stdout
+
+            return is_binary, size if is_binary else None, file_hash if is_binary else None
+        except (subprocess.CalledProcessError, OSError):
+            return False, None, None
 
     @staticmethod
     def reset_staged_changes() -> None:
@@ -107,11 +151,17 @@ class GitOperations:
                 # Include both staged and modified files
                 # First character is staged status, second is unstaged
                 if status[0] != " " and status[0] != "?":
-                    files.append(GitFile(path=path_info, status=status[0]))
+                    is_binary, size, file_hash = GitOperations._is_binary_file(path_info)
+                    files.append(
+                        GitFile(path=path_info, status=status[0], size=size, hash=file_hash)
+                    )
                 if status[1] != " " and status[1] != "?":
                     # Only add if not already added with staged status
                     if not any(f.path == path_info for f in files):
-                        files.append(GitFile(path=path_info, status=status[1]))
+                        is_binary, size, file_hash = GitOperations._is_binary_file(path_info)
+                        files.append(
+                            GitFile(path=path_info, status=status[1], size=size, hash=file_hash)
+                        )
 
             return files
 
@@ -207,7 +257,9 @@ class GitOperations:
     def stash_pop() -> None:
         """Pop most recent stash."""
         try:
-            result = subprocess.run(["git", "stash", "pop"], capture_output=True, text=True, check=True)
+            result = subprocess.run(
+                ["git", "stash", "pop"], capture_output=True, text=True, check=True
+            )
             GitOperations._handle_git_output(result, "during stash pop")
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
