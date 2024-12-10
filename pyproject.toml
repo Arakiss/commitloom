@@ -70,7 +70,7 @@ asyncio_mode = "strict"
 required_plugins = ["pytest-mock"]
 
 [tool.pytest-asyncio]
-default_fixture_loop_scope = "function"
+asyncio_fixture_mode = "function"
 
 [tool.coverage.run]
 source = ["commitloom"]

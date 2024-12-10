@@ -76,6 +76,8 @@ class AIService:
             api_key: OpenAI API key. If not provided, will try to get from environment.
             test_mode: If True, bypass API key requirement for testing.
         """
+        if not test_mode and api_key is None:
+            raise ValueError("API key is required")
         self.api_key = api_key or config.api_key
         self.test_mode = test_mode
 
