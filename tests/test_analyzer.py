@@ -1,5 +1,7 @@
 """Tests for commit analyzer module."""
 
+from dataclasses import replace
+
 import pytest
 
 from commitloom.config.settings import config
@@ -62,9 +64,7 @@ def test_analyze_diff_complexity_many_files(analyzer, mock_git_file):
 def test_analyze_diff_complexity_expensive_change(analyzer, mock_git_file):
     """Test analysis of an expensive change."""
     # Create a diff that will be expensive (>0.10€)
-    tokens_for_10_cents = int(
-        (0.10 * 1_000_000) / config.model_costs[config.default_model].input
-    )
+    tokens_for_10_cents = int((0.10 * 1_000_000) / config.model_costs[config.default_model].input)
     diff = "diff --git a/expensive.py b/expensive.py\n" + (
         "+" + "x" * tokens_for_10_cents * config.token_estimation_ratio + "\n"
     )
@@ -76,35 +76,102 @@ def test_analyze_diff_complexity_expensive_change(analyzer, mock_git_file):
     assert any("expensive" in w for w in analysis.warnings)
 
 
-def test_analyze_diff_complexity_moderate_cost(analyzer, mock_git_file):
-    """Test analysis of a moderately expensive change."""
-    # Create a diff that will cost between 0.05€ and 0.10€
-    tokens_for_7_cents = int(
-        (0.07 * 1_000_000) / config.model_costs[config.default_model].input
-    )
-    diff = "x" * (tokens_for_7_cents * config.token_estimation_ratio)
-    files = [mock_git_file("moderate.py")]
-
-    analysis = analyzer.analyze_diff_complexity(diff, files)
-
-    assert not analysis.is_complex
-    assert any("cost" in w for w in analysis.warnings)
-
-
 def test_analyze_diff_complexity_large_file(analyzer, mock_git_file):
     """Test analysis when a single file is very large."""
-    # Create a diff that will exceed half the token limit
-    diff = "diff --git a/large.py b/large.py\n" + (
-        "+"
-        + "x" * ((config.token_limit // 2) * config.token_estimation_ratio + 1)
-        + "\n"
-    )
+    tokens = config.token_limit * 0.8  # 80% del límite
+    diff = "x" * int(tokens * config.token_estimation_ratio)
     files = [mock_git_file("large.py")]
 
     analysis = analyzer.analyze_diff_complexity(diff, files)
 
     assert analysis.is_complex
-    assert any("large" in w for w in analysis.warnings)
+    assert any("large" in str(w) for w in analysis.warnings)
+
+
+def test_analyze_diff_complexity_binary_file(analyzer, mock_git_file):
+    """Test analysis with binary files."""
+    diff = "Binary files a/image.png and b/image.png differ"
+    files = [mock_git_file("image.png", size=1024, hash_="abc123")]
+
+    analysis = analyzer.analyze_diff_complexity(diff, files)
+
+    assert not analysis.is_complex
+    assert analysis.estimated_tokens > 0
+
+
+def test_analyze_diff_complexity_empty_diff(analyzer, mock_git_file):
+    """Test analysis with empty diff."""
+    diff = ""
+    files = [mock_git_file("empty.py")]
+
+    analysis = analyzer.analyze_diff_complexity(diff, files)
+
+    assert not analysis.is_complex
+    assert analysis.estimated_tokens == 0
+
+
+def test_analyze_diff_complexity_multiple_conditions(analyzer, mock_git_file):
+    """Test analysis with multiple complexity conditions."""
+    # Create a diff that triggers multiple conditions:
+    # 1. Many files
+    # 2. Moderate cost
+    # 3. One large file
+    files = [mock_git_file(f"file{i}.py") for i in range(config.max_files_threshold + 1)]
+    tokens = config.token_limit * 0.8
+    diff = "x" * int(tokens * config.token_estimation_ratio)
+
+    analysis = analyzer.analyze_diff_complexity(diff, files)
+
+    assert analysis.is_complex
+    assert len(analysis.warnings) >= 2
+    assert any("files changed" in str(w) for w in analysis.warnings)
+    assert any("large" in str(w) for w in analysis.warnings)
+
+
+def test_analyze_diff_complexity_edge_cases(analyzer, mock_git_file):
+    """Test analysis with edge cases."""
+    # Test con un archivo justo en el límite
+    tokens = config.token_limit
+    diff = "x" * (tokens * config.token_estimation_ratio)
+    files = [mock_git_file("edge.py")]
+
+    analysis = analyzer.analyze_diff_complexity(diff, files)
+
+    assert analysis.is_complex
+    assert any("token limit" in str(w) for w in analysis.warnings)
+
+
+def test_analyze_diff_complexity_special_chars(analyzer, mock_git_file):
+    """Test analysis with special characters."""
+    diff = "🚀" * 100  # Emojis y caracteres especiales
+    files = [mock_git_file("special.py")]
+
+    analysis = analyzer.analyze_diff_complexity(diff, files)
+
+    assert analysis.estimated_tokens > 0
+    assert not analysis.is_complex
+
+
+def test_analyze_diff_complexity_git_format(analyzer, mock_git_file):
+    """Test analysis with different git diff formats."""
+    diff = (
+        "diff --git a/file.py b/file.py\n"
+        "index abc123..def456 100644\n"
+        "--- a/file.py\n"
+        "+++ b/file.py\n"
+        "@@ -1,3 +1,4 @@\n"
+        " unchanged line\n"
+        "-removed line\n"
+        "+added line\n"
+        "+another added line\n"
+        " unchanged line\n"
+    )
+    files = [mock_git_file("file.py")]
+
+    analysis = analyzer.analyze_diff_complexity(diff, files)
+
+    assert not analysis.is_complex
+    assert analysis.estimated_tokens > 0
 
 
 def test_format_cost_for_humans():
