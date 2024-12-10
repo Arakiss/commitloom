@@ -46,23 +46,24 @@ class TokenUsage:
 
 @dataclass
 class CommitSuggestion:
-    """Represents a commit message suggestion."""
+    """Structured commit message suggestion."""
 
     title: str
     body: dict[str, dict[str, str | list[str]]]
     summary: str
 
     def format_body(self) -> str:
-        """Format the commit body for git commit message."""
-        formatted = [self.title, ""]  # Title followed by blank line
-        for category, content in self.body.items():
-            formatted.append(f"{content['emoji']} {category}:")
-            for change in content["changes"]:
-                formatted.append(f"- {change}")
-            formatted.append("")  # Add blank line between sections
-        formatted.append(self.summary)  # Add summary
-        formatted.append("")  # Ensure message ends with newline
-        return "\n".join(formatted)
+        """Format the commit message body."""
+        lines = [self.title, ""]
+        for category, data in self.body.items():
+            emoji = data["emoji"]
+            changes = data["changes"]
+            lines.append(f"{emoji} {category}:")
+            for change in changes:
+                lines.append(f"  - {change}")
+            lines.append("")
+        lines.append(self.summary)
+        return "\n".join(lines)
 
 
 class AIService:
@@ -75,9 +76,7 @@ class AIService:
             api_key: OpenAI API key. If not provided, will try to get from environment.
             test_mode: If True, bypass API key requirement for testing.
         """
-        if not test_mode and api_key is None:
-            raise ValueError("API key is required")
-        self.api_key = api_key
+        self.api_key = api_key or config.api_key
         self.test_mode = test_mode
 
     @classmethod
@@ -176,6 +175,9 @@ class AIService:
                     total_cost=0.03,
                 ),
             )
+
+        if not self.api_key:
+            raise ValueError("API key is required")
 
         prompt = self.generate_prompt(diff, changed_files)
 
