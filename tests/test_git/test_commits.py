@@ -55,7 +55,9 @@ def test_create_commit_failure(mock_run, git_operations):
     ]
 
     with pytest.raises(GitError) as exc_info:
-        git_operations.create_commit(title="test: add new feature", message="Detailed commit message")
+        git_operations.create_commit(
+            title="test: add new feature", message="Detailed commit message"
+        )
 
     assert "Failed to create commit" in str(exc_info.value)
 

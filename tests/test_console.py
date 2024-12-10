@@ -1,8 +1,6 @@
 """Tests for console module."""
 
-from unittest.mock import MagicMock, patch
-
-from rich.prompt import Confirm
+from unittest.mock import patch
 
 from commitloom.cli import console
 from commitloom.core.analyzer import Warning as AnalyzerWarning

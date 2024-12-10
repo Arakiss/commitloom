@@ -99,8 +99,9 @@ class CommitAnalyzer:
                 Warning(
                     level=WarningLevel.HIGH,
                     message=(
-                        f"You're modifying {len(changed_files)} files changed. "
-                        f"For atomic commits, consider limiting to {config.max_files_threshold} files per commit."
+                        "You're modifying "
+                        f"{len(changed_files)} files changed. For atomic commits, "
+                        f"consider limiting to {config.max_files_threshold} files per commit."
                     ),
                 )
             )
