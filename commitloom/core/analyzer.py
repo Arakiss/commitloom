@@ -76,10 +76,12 @@ class CommitAnalyzer:
             CommitAnalysis object containing analysis results
         """
         warnings: list[Warning] = []
+        is_complex = False
         estimated_tokens, estimated_cost = CommitAnalyzer.estimate_tokens_and_cost(diff)
 
         # Check token limit
         if estimated_tokens >= config.token_limit:
+            is_complex = True
             warnings.append(
                 Warning(
                     level=WarningLevel.HIGH,
@@ -90,8 +92,22 @@ class CommitAnalyzer:
                 )
             )
 
+        # Check number of files
+        if len(changed_files) > config.max_files_threshold:
+            is_complex = True
+            warnings.append(
+                Warning(
+                    level=WarningLevel.HIGH,
+                    message=(
+                        f"You're modifying {len(changed_files)} files changed. "
+                        f"For atomic commits, consider limiting to {config.max_files_threshold} files per commit."
+                    ),
+                )
+            )
+
         # Check cost thresholds
         if estimated_cost >= 0.10:  # more than 10 cents
+            is_complex = True
             warnings.append(
                 Warning(
                     level=WarningLevel.HIGH,
@@ -112,27 +128,20 @@ class CommitAnalyzer:
                 )
             )
 
-        # Check number of files
-        if len(changed_files) > config.max_files_threshold:
-            warnings.append(
-                Warning(
-                    level=WarningLevel.HIGH,
-                    message=(
-                        f"You're modifying {len(changed_files)} files changed. "
-                        "For atomic commits, consider limiting to "
-                        f"{config.max_files_threshold} files per commit."
-                    ),
-                )
-            )
-
-        # Analyze individual files
+        # Check individual file sizes
         for file in changed_files:
             try:
-                file_diff = diff.split(f"diff --git a/{file.path} b/{file.path}")[1]
-                file_diff = file_diff.split("diff --git")[0]
-                file_tokens, file_cost = CommitAnalyzer.estimate_tokens_and_cost(file_diff)
+                # Intenta extraer el diff específico del archivo
+                if f"diff --git a/{file.path} b/{file.path}" in diff:
+                    file_diff = diff.split(f"diff --git a/{file.path} b/{file.path}")[1]
+                    file_diff = file_diff.split("diff --git")[0]
+                    file_tokens = len(file_diff) // config.token_estimation_ratio
+                else:
+                    # Si no encuentra el formato git diff, asume que es un archivo único
+                    file_tokens = estimated_tokens
 
-                if file_tokens >= config.token_limit // 2:
+                if file_tokens > config.token_limit * 0.75:  # 75% del límite de tokens
+                    is_complex = True
                     warnings.append(
                         Warning(
                             level=WarningLevel.HIGH,
@@ -142,26 +151,9 @@ class CommitAnalyzer:
                             ),
                         )
                     )
-
-                if file_cost >= 0.05:  # More than 5 cents per file
-                    warnings.append(
-                        Warning(
-                            level=WarningLevel.HIGH,
-                            message=(
-                                f"File {file.path} has expensive changes (€{file_cost:.4f}). "
-                                "Consider splitting these changes across multiple commits."
-                            ),
-                        )
-                    )
             except IndexError:
                 # File might be binary or newly added
                 pass
-
-        # Mark as complex if there are any HIGH level warnings
-        # except for token limit warnings
-        is_complex = any(
-            w.level == WarningLevel.HIGH and "token limit" not in str(w) for w in warnings
-        )
 
         return CommitAnalysis(
             estimated_tokens=estimated_tokens,
@@ -184,11 +176,13 @@ class CommitAnalyzer:
     @staticmethod
     def get_cost_context(total_cost: float) -> str:
         """Get contextual message about the cost."""
-        if total_cost >= 0.10:  # more than 10 cents
+        if total_cost >= 1.0:  # more than €1
             return "very expensive"
-        elif total_cost >= 0.05:  # more than 5 cents
+        elif total_cost >= 0.1:  # more than 10 cents
             return "expensive"
-        elif total_cost >= 0.01:  # more than 1 cent
+        elif total_cost >= 0.05:  # more than 5 cents
             return "moderate"
+        elif total_cost >= 0.01:  # more than 1 cent
+            return "cheap"
         else:
             return "very cheap"

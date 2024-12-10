@@ -32,11 +32,15 @@ BATCH_THRESHOLD = 3
 class CommitLoom:
     """Main application class."""
 
-    def __init__(self):
-        """Initialize CommitLoom."""
+    def __init__(self, test_mode: bool = False):
+        """Initialize CommitLoom.
+
+        Args:
+            test_mode: If True, initialize services in test mode.
+        """
         self.git = GitOperations()
         self.analyzer = CommitAnalyzer()
-        self.ai_service = AIService()
+        self.ai_service = AIService(test_mode=test_mode)
         self.auto_commit = False
         self.combine_commits = False
         self.console = console
@@ -55,17 +59,23 @@ class CommitLoom:
             # Print analysis
             console.print_warnings(analysis)
 
-            # Generate commit message
-            suggestion, usage = self.ai_service.generate_commit_message(diff, files)
-            console.print_info("\nGenerated Commit Message:")
-            console.print_commit_message(suggestion.format_body())
-            console.print_token_usage(usage)
+            try:
+                # Generate commit message
+                suggestion, usage = self.ai_service.generate_commit_message(diff, files)
+                console.print_info("\nGenerated Commit Message:")
+                console.print_commit_message(suggestion.format_body())
+                console.print_token_usage(usage)
+            except Exception as e:
+                # Handle API errors specifically
+                console.print_error(f"API error: {str(e)}")
+                self.git.reset_staged_changes()
+                sys.exit(1)
 
             # Confirm commit if not in auto mode
             if not self.auto_commit and not console.confirm_action("Proceed with commit?"):
                 console.print_warning("Commit cancelled by user.")
                 self.git.reset_staged_changes()
-                return
+                sys.exit(0)
 
             # Create commit
             if self.git.create_commit(suggestion.title, suggestion.format_body()):
@@ -73,10 +83,16 @@ class CommitLoom:
             else:
                 console.print_warning("No changes were committed. Files may already be committed.")
                 self.git.reset_staged_changes()
+                sys.exit(0)
 
-        except (GitError, ValueError) as e:
-            console.print_error(str(e))
+        except GitError as e:
+            console.print_error(f"Git error: {str(e)}")
             self.git.reset_staged_changes()
+            sys.exit(1)
+        except ValueError as e:
+            console.print_error(f"Value error: {str(e)}")
+            self.git.reset_staged_changes()
+            sys.exit(1)
 
     def _handle_batch(
         self,
@@ -97,11 +113,17 @@ class CommitLoom:
             # Print analysis
             console.print_warnings(analysis)
 
-            # Generate commit message
-            suggestion, usage = self.ai_service.generate_commit_message(diff, batch)
-            console.print_info("\nGenerated Commit Message:")
-            console.print_commit_message(suggestion.format_body())
-            console.print_token_usage(usage)
+            try:
+                # Generate commit message
+                suggestion, usage = self.ai_service.generate_commit_message(diff, batch)
+                console.print_info("\nGenerated Commit Message:")
+                console.print_commit_message(suggestion.format_body())
+                console.print_token_usage(usage)
+            except Exception as e:
+                # Handle API errors specifically
+                console.print_error(f"API error: {str(e)}")
+                self.git.reset_staged_changes()
+                return None
 
             # Create commit
             if not self.git.create_commit(suggestion.title, suggestion.format_body()):
@@ -112,8 +134,12 @@ class CommitLoom:
             console.print_batch_complete(batch_num, total_batches)
             return {"files": batch, "commit_data": suggestion}
 
-        except (GitError, ValueError) as e:
-            console.print_error(str(e))
+        except GitError as e:
+            console.print_error(f"Git error: {str(e)}")
+            self.git.reset_staged_changes()
+            return None
+        except ValueError as e:
+            console.print_error(f"Value error: {str(e)}")
             self.git.reset_staged_changes()
             return None
 
@@ -190,13 +216,18 @@ class CommitLoom:
             if not self.git.create_commit(title, body):
                 console.print_warning("No changes were committed. Files may already be committed.")
                 self.git.reset_staged_changes()
-                return
+                sys.exit(0)
 
             console.print_success("Combined commit created successfully!")
 
-        except (GitError, ValueError) as e:
-            console.print_error(str(e))
+        except GitError as e:
+            console.print_error(f"Git error: {str(e)}")
             self.git.reset_staged_changes()
+            sys.exit(1)
+        except ValueError as e:
+            console.print_error(f"Value error: {str(e)}")
+            self.git.reset_staged_changes()
+            sys.exit(1)
 
     def process_files_in_batches(self, files: list[GitFile]) -> None:
         """Process files in batches if needed."""
@@ -224,15 +255,20 @@ class CommitLoom:
                 else:
                     # If batch processing failed or was cancelled, reset and return
                     self.git.reset_staged_changes()
-                    return
+                    sys.exit(1)
 
             # If combining commits, create the combined commit
             if self.combine_commits and processed_batches:
                 self._create_combined_commit(processed_batches)
 
-        except (GitError, ValueError) as e:
-            console.print_error(str(e))
+        except GitError as e:
+            console.print_error(f"Git error: {str(e)}")
             self.git.reset_staged_changes()
+            sys.exit(1)
+        except ValueError as e:
+            console.print_error(f"Value error: {str(e)}")
+            self.git.reset_staged_changes()
+            sys.exit(1)
 
     def run(
         self, auto_commit: bool = False, combine_commits: bool = False, debug: bool = False
@@ -252,7 +288,7 @@ class CommitLoom:
             changed_files = self.git.get_staged_files()
             if not changed_files:
                 console.print_warning("No files staged for commit.")
-                return
+                sys.exit(0)
 
             self.console.print_changed_files(changed_files)
 
@@ -260,6 +296,12 @@ class CommitLoom:
             self.process_files_in_batches(changed_files)
 
         except GitError as e:
+            console.print_error(f"Git error: {str(e)}")
+            if debug:
+                self.console.print_debug("Error details:", exc_info=True)
+            sys.exit(1)
+        except Exception as e:
             console.print_error(f"An unexpected error occurred: {str(e)}")
             if debug:
                 self.console.print_debug("Error details:", exc_info=True)
+            sys.exit(1)
