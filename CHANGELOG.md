@@ -1,5 +1,70 @@
 # Changelog
 
+## [1.0.0] - 2024-12-10
+
+
+### ✨ Features
+- batch 1/5 - 5 files
+
+### 📦 Build System
+- bump version to 1.0.0
+
+### 🔄 Other Changes
+- 📝 fix: improve warning message formatting
+- ✨ test: improve tests for CommitLoom
+- ✨ feat: enhance AI service and CLI handling
+- ✨ feat: test commit
+- ✨ feat: test commit
+- ✨ feat: test commit
+- ✨ feat: test commit
+- 🐛 fix: remove trailing whitespace in test files
+- 🔧 chore: reorganize imports and cleanup tests
+- ✨ feat: enhance AI service and batch processing tests
+- 🔧 refactor: improve commit analysis and batch processing
+- 🔧 refactor: improve CLI tests and error handling
+- 🔧 fix: improve warnings and error handling
+- 🧪 test: improve console action confirmation test
+- ✨ feat: enhance commit analysis and AI service
+- ✨ feat: add pytest-mock and enhance tests
+- ✨ feat: enhance warning system and improve API service
+- ✨ test: add unit tests for git operations
+- ✨ feat: add tests for batch processing and commits
+- ✨ feat: enhance AI service tests and console outputs
+- ✨ test: improve CLI test coverage
+- ✨ feat: improve error handling and logging
+- 🛠️ fix: improve error handling in main
+- ✨ feat: improve error handling in main.py
+- 🐛 fix: improve error handling in main function
+- ✨ feat: improve error handling in main module
+- ✨ feat: enhance CLI argument handling tests
+- 🔧 test: refactor CLI tests with Click
+- 🔧 refactor: update tests for CLI handler module
+- ✨ feat: add folder4_subfolder2_module.py
+- ✨ feat: add new modules to folder4
+- ✨ feat: add new modules in test_batch
+- ✨ feat: add new module and folders
+- ✨ feat: add new modules for subfolders
+- ✨ feat: add new module and init files
+- ✨ feat: add CLI handler and test modules
+- ✨ chore: refactor tests for better clarity
+- 🗑️ chore: remove deprecated modules
+- 🗑️ refactor: remove unused modules
+- 🔧 feat: enhance Git file handling and config
+- 🔧 refactor: improve CLI and file handling
+- ✨ feat: enhance CLI with argument parsing
+- 🔧 refactor: update type hints and clean imports
+- ✨ feat: add new test files
+- ✨ feat: add new test files for subfolder1
+- ✨ feat: enhance batch processing in CommitLoom
+- ✨ feat: add auto-confirm mode for actions
+- ✨ feat: enhance commit processing and staging
+- ✨ feat: implement batch processing for commits
+- ✨ feat: add folder4 modules and configuration
+- ✨ feat: add new modules and configuration
+- ✨ feat: add new modules and config files
+- ✨ feat: add initial modules and config files
+- 🔧 refactor: improve subprocess handling
+
 ## [0.9.8] - 2024-12-09
 
 
