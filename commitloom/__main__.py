@@ -20,7 +20,7 @@ from .cli import console
 from .cli.cli_handler import CommitLoom
 
 
-def handle_error(error: Exception) -> None:
+def handle_error(error: BaseException) -> None:
     """Handle errors in a consistent way."""
     if isinstance(error, KeyboardInterrupt):
         console.print_error("\nOperation cancelled by user.")
@@ -37,7 +37,11 @@ def main(yes: bool, combine: bool, debug: bool) -> None:
     try:
         # Use test_mode=True when running tests (detected by pytest)
         test_mode = "pytest" in sys.modules
-        loom = CommitLoom(test_mode=test_mode)
+        # Only pass API key if not in test mode and it exists
+        api_key = None if test_mode else os.getenv("OPENAI_API_KEY")
+
+        # Initialize with test_mode
+        loom = CommitLoom(test_mode=test_mode, api_key=api_key if api_key else None)
         loom.run(auto_commit=yes, combine_commits=combine, debug=debug)
     except (KeyboardInterrupt, Exception) as e:
         handle_error(e)

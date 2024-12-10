@@ -38,8 +38,9 @@ class BatchProcessor:
         ]
 
         # Process each batch
-        for i, batch in enumerate(batches, 1):
+        for batch_num, batch in enumerate(batches, 1):
             try:
+                console.print_info(f"Processing batch {batch_num}/{len(batches)}")
                 self._process_batch(batch)
             except Exception as e:
                 console.print_error(f"Failed to process batch: {str(e)}")

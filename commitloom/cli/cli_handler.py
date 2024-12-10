@@ -32,15 +32,16 @@ BATCH_THRESHOLD = 3
 class CommitLoom:
     """Main application class."""
 
-    def __init__(self, test_mode: bool = False):
+    def __init__(self, test_mode: bool = False, api_key: str | None = None):
         """Initialize CommitLoom.
 
         Args:
             test_mode: If True, initialize services in test mode.
+            api_key: OpenAI API key to use for AI service.
         """
         self.git = GitOperations()
         self.analyzer = CommitAnalyzer()
-        self.ai_service = AIService(test_mode=test_mode)
+        self.ai_service = AIService(api_key=api_key, test_mode=test_mode)
         self.auto_commit = False
         self.combine_commits = False
         self.console = console
