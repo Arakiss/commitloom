@@ -11,7 +11,12 @@ from commitloom.core.git import GitFile
 def mock_git_file():
     """Fixture for creating GitFile instances."""
 
-    def _create_git_file(path: str, status: str = "M", size: int = None, hash_: str = None):
+    def _create_git_file(
+        path: str,
+        status: str = "M",
+        size: int | None = None,
+        hash_: str | None = None,
+    ):
         file = GitFile(path=path, status=status)
         if size is not None:
             file.size = size

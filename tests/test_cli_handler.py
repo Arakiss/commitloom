@@ -1,6 +1,5 @@
 """Tests for CLI handler module."""
 
-import logging
 import subprocess
 from unittest.mock import MagicMock, patch
 

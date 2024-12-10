@@ -1,6 +1,5 @@
 """Tests for commit analyzer module."""
 
-from dataclasses import replace
 
 import pytest
 
