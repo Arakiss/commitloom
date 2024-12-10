@@ -6,7 +6,7 @@ import pytest
 
 from commitloom.cli.cli_handler import CommitLoom
 from commitloom.core.analyzer import CommitAnalysis
-from commitloom.core.git import GitError, GitFile, GitOperations
+from commitloom.core.git import GitError, GitFile
 from commitloom.services.ai_service import CommitSuggestion, TokenUsage
 
 

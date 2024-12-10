@@ -38,7 +38,7 @@ class TestCliBasic:
             result = runner.invoke(main)
 
             assert result.exit_code == 0
-            mock_commit_loom.assert_called_once_with(test_mode=True)
+            mock_commit_loom.assert_called_once_with(test_mode=True, api_key=None)
             mock_loom.run.assert_called_once_with(
                 auto_commit=False, combine_commits=False, debug=False
             )
@@ -50,7 +50,7 @@ class TestCliBasic:
             result = runner.invoke(main, ["-y", "-c", "-d"])
 
             assert result.exit_code == 0
-            mock_commit_loom.assert_called_once_with(test_mode=True)
+            mock_commit_loom.assert_called_once_with(test_mode=True, api_key=None)
             mock_loom.run.assert_called_once_with(
                 auto_commit=True, combine_commits=True, debug=True
             )
@@ -68,7 +68,7 @@ class TestCliErrors:
             result = runner.invoke(main)
 
             assert result.exit_code == 1
-            mock_commit_loom.assert_called_once_with(test_mode=True)
+            mock_commit_loom.assert_called_once_with(test_mode=True, api_key=None)
             assert "Operation cancelled by user" in result.output
 
     def test_general_error(self, runner, mock_loom):
@@ -80,5 +80,5 @@ class TestCliErrors:
             result = runner.invoke(main)
 
             assert result.exit_code == 1
-            mock_commit_loom.assert_called_once_with(test_mode=True)
+            mock_commit_loom.assert_called_once_with(test_mode=True, api_key=None)
             assert "Test error" in result.output
