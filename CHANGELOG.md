@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.1] - 2024-12-10
+
+
+### 📦 Build System
+- bump version to 1.0.1
+
+### 🔄 Other Changes
+- 🔧 fix: update commit loom calls with api_key
+- 🐛 fix: update test files for compatibility
+- 🔧 feat: require API key in AIService
+- ✨ feat: enhance CommitLoom with API key support
+
 ## [1.0.0] - 2024-12-10
 
 
