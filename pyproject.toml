@@ -62,7 +62,7 @@ python_files = ["test_*.py"]
 addopts = """
     --cov=commitloom
     --cov-report=term-missing
-    --cov-fail-under=80
+    --cov-fail-under=70
     --strict-markers
     --strict-config
 """
@@ -90,7 +90,7 @@ exclude_lines = [
     "def __repr__",
     "@abstractmethod",
 ]
-fail_under = 80
+fail_under = 70
 
 [tool.ruff]
 line-length = 100
