@@ -8,6 +8,9 @@ on:
       - 'pyproject.toml'
       - 'CHANGELOG.md'
 
+permissions:
+  contents: write # This is needed to create releases
+
 jobs:
   check-version-bump:
     runs-on: ubuntu-latest
@@ -55,22 +58,22 @@ jobs:
     needs: check-version-bump
     if: needs.check-version-bump.outputs.should_release == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         
       - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ needs.check-version-bump.outputs.version }}
-          release_name: Release v${{ needs.check-version-bump.outputs.version }}
+          name: Release v${{ needs.check-version-bump.outputs.version }}
           body: ${{ needs.check-version-bump.outputs.changelog }}
           draft: false
           prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Output Release URL
-        run: echo "Released at ${{ steps.create_release.outputs.html_url }}"
+      - name: Output Release Status
+        run: echo "Release for v${{ needs.check-version-bump.outputs.version }} created successfully"
