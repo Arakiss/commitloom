@@ -349,10 +349,10 @@ class CommitLoom:
         
         # Display basic stats
         console.console.print("\n[bold cyan]Basic Statistics:[/bold cyan]")
-        console.console.print(f"  • Total commits generated: {stats['total_commits']:,}")
-        console.console.print(f"  • Total tokens used: {stats['total_tokens']:,}")
-        console.console.print(f"  • Total cost: €{stats['total_cost_in_eur']:.4f}")
-        console.console.print(f"  • Total files processed: {stats['total_files_processed']:,}")
+        console.console.print(f"  • Total commits generated: {stats.get('total_commits', 0):,}")
+        console.console.print(f"  • Total tokens used: {stats.get('total_tokens', 0):,}")
+        console.console.print(f"  • Total cost: €{stats.get('total_cost_in_eur', 0.0):.4f}")
+        console.console.print(f"  • Total files processed: {stats.get('total_files_processed', 0):,}")
         
         # Display time saved if available
         if 'time_saved_formatted' in stats:
@@ -360,7 +360,9 @@ class CommitLoom:
         
         # Display activity period if available
         if 'first_used_at' in stats and stats['first_used_at'] and 'days_active' in stats:
-            console.console.print(f"  • Active since: {stats['first_used_at'].split('T')[0]}")
+            first_used = stats['first_used_at']
+            date_part = first_used.split('T')[0] if isinstance(first_used, str) and 'T' in first_used else first_used
+            console.console.print(f"  • Active since: {date_part}")
             console.console.print(f"  • Days active: {stats['days_active']}")
             
             if 'avg_commits_per_day' in stats:
@@ -368,32 +370,35 @@ class CommitLoom:
                 console.console.print(f"  • Average cost per day: €{stats['avg_cost_per_day']:.4f}")
         
         # Display repository stats if available
-        if stats['repositories']:
+        repositories = stats.get('repositories', {})
+        if repositories and isinstance(repositories, dict):
             console.console.print("\n[bold cyan]Repository Activity:[/bold cyan]")
-            console.console.print(f"  • Most active repository: {stats['most_active_repository']}")
-            console.console.print(f"  • Repositories used: {len(stats['repositories'])}")
+            if 'most_active_repository' in stats and stats['most_active_repository']:
+                console.console.print(f"  • Most active repository: {stats['most_active_repository']}")
+            console.console.print(f"  • Repositories used: {len(repositories)}")
         
         # Display model usage if available
-        if stats['model_usage']:
+        model_usage = stats.get('model_usage', {})
+        if model_usage and isinstance(model_usage, dict):
             console.console.print("\n[bold cyan]Model Usage:[/bold cyan]")
-            for model, count in stats['model_usage'].items():
+            for model, count in model_usage.items():
                 console.console.print(f"  • {model}: {count} commits")
         
         # Display batch vs single commits
         console.console.print("\n[bold cyan]Processing Methods:[/bold cyan]")
-        console.console.print(f"  • Batch commits: {stats['batch_commits']}")
-        console.console.print(f"  • Single commits: {stats['single_commits']}")
+        console.console.print(f"  • Batch commits: {stats.get('batch_commits', 0)}")
+        console.console.print(f"  • Single commits: {stats.get('single_commits', 0)}")
         
         # Get more detailed stats if commits exist
-        if stats['total_commits'] > 0:
+        if stats.get('total_commits', 0) > 0:
             model_stats = metrics_manager.get_model_usage_stats()
             if model_stats:
                 console.console.print("\n[bold cyan]Detailed Model Stats:[/bold cyan]")
                 for model, model_data in model_stats.items():
                     console.console.print(f"  • {model}:")
-                    console.console.print(f"    - Total tokens: {model_data['tokens']:,}")
-                    console.console.print(f"    - Total cost: €{model_data['cost']:.4f}")
-                    console.console.print(f"    - Avg tokens per commit: {model_data['avg_tokens_per_commit']:.1f}")
+                    console.console.print(f"    - Total tokens: {model_data.get('tokens', 0):,}")
+                    console.console.print(f"    - Total cost: €{model_data.get('cost', 0.0):.4f}")
+                    console.console.print(f"    - Avg tokens per commit: {model_data.get('avg_tokens_per_commit', 0.0):.1f}")
     
     def run(
         self, auto_commit: bool = False, combine_commits: bool = False, debug: bool = False
