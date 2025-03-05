@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.1] - 2025-03-05
+### 🔧 Improvements
+- Fix GitHub Actions permissions for release automation
+- Adjust test coverage threshold to 70%
+- Improve CLI test suite compatibility
+
 ## [1.2.0] - 2025-03-05
 ### ✨ Features
 - 🚀 Add GitHub Actions workflow for automatic release creation
