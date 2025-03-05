@@ -268,14 +268,22 @@ class MetricsManager:
             try:
                 first = datetime.fromisoformat(stats["first_used_at"])
                 last = datetime.fromisoformat(stats["last_used_at"])
-                days_active = (last - first).days + 1
+                
+                # Calculate days active (at least 1)
+                days_active = max(1, (last.date() - first.date()).days + 1)
                 stats["days_active"] = days_active
 
                 if days_active > 0:
+                    # Calculate average commits per day
                     stats["avg_commits_per_day"] = stats["total_commits"] / days_active
+                    
+                    # Calculate average cost per day (ensure it's not zero)
                     stats["avg_cost_per_day"] = stats["total_cost_in_eur"] / days_active
             except (ValueError, TypeError):
-                pass
+                # Default values if calculation fails
+                stats["days_active"] = 1
+                stats["avg_commits_per_day"] = stats["total_commits"]
+                stats["avg_cost_per_day"] = stats["total_cost_in_eur"]
 
         return stats
 
@@ -301,10 +309,12 @@ class MetricsManager:
             cutoff_date = datetime.now() - timedelta(days=days)
             cutoff_str = cutoff_date.isoformat()
 
-            metrics_list = [m for m in all_metrics if m.get("timestamp", "") >= cutoff_str]
+            for metric in all_metrics:
+                if "timestamp" in metric and metric["timestamp"] >= cutoff_str:
+                    metrics_list.append(metric)
 
             return metrics_list
-        except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
+        except (json.JSONDecodeError, FileNotFoundError) as e:
             logger.warning(f"Failed to load metrics: {str(e)}")
             return []
 
@@ -374,17 +384,19 @@ class MetricsManager:
                     }
 
                 model_stats[model_name]["commits"] += 1
-                model_stats[model_name]["tokens"] += metric.get("tokens_used", 0)
-                model_stats[model_name]["cost"] += metric.get("cost_in_eur", 0.0)
+                tokens = metric.get("tokens_used", 0)
+                model_stats[model_name]["tokens"] += tokens
+                cost = metric.get("cost_in_eur", 0.0)
+                model_stats[model_name]["cost"] += cost
 
             # Calculate averages
-            for _, stats in model_stats.items():
+            for model, stats in model_stats.items():
                 if stats["commits"] > 0:
                     stats["avg_tokens_per_commit"] = stats["tokens"] / stats["commits"]
 
             return model_stats
         except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
-            logger.warning(f"Failed to load metrics for model usage stats: {str(e)}")
+            logger.warning(f"Failed to load metrics for model stats: {str(e)}")
             return {}
 
     def get_repository_stats(self) -> dict[str, dict[str, Any]]:
@@ -445,12 +457,14 @@ class MetricsManager:
             parts.append(f"{days} day{'s' if days != 1 else ''}")
         if hours > 0:
             parts.append(f"{hours} hour{'s' if hours != 1 else ''}")
-        if minutes > 0:
+        if minutes > 0 or (days == 0 and hours == 0):
             parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
-        if seconds > 0 and not parts:  # Only show seconds if no larger units
-            parts.append(f"{seconds} second{'s' if seconds != 1 else ''}")
-
-        return ", ".join(parts)
+        
+        # Always include at least one unit (default to minutes if everything is 0)
+        if not parts:
+            parts.append("0 minutes")
+            
+        return " ".join(parts)
 
 
 # Singleton instance
