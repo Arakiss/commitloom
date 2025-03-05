@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from commitloom.__main__ import main
+from commitloom.__main__ import cli
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ class TestCliBasic:
 
     def test_help_text(self, runner):
         """Test help text is displayed."""
-        result = runner.invoke(main, ["--help"])
+        result = runner.invoke(cli, ["--help"])
         assert result.exit_code == 0
         assert "Usage:" in result.output
 
@@ -35,7 +35,7 @@ class TestCliBasic:
         """Test basic run without arguments."""
         with patch("commitloom.__main__.CommitLoom") as mock_commit_loom:
             mock_commit_loom.return_value = mock_loom
-            result = runner.invoke(main)
+            result = runner.invoke(cli, ["commit"])
 
             assert result.exit_code == 0
             mock_commit_loom.assert_called_once_with(test_mode=True, api_key=None)
@@ -47,7 +47,7 @@ class TestCliBasic:
         """Test run with all flags enabled."""
         with patch("commitloom.__main__.CommitLoom") as mock_commit_loom:
             mock_commit_loom.return_value = mock_loom
-            result = runner.invoke(main, ["-y", "-c", "-d"])
+            result = runner.invoke(cli, ["commit", "-y", "-c", "-d"])
 
             assert result.exit_code == 0
             mock_commit_loom.assert_called_once_with(test_mode=True, api_key=None)
@@ -65,7 +65,7 @@ class TestCliErrors:
             mock_commit_loom.return_value = mock_loom
             mock_loom.run.side_effect = KeyboardInterrupt()
 
-            result = runner.invoke(main)
+            result = runner.invoke(cli, ["commit"])
 
             assert result.exit_code == 1
             mock_commit_loom.assert_called_once_with(test_mode=True, api_key=None)
@@ -77,7 +77,7 @@ class TestCliErrors:
             mock_commit_loom.return_value = mock_loom
             mock_loom.run.side_effect = Exception("Test error")
 
-            result = runner.invoke(main)
+            result = runner.invoke(cli, ["commit"])
 
             assert result.exit_code == 1
             mock_commit_loom.assert_called_once_with(test_mode=True, api_key=None)

@@ -82,6 +82,15 @@ class AIService:
         self.test_mode = test_mode
         self.model_name = config.default_model
 
+    @property
+    def model(self) -> str:
+        """Get the model name.
+        
+        Returns:
+            The model name from config.
+        """
+        return self.model_name
+
     @classmethod
     def token_usage_from_api_usage(cls, usage: dict[str, int]) -> TokenUsage:
         """Create TokenUsage from API response usage data."""

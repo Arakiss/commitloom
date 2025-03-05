@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from ..core.analyzer import CommitAnalyzer
 from ..core.git import GitError, GitFile, GitOperations
 from ..services.ai_service import AIService
-from ..services.metrics import metrics_manager
+from ..services.metrics import metrics_manager  # noqa
 from . import console
 
 env_path = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
@@ -92,7 +92,7 @@ class CommitLoom:
                     prompt_tokens=usage.prompt_tokens,
                     completion_tokens=usage.completion_tokens,
                     cost_in_eur=usage.total_cost,
-                    model_used=self.ai_service.model_name
+                    model_used=self.ai_service.model
                 )
                 sys.exit(0)
 
@@ -108,7 +108,7 @@ class CommitLoom:
                     prompt_tokens=usage.prompt_tokens,
                     completion_tokens=usage.completion_tokens,
                     cost_in_eur=usage.total_cost,
-                    model_used=self.ai_service.model_name
+                    model_used=self.ai_service.model
                 )
             else:
                 console.print_warning("No changes were committed. Files may already be committed.")
@@ -121,7 +121,7 @@ class CommitLoom:
                     prompt_tokens=usage.prompt_tokens,
                     completion_tokens=usage.completion_tokens,
                     cost_in_eur=usage.total_cost,
-                    model_used=self.ai_service.model_name
+                    model_used=self.ai_service.model
                 )
                 sys.exit(0)
 
@@ -181,7 +181,7 @@ class CommitLoom:
                     prompt_tokens=usage.prompt_tokens,
                     completion_tokens=usage.completion_tokens,
                     cost_in_eur=usage.total_cost,
-                    model_used=self.ai_service.model_name,
+                    model_used=self.ai_service.model,
                     batch_processing=True,
                     batch_number=batch_num,
                     batch_total=total_batches
@@ -195,7 +195,7 @@ class CommitLoom:
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
                 cost_in_eur=usage.total_cost,
-                model_used=self.ai_service.model_name,
+                model_used=self.ai_service.model,
                 batch_processing=True,
                 batch_number=batch_num,
                 batch_total=total_batches
