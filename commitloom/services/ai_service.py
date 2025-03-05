@@ -85,7 +85,7 @@ class AIService:
     @property
     def model(self) -> str:
         """Get the model name.
-        
+
         Returns:
             The model name from config.
         """
