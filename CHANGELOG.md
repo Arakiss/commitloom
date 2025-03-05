@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.0] - 2025-03-05
+### ✨ Features
+- 🚀 Add GitHub Actions workflow for automatic release creation
+- 🔧 Fix model property access in AI service 
+- 🚀 Improve CLI test coverage
+
 ## [1.1.0] - 2025-03-05
 ### ✨ Features
 - ✨ feat: add local metrics and usage statistics
