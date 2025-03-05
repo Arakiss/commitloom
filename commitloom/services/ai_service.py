@@ -29,9 +29,10 @@ class TokenUsage:
         completion_tokens = usage["completion_tokens"]
         total_tokens = usage["total_tokens"]
 
-        # Calculate costs
-        input_cost = (prompt_tokens / 1_000_000) * config.model_costs[model].input
-        output_cost = (completion_tokens / 1_000_000) * config.model_costs[model].output
+        # Calculate costs - convert from per million tokens to actual cost
+        # These costs are in EUR per 1M tokens, so we divide by 1M to get cost per token
+        input_cost = (prompt_tokens / 1_000) * config.model_costs[model].input
+        output_cost = (completion_tokens / 1_000) * config.model_costs[model].output
         total_cost = input_cost + output_cost
 
         return cls(

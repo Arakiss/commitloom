@@ -371,7 +371,7 @@ class CommitLoom:
             if "avg_commits_per_day" in stats:
                 avg_commits = stats["avg_commits_per_day"]
                 console.console.print(f"  • Average commits per day: {avg_commits:.2f}")
-                avg_cost = stats["avg_cost_per_day"]
+                avg_cost = stats.get("avg_cost_per_day", 0.0)
                 console.console.print(f"  • Average cost per day: €{avg_cost:.4f}")
 
         # Display repository stats if available
@@ -403,7 +403,8 @@ class CommitLoom:
                 for model, model_data in model_stats.items():
                     console.console.print(f"  • {model}:")
                     console.console.print(f"    - Total tokens: {model_data.get('tokens', 0):,}")
-                    console.console.print(f"    - Total cost: €{model_data.get('cost', 0.0):.4f}")
+                    cost = model_data.get('cost', 0.0)
+                    console.console.print(f"    - Total cost: €{cost:.4f}")
                     avg_tokens = model_data.get("avg_tokens_per_commit", 0.0)
                     console.console.print(f"    - Avg tokens per commit: {avg_tokens:.1f}")
 
