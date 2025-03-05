@@ -46,7 +46,7 @@ jobs:
         run: |
           # Check if commit message indicates a version bump
           COMMIT_MSG=$(git log -1 --pretty=%B)
-          if [[ "$COMMIT_MSG" == *"bump version"* ]]; then
+          if [[ "$COMMIT_MSG" =~ [Bb][Uu][Mm][Pp]\ [Vv][Ee][Rr][Ss][Ii][Oo][Nn] ]]; then
             echo "should_release=true" >> $GITHUB_OUTPUT
             echo "Version bump detected, should create release"
           else
