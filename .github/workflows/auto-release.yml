@@ -1,0 +1,76 @@
+name: Auto Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'pyproject.toml'
+      - 'CHANGELOG.md'
+
+jobs:
+  check-version-bump:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      changelog: ${{ steps.get-changelog.outputs.changelog }}
+      should_release: ${{ steps.check-changes.outputs.should_release }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from pyproject.toml
+        id: get-version
+        run: |
+          VERSION=$(grep -m 1 "version = " pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      - name: Get changelog entry
+        id: get-changelog
+        run: |
+          VERSION=$(grep -m 1 "version = " pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          CHANGELOG_ENTRY=$(awk -v ver="$VERSION" 'BEGIN{inSection=0} $0 ~ "^## \\["ver"\\]" {inSection=1; next} inSection==1 && $0 ~ "^## " {exit} inSection {print}' CHANGELOG.md | tr -d '\r')
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_ENTRY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Check if this is a version bump commit
+        id: check-changes
+        run: |
+          # Check if commit message indicates a version bump
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          if [[ "$COMMIT_MSG" == *"bump version"* ]]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "Version bump detected, should create release"
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "Not a version bump commit"
+          fi
+
+  create-release:
+    needs: check-version-bump
+    if: needs.check-version-bump.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.check-version-bump.outputs.version }}
+          release_name: Release v${{ needs.check-version-bump.outputs.version }}
+          body: ${{ needs.check-version-bump.outputs.changelog }}
+          draft: false
+          prerelease: false
+      
+      - name: Output Release URL
+        run: echo "Released at ${{ steps.create_release.outputs.html_url }}"
