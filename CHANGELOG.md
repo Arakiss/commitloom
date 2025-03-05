@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.3] - 2025-03-05
+### 🛠️ Fixes
+- Fix auto-release workflow to correctly detect version bump commits
+- Add verbose output to PyPI publish workflow for better diagnostics
+
 ## [1.2.2] - 2025-03-05
 ### 🛠️ Fixes
 - Update publish workflow to trigger on both published and created releases
