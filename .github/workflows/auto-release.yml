@@ -74,6 +74,7 @@ jobs:
           draft: false
           prerelease: false
           token: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: false
       
       - name: Output Release Status
         run: echo "Release for v${{ needs.check-version-bump.outputs.version }} created successfully"

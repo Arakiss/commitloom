@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.4] - 2025-03-05
+### 🛠️ Fixes
+- Fix GitHub release workflow to trigger PyPI publishing correctly
+- Add "released" type to the publish workflow trigger
+- Ensure GitHub releases are properly formatted
+
 ## [1.2.3] - 2025-03-05
 ### 🛠️ Fixes
 - Fix auto-release workflow to correctly detect version bump commits
