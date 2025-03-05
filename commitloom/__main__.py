@@ -28,12 +28,26 @@ def handle_error(error: BaseException) -> None:
         console.print_error(f"An error occurred: {str(error)}")
 
 
-@click.command()
+@click.group()
+@click.option("-d", "--debug", is_flag=True, help="Enable debug logging")
+@click.pass_context
+def cli(ctx, debug: bool) -> None:
+    """Create structured git commits with AI-generated messages."""
+    ctx.ensure_object(dict)
+    ctx.obj["DEBUG"] = debug
+    
+    if debug:
+        console.setup_logging(debug=True)
+
+
+@cli.command(help="Generate an AI-powered commit message and commit your changes")
 @click.option("-y", "--yes", is_flag=True, help="Skip all confirmation prompts")
 @click.option("-c", "--combine", is_flag=True, help="Combine all changes into a single commit")
-@click.option("-d", "--debug", is_flag=True, help="Enable debug logging")
-def main(yes: bool, combine: bool, debug: bool) -> None:
-    """Create structured git commits with AI-generated messages."""
+@click.pass_context
+def commit(ctx, yes: bool, combine: bool) -> None:
+    """Generate commit message and commit changes."""
+    debug = ctx.obj.get("DEBUG", False)
+    
     try:
         # Use test_mode=True when running tests (detected by pytest)
         test_mode = "pytest" in sys.modules
@@ -46,6 +60,39 @@ def main(yes: bool, combine: bool, debug: bool) -> None:
     except (KeyboardInterrupt, Exception) as e:
         handle_error(e)
         sys.exit(1)
+
+
+@cli.command(help="Show usage statistics and metrics")
+@click.pass_context
+def stats(ctx) -> None:
+    """Show usage statistics."""
+    debug = ctx.obj.get("DEBUG", False)
+    
+    try:
+        # Create a CommitLoom instance and run the stats command
+        loom = CommitLoom(test_mode=True)  # Test mode to avoid API key requirement
+        if debug:
+            console.setup_logging(debug=True)
+        loom.stats_command()
+    except (KeyboardInterrupt, Exception) as e:
+        handle_error(e)
+        sys.exit(1)
+
+
+# For backwards compatibility, default to commit command if no subcommand provided
+def main() -> None:
+    """Entry point for the CLI."""
+    # Check if the first argument is a known command, if not, insert 'commit'
+    known_commands = ['commit', 'stats']
+    
+    if len(sys.argv) > 1 and not sys.argv[1].startswith('-') and sys.argv[1] not in known_commands:
+        sys.argv.insert(1, 'commit')
+    
+    # If no arguments provided, add 'commit' as the default command
+    if len(sys.argv) == 1:
+        sys.argv.append('commit')
+        
+    cli(obj={})
 
 
 if __name__ == "__main__":

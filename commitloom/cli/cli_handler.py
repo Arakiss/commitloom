@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from ..core.analyzer import CommitAnalyzer
 from ..core.git import GitError, GitFile, GitOperations
 from ..services.ai_service import AIService
+from ..services.metrics import metrics_manager
 from . import console
 
 env_path = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
@@ -39,6 +40,12 @@ class CommitLoom:
             test_mode: If True, initialize services in test mode.
             api_key: OpenAI API key to use for AI service.
         """
+        # Get current repository path
+        try:
+            self.repo_path = os.path.basename(os.getcwd())
+        except Exception:
+            self.repo_path = "unknown_repo"
+            
         self.git = GitOperations()
         self.analyzer = CommitAnalyzer()
         self.ai_service = AIService(api_key=api_key, test_mode=test_mode)
@@ -49,6 +56,9 @@ class CommitLoom:
     def _process_single_commit(self, files: list[GitFile]) -> None:
         """Process files as a single commit."""
         try:
+            # Start tracking metrics
+            metrics_manager.start_commit_tracking(repository=self.repo_path)
+            
             # Stage files
             file_paths = [f.path for f in files]
             self.git.stage_files(file_paths)
@@ -76,14 +86,43 @@ class CommitLoom:
             if not self.auto_commit and not console.confirm_action("Proceed with commit?"):
                 console.print_warning("Commit cancelled by user.")
                 self.git.reset_staged_changes()
+                metrics_manager.finish_commit_tracking(
+                    files_changed=0,  # No files committed
+                    tokens_used=usage.total_tokens,
+                    prompt_tokens=usage.prompt_tokens,
+                    completion_tokens=usage.completion_tokens,
+                    cost_in_eur=usage.total_cost,
+                    model_used=self.ai_service.model_name
+                )
                 sys.exit(0)
 
             # Create commit
-            if self.git.create_commit(suggestion.title, suggestion.format_body()):
+            commit_success = self.git.create_commit(suggestion.title, suggestion.format_body())
+            if commit_success:
                 console.print_success("Changes committed successfully!")
+                
+                # Record metrics
+                metrics_manager.finish_commit_tracking(
+                    files_changed=len(files),
+                    tokens_used=usage.total_tokens,
+                    prompt_tokens=usage.prompt_tokens,
+                    completion_tokens=usage.completion_tokens,
+                    cost_in_eur=usage.total_cost,
+                    model_used=self.ai_service.model_name
+                )
             else:
                 console.print_warning("No changes were committed. Files may already be committed.")
                 self.git.reset_staged_changes()
+                
+                # Record metrics with 0 files
+                metrics_manager.finish_commit_tracking(
+                    files_changed=0,
+                    tokens_used=usage.total_tokens,
+                    prompt_tokens=usage.prompt_tokens,
+                    completion_tokens=usage.completion_tokens,
+                    cost_in_eur=usage.total_cost,
+                    model_used=self.ai_service.model_name
+                )
                 sys.exit(0)
 
         except GitError as e:
@@ -103,6 +142,9 @@ class CommitLoom:
     ) -> dict[str, object] | None:
         """Handle a single batch of files."""
         try:
+            # Start tracking metrics
+            metrics_manager.start_commit_tracking(repository=self.repo_path)
+            
             # Stage files
             file_paths = [f.path for f in batch]
             self.git.stage_files(file_paths)
@@ -127,10 +169,37 @@ class CommitLoom:
                 return None
 
             # Create commit
-            if not self.git.create_commit(suggestion.title, suggestion.format_body()):
+            commit_success = self.git.create_commit(suggestion.title, suggestion.format_body())
+            if not commit_success:
                 console.print_warning("No changes were committed. Files may already be committed.")
                 self.git.reset_staged_changes()
+                
+                # Record metrics with 0 files
+                metrics_manager.finish_commit_tracking(
+                    files_changed=0,
+                    tokens_used=usage.total_tokens,
+                    prompt_tokens=usage.prompt_tokens,
+                    completion_tokens=usage.completion_tokens,
+                    cost_in_eur=usage.total_cost,
+                    model_used=self.ai_service.model_name,
+                    batch_processing=True,
+                    batch_number=batch_num,
+                    batch_total=total_batches
+                )
                 return None
+
+            # Record metrics
+            metrics_manager.finish_commit_tracking(
+                files_changed=len(batch),
+                tokens_used=usage.total_tokens,
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+                cost_in_eur=usage.total_cost,
+                model_used=self.ai_service.model_name,
+                batch_processing=True,
+                batch_number=batch_num,
+                batch_total=total_batches
+            )
 
             console.print_batch_complete(batch_num, total_batches)
             return {"files": batch, "commit_data": suggestion}
@@ -271,6 +340,61 @@ class CommitLoom:
             self.git.reset_staged_changes()
             sys.exit(1)
 
+    def stats_command(self) -> None:
+        """Display usage statistics."""
+        # Get usage statistics
+        stats = metrics_manager.get_statistics()
+        
+        console.print("\n[bold blue]📊 CommitLoom Usage Statistics[/bold blue]")
+        
+        # Display basic stats
+        console.print("\n[bold cyan]Basic Statistics:[/bold cyan]")
+        console.print(f"  • Total commits generated: {stats['total_commits']:,}")
+        console.print(f"  • Total tokens used: {stats['total_tokens']:,}")
+        console.print(f"  • Total cost: €{stats['total_cost_in_eur']:.4f}")
+        console.print(f"  • Total files processed: {stats['total_files_processed']:,}")
+        
+        # Display time saved if available
+        if 'time_saved_formatted' in stats:
+            console.print(f"  • Total time saved: {stats['time_saved_formatted']}")
+        
+        # Display activity period if available
+        if 'first_used_at' in stats and stats['first_used_at'] and 'days_active' in stats:
+            console.print(f"  • Active since: {stats['first_used_at'].split('T')[0]}")
+            console.print(f"  • Days active: {stats['days_active']}")
+            
+            if 'avg_commits_per_day' in stats:
+                console.print(f"  • Average commits per day: {stats['avg_commits_per_day']:.2f}")
+                console.print(f"  • Average cost per day: €{stats['avg_cost_per_day']:.4f}")
+        
+        # Display repository stats if available
+        if stats['repositories']:
+            console.print("\n[bold cyan]Repository Activity:[/bold cyan]")
+            console.print(f"  • Most active repository: {stats['most_active_repository']}")
+            console.print(f"  • Repositories used: {len(stats['repositories'])}")
+        
+        # Display model usage if available
+        if stats['model_usage']:
+            console.print("\n[bold cyan]Model Usage:[/bold cyan]")
+            for model, count in stats['model_usage'].items():
+                console.print(f"  • {model}: {count} commits")
+        
+        # Display batch vs single commits
+        console.print("\n[bold cyan]Processing Methods:[/bold cyan]")
+        console.print(f"  • Batch commits: {stats['batch_commits']}")
+        console.print(f"  • Single commits: {stats['single_commits']}")
+        
+        # Get more detailed stats if commits exist
+        if stats['total_commits'] > 0:
+            model_stats = metrics_manager.get_model_usage_stats()
+            if model_stats:
+                console.print("\n[bold cyan]Detailed Model Stats:[/bold cyan]")
+                for model, model_data in model_stats.items():
+                    console.print(f"  • {model}:")
+                    console.print(f"    - Total tokens: {model_data['tokens']:,}")
+                    console.print(f"    - Total cost: €{model_data['cost']:.4f}")
+                    console.print(f"    - Avg tokens per commit: {model_data['avg_tokens_per_commit']:.1f}")
+    
     def run(
         self, auto_commit: bool = False, combine_commits: bool = False, debug: bool = False
     ) -> None:

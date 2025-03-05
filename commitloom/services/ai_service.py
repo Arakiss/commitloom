@@ -80,6 +80,7 @@ class AIService:
             raise ValueError("API key is required")
         self.api_key = api_key or config.api_key
         self.test_mode = test_mode
+        self.model_name = config.default_model
 
     @classmethod
     def token_usage_from_api_usage(cls, usage: dict[str, int]) -> TokenUsage:
