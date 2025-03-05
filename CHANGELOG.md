@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.6] - 2025-03-05
+### 🛠️ Fixes
+- Connect Auto Release and Package Publishing workflows
+- Automate PyPI package publishing after GitHub release
+- Fix workflow integration between GitHub release and PyPI publish
+
 ## [1.2.5] - 2025-03-05
 ### 🛠️ Fixes
 - Use actions/create-release instead of softprops/action-gh-release to ensure proper release event triggering
