@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.2] - 2025-03-05
+### 🛠️ Fixes
+- Update publish workflow to trigger on both published and created releases
+
 ## [1.2.1] - 2025-03-05
 ### 🔧 Improvements
 - Fix GitHub Actions permissions for release automation
