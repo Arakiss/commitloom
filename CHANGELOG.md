@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.2.8] - 2025-03-06
+
+
+### 🐛 Bug Fixes
+- correct GitFile parameter types in tests
+
+### 💄 Styling
+- fix blank line whitespace issues
+- fix line length issues and format cli_handler.py
+
+### 📦 Build System
+- bump version to 1.2.8
+- bump version to 1.2.7 and fix metrics storage
+- bump version to 1.2.6 and connect release workflows
+- bump version to 1.2.5 and fix release creation
+- bump version to 1.2.4 and fix release workflow
+- bump version to 1.2.3
+
+### 👷 CI
+- make linting and test coverage requirements more flexible
+- add manual PyPI publish workflow and update version
+- enable verbose output in PyPI publish workflow
+
+### 🔄 Other Changes
+- ✨ feat: enhance metrics calculations and logging
+- ✨ feat: enhance CLI with model selection and help
+
 ## [1.2.7] - 2025-03-05
 ### 🛠️ Fixes
 - Fix JSON handling in metrics storage
