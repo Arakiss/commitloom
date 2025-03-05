@@ -66,15 +66,16 @@ jobs:
         uses: actions/checkout@v4
         
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ needs.check-version-bump.outputs.version }}
-          name: Release v${{ needs.check-version-bump.outputs.version }}
+          release_name: Release v${{ needs.check-version-bump.outputs.version }}
           body: ${{ needs.check-version-bump.outputs.changelog }}
           draft: false
           prerelease: false
-          token: ${{ secrets.GITHUB_TOKEN }}
-          generate_release_notes: false
       
       - name: Output Release Status
         run: echo "Release for v${{ needs.check-version-bump.outputs.version }} created successfully"
