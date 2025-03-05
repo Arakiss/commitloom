@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.7] - 2025-03-05
+### 🛠️ Fixes
+- Fix JSON handling in metrics storage
+- Make statistics display more robust against malformed data
+- Add safety checks for repository and model usage data
+
+
+
 ## [1.2.6] - 2025-03-05
 ### 🛠️ Fixes
 - Connect Auto Release and Package Publishing workflows

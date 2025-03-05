@@ -84,6 +84,10 @@ class MetricsManager:
         try:
             with open(self._stats_file) as f:
                 data = json.load(f)
+                # Ensure valid JSON structure
+                if not isinstance(data, dict):
+                    logger.warning("Invalid statistics file format, creating new file")
+                    return UsageStatistics()
                 stats = UsageStatistics(**data)
                 return stats
         except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
@@ -93,8 +97,19 @@ class MetricsManager:
     def _save_statistics(self) -> None:
         """Save usage statistics to file."""
         try:
+            # Ensure valid data structure before saving
+            stats_dict = asdict(self._statistics)
+            
+            # Fix any potential problematic values
+            if 'repositories' in stats_dict and not isinstance(stats_dict['repositories'], dict):
+                stats_dict['repositories'] = {}
+                
+            if 'model_usage' in stats_dict and not isinstance(stats_dict['model_usage'], dict):
+                stats_dict['model_usage'] = {}
+            
             with open(self._stats_file, "w") as f:
-                json.dump(asdict(self._statistics), f, indent=2)
+                json.dump(stats_dict, f, indent=2)
+                
         except (OSError, TypeError) as e:
             logger.warning(f"Failed to save statistics: {str(e)}")
 
