@@ -345,55 +345,55 @@ class CommitLoom:
         # Get usage statistics
         stats = metrics_manager.get_statistics()
         
-        console.print("\n[bold blue]📊 CommitLoom Usage Statistics[/bold blue]")
+        console.console.print("\n[bold blue]📊 CommitLoom Usage Statistics[/bold blue]")
         
         # Display basic stats
-        console.print("\n[bold cyan]Basic Statistics:[/bold cyan]")
-        console.print(f"  • Total commits generated: {stats['total_commits']:,}")
-        console.print(f"  • Total tokens used: {stats['total_tokens']:,}")
-        console.print(f"  • Total cost: €{stats['total_cost_in_eur']:.4f}")
-        console.print(f"  • Total files processed: {stats['total_files_processed']:,}")
+        console.console.print("\n[bold cyan]Basic Statistics:[/bold cyan]")
+        console.console.print(f"  • Total commits generated: {stats['total_commits']:,}")
+        console.console.print(f"  • Total tokens used: {stats['total_tokens']:,}")
+        console.console.print(f"  • Total cost: €{stats['total_cost_in_eur']:.4f}")
+        console.console.print(f"  • Total files processed: {stats['total_files_processed']:,}")
         
         # Display time saved if available
         if 'time_saved_formatted' in stats:
-            console.print(f"  • Total time saved: {stats['time_saved_formatted']}")
+            console.console.print(f"  • Total time saved: {stats['time_saved_formatted']}")
         
         # Display activity period if available
         if 'first_used_at' in stats and stats['first_used_at'] and 'days_active' in stats:
-            console.print(f"  • Active since: {stats['first_used_at'].split('T')[0]}")
-            console.print(f"  • Days active: {stats['days_active']}")
+            console.console.print(f"  • Active since: {stats['first_used_at'].split('T')[0]}")
+            console.console.print(f"  • Days active: {stats['days_active']}")
             
             if 'avg_commits_per_day' in stats:
-                console.print(f"  • Average commits per day: {stats['avg_commits_per_day']:.2f}")
-                console.print(f"  • Average cost per day: €{stats['avg_cost_per_day']:.4f}")
+                console.console.print(f"  • Average commits per day: {stats['avg_commits_per_day']:.2f}")
+                console.console.print(f"  • Average cost per day: €{stats['avg_cost_per_day']:.4f}")
         
         # Display repository stats if available
         if stats['repositories']:
-            console.print("\n[bold cyan]Repository Activity:[/bold cyan]")
-            console.print(f"  • Most active repository: {stats['most_active_repository']}")
-            console.print(f"  • Repositories used: {len(stats['repositories'])}")
+            console.console.print("\n[bold cyan]Repository Activity:[/bold cyan]")
+            console.console.print(f"  • Most active repository: {stats['most_active_repository']}")
+            console.console.print(f"  • Repositories used: {len(stats['repositories'])}")
         
         # Display model usage if available
         if stats['model_usage']:
-            console.print("\n[bold cyan]Model Usage:[/bold cyan]")
+            console.console.print("\n[bold cyan]Model Usage:[/bold cyan]")
             for model, count in stats['model_usage'].items():
-                console.print(f"  • {model}: {count} commits")
+                console.console.print(f"  • {model}: {count} commits")
         
         # Display batch vs single commits
-        console.print("\n[bold cyan]Processing Methods:[/bold cyan]")
-        console.print(f"  • Batch commits: {stats['batch_commits']}")
-        console.print(f"  • Single commits: {stats['single_commits']}")
+        console.console.print("\n[bold cyan]Processing Methods:[/bold cyan]")
+        console.console.print(f"  • Batch commits: {stats['batch_commits']}")
+        console.console.print(f"  • Single commits: {stats['single_commits']}")
         
         # Get more detailed stats if commits exist
         if stats['total_commits'] > 0:
             model_stats = metrics_manager.get_model_usage_stats()
             if model_stats:
-                console.print("\n[bold cyan]Detailed Model Stats:[/bold cyan]")
+                console.console.print("\n[bold cyan]Detailed Model Stats:[/bold cyan]")
                 for model, model_data in model_stats.items():
-                    console.print(f"  • {model}:")
-                    console.print(f"    - Total tokens: {model_data['tokens']:,}")
-                    console.print(f"    - Total cost: €{model_data['cost']:.4f}")
-                    console.print(f"    - Avg tokens per commit: {model_data['avg_tokens_per_commit']:.1f}")
+                    console.console.print(f"  • {model}:")
+                    console.console.print(f"    - Total tokens: {model_data['tokens']:,}")
+                    console.console.print(f"    - Total cost: €{model_data['cost']:.4f}")
+                    console.console.print(f"    - Avg tokens per commit: {model_data['avg_tokens_per_commit']:.1f}")
     
     def run(
         self, auto_commit: bool = False, combine_commits: bool = False, debug: bool = False
