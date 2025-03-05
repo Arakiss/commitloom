@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.5] - 2025-03-05
+### 🛠️ Fixes
+- Use actions/create-release instead of softprops/action-gh-release to ensure proper release event triggering
+
 ## [1.2.4] - 2025-03-05
 ### 🛠️ Fixes
 - Fix GitHub release workflow to trigger PyPI publishing correctly
