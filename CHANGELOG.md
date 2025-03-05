@@ -1,8 +1,12 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.0] - 2025-03-05
 ### ✨ Features
 - ✨ feat: add local metrics and usage statistics
+- 📊 Add tracking for usage patterns, token consumption, and cost
+- 📈 Track time savings and productivity metrics
+- 📝 Add comprehensive documentation for metrics system
+- 🖥️ Add new `stats` command to view usage statistics
 - 🔧 fix: update console print methods in stats command
 - 🐛 fix: continue staging files when a file is not found or deleted
 
