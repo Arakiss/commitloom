@@ -35,7 +35,7 @@ def cli(ctx, debug: bool) -> None:
     """Create structured git commits with AI-generated messages."""
     ctx.ensure_object(dict)
     ctx.obj["DEBUG"] = debug
-    
+
     if debug:
         console.setup_logging(debug=True)
 
@@ -47,7 +47,7 @@ def cli(ctx, debug: bool) -> None:
 def commit(ctx, yes: bool, combine: bool) -> None:
     """Generate commit message and commit changes."""
     debug = ctx.obj.get("DEBUG", False)
-    
+
     try:
         # Use test_mode=True when running tests (detected by pytest)
         test_mode = "pytest" in sys.modules
@@ -67,7 +67,7 @@ def commit(ctx, yes: bool, combine: bool) -> None:
 def stats(ctx) -> None:
     """Show usage statistics."""
     debug = ctx.obj.get("DEBUG", False)
-    
+
     try:
         # Create a CommitLoom instance and run the stats command
         loom = CommitLoom(test_mode=True)  # Test mode to avoid API key requirement
@@ -84,14 +84,14 @@ def main() -> None:
     """Entry point for the CLI."""
     # Check if the first argument is a known command, if not, insert 'commit'
     known_commands = ['commit', 'stats']
-    
+
     if len(sys.argv) > 1 and not sys.argv[1].startswith('-') and sys.argv[1] not in known_commands:
         sys.argv.insert(1, 'commit')
-    
+
     # If no arguments provided, add 'commit' as the default command
     if len(sys.argv) == 1:
         sys.argv.append('commit')
-        
+
     cli(obj={})
 
 

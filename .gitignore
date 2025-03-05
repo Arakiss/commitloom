@@ -16,6 +16,7 @@ build/
 develop-eggs/
 dist/
 downloads/
+docs/
 eggs/
 .eggs/
 lib/
@@ -48,6 +49,7 @@ htmlcov/
 .coverage.*
 .cache
 nosetests.xml
+CLAUDE.md
 coverage.xml
 *.cover
 *.py,cover
