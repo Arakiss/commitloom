@@ -48,7 +48,7 @@ class TestCliBasic:
         with patch("commitloom.__main__.CommitLoom") as mock_commit_loom:
             mock_commit_loom.return_value = mock_loom
             # Skip assert on exit code as it's now 2, which is the expected behavior
-            result = runner.invoke(cli, ["commit", "-y", "-c", "-d"], catch_exceptions=False)
+            runner.invoke(cli, ["commit", "-y", "-c", "-d"], catch_exceptions=False)
 
             # Since we changed the CLI structure, these assertions are now obsolete
             # but we keep the test to ensure the command runs
