@@ -37,10 +37,10 @@ def cli(mock_ai_service, mock_token_usage):
     """Fixture for CommitLoom instance."""
     instance = CommitLoom(test_mode=True)
     # Mock git operations
-    instance.git.stage_files = MagicMock()
-    instance.git.reset_staged_changes = MagicMock()
-    instance.git.get_diff = MagicMock(return_value="test diff")
-    instance.ai_service.generate_commit_message = MagicMock(
+    instance.git.stage_files = MagicMock()  # type: ignore
+    instance.git.reset_staged_changes = MagicMock()  # type: ignore
+    instance.git.get_diff = MagicMock(return_value="test diff")  # type: ignore
+    instance.ai_service.generate_commit_message = MagicMock(  # type: ignore
         return_value=(
             MagicMock(title="test", body={}, format_body=lambda: "test"),
             mock_token_usage,
@@ -71,7 +71,7 @@ def test_handle_commit_git_error(cli):
 
 def test_handle_commit_success(cli):
     """Test successful commit."""
-    mock_file = GitFile("test.py", "A", 100, "abc123")
+    mock_file = GitFile("test.py", "A", old_path=None, size=100, hash="abc123")
     cli.git.get_staged_files = MagicMock(return_value=[mock_file])
     cli.git.create_commit = MagicMock(return_value=True)
 
@@ -82,7 +82,7 @@ def test_handle_commit_success(cli):
 
 def test_handle_commit_complex_changes(cli):
     """Test handling complex changes."""
-    mock_files = [GitFile(f"test{i}.py", "A", 100, "abc123") for i in range(4)]
+    mock_files = [GitFile(f"test{i}.py", "A", old_path=None, size=100, hash="abc123") for i in range(4)]
     cli.git.get_staged_files = MagicMock(return_value=mock_files)
     cli.git.create_commit = MagicMock(return_value=True)
 
@@ -93,7 +93,7 @@ def test_handle_commit_complex_changes(cli):
 
 def test_handle_commit_user_abort(cli):
     """Test user aborting commit."""
-    mock_file = GitFile("test.py", "A", 100, "abc123")
+    mock_file = GitFile("test.py", "A", old_path=None, size=100, hash="abc123")
     cli.git.get_staged_files = MagicMock(return_value=[mock_file])
     with patch("commitloom.cli.cli_handler.console") as mock_console:
         mock_console.confirm_action.return_value = False
@@ -107,7 +107,7 @@ def test_handle_commit_user_abort(cli):
 
 def test_handle_commit_with_flags(cli):
     """Test commit with various flags."""
-    mock_file = GitFile("test.py", "A", 100, "abc123")
+    mock_file = GitFile("test.py", "A", old_path=None, size=100, hash="abc123")
     cli.git.get_staged_files = MagicMock(return_value=[mock_file])
     cli.git.create_commit = MagicMock(return_value=True)
 
@@ -118,7 +118,7 @@ def test_handle_commit_with_flags(cli):
 
 def test_handle_commit_api_error(cli):
     """Test handling API error."""
-    mock_file = GitFile("test.py", "A", 100, "abc123")
+    mock_file = GitFile("test.py", "A", old_path=None, size=100, hash="abc123")
     cli.git.get_staged_files = MagicMock(return_value=[mock_file])
     cli.ai_service.generate_commit_message = MagicMock(side_effect=Exception("API error"))
 
@@ -131,9 +131,9 @@ def test_handle_commit_api_error(cli):
 def test_create_batches_with_ignored_files(cli):
     """Test batch creation with ignored files."""
     mock_files = [
-        GitFile("test.py", "A", 100, "abc123"),
-        GitFile("node_modules/test.js", "A", 100, "def456"),
-        GitFile("test2.py", "A", 100, "ghi789"),
+        GitFile("test.py", "A", old_path=None, size=100, hash="abc123"),
+        GitFile("node_modules/test.js", "A", old_path=None, size=100, hash="def456"),
+        GitFile("test2.py", "A", old_path=None, size=100, hash="ghi789"),
     ]
     cli.git.get_staged_files = MagicMock(return_value=mock_files)
     cli.git.should_ignore_file = MagicMock(side_effect=lambda path: "node_modules" in path)
@@ -156,7 +156,7 @@ def test_create_batches_git_error(cli):
 
 def test_handle_batch_no_changes(cli):
     """Test handling batch with no changes."""
-    mock_files = [GitFile("test.py", "A", 100, "abc123")]
+    mock_files = [GitFile("test.py", "A", old_path=None, size=100, hash="abc123")]
     cli.git.create_commit = MagicMock(return_value=False)
 
     result = cli._handle_batch(mock_files, 1, 1)
@@ -168,7 +168,7 @@ def test_create_combined_commit_success(cli):
     """Test successful creation of combined commit."""
     batches = [
         {
-            "files": [GitFile("test1.py", "A", 100, "abc123")],
+            "files": [GitFile("test1.py", "A", old_path=None, size=100, hash="abc123")],
             "commit_data": MagicMock(
                 title="test1",
                 body={"feat": {"emoji": "✨", "changes": ["change1"]}},
@@ -176,7 +176,7 @@ def test_create_combined_commit_success(cli):
             ),
         },
         {
-            "files": [GitFile("test2.py", "A", 100, "def456")],
+            "files": [GitFile("test2.py", "A", old_path=None, size=100, hash="def456")],
             "commit_data": MagicMock(
                 title="test2",
                 body={"fix": {"emoji": "🐛", "changes": ["change2"]}},
@@ -195,7 +195,7 @@ def test_create_combined_commit_no_changes(cli):
     """Test combined commit with no changes."""
     batches = [
         {
-            "files": [GitFile("test1.py", "A", 100, "abc123")],
+            "files": [GitFile("test1.py", "A", old_path=None, size=100, hash="abc123")],
             "commit_data": MagicMock(
                 title="test1",
                 body={"feat": {"emoji": "✨", "changes": ["change1"]}},
@@ -223,7 +223,7 @@ def test_debug_mode(cli):
 
 def test_process_files_in_batches_error(cli):
     """Test error handling in batch processing."""
-    mock_files = [GitFile(f"test{i}.py", "A", 100, "abc123") for i in range(4)]
+    mock_files = [GitFile(f"test{i}.py", "A", old_path=None, size=100, hash="abc123") for i in range(4)]
     cli.git.get_diff = MagicMock(side_effect=GitError("Git error"))
 
     with pytest.raises(SystemExit) as exc:
@@ -234,7 +234,7 @@ def test_process_files_in_batches_error(cli):
 
 def test_handle_batch_value_error(cli):
     """Test handling value error in batch processing."""
-    mock_files = [GitFile("test.py", "A", 100, "abc123")]
+    mock_files = [GitFile("test.py", "A", old_path=None, size=100, hash="abc123")]
     cli.git.get_diff = MagicMock(side_effect=ValueError("Invalid value"))
 
     result = cli._handle_batch(mock_files, 1, 1)
@@ -244,7 +244,7 @@ def test_handle_batch_value_error(cli):
 
 def test_handle_batch_git_error(cli):
     """Test handling git error in batch processing."""
-    mock_files = [GitFile("test.py", "A", 100, "abc123")]
+    mock_files = [GitFile("test.py", "A", old_path=None, size=100, hash="abc123")]
     cli.git.get_diff = MagicMock(side_effect=GitError("Git error"))
 
     result = cli._handle_batch(mock_files, 1, 1)
