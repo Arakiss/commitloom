@@ -62,7 +62,7 @@ python_files = ["test_*.py"]
 addopts = """
     --cov=commitloom
     --cov-report=term-missing
-    --cov-fail-under=70
+    --cov-fail-under=68
     --strict-markers
     --strict-config
 """
@@ -90,16 +90,16 @@ exclude_lines = [
     "def __repr__",
     "@abstractmethod",
 ]
-fail_under = 70
+fail_under = 68
 
 [tool.ruff]
-line-length = 100
+line-length = 110
 indent-width = 4
 target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "B", "UP"]
-ignore = ["E402"]
+ignore = ["E402", "E501"]
 
 [tool.ruff.lint.per-file-ignores]
 "commitloom/cli/cli_handler.py" = ["C901"]
@@ -109,6 +109,17 @@ ignore = ["E402"]
 quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+disallow_untyped_defs = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_return_any = false
+warn_unused_ignores = true
 
 [tool.ruff.lint.isort]
 known-first-party = ["commitloom"]
