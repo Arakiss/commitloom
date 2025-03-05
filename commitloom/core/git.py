@@ -96,17 +96,22 @@ class GitOperations:
 
         try:
             for file in files:
-                result = subprocess.run(
-                    ["git", "add", "--", file],
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
-                if result.stderr:
-                    if result.stderr.startswith("warning:"):
-                        logger.warning("Git warning while staging %s: %s", file, result.stderr)
-                    else:
-                        logger.info("Git message while staging %s: %s", file, result.stderr)
+                try:
+                    result = subprocess.run(
+                        ["git", "add", "--", file],
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                    )
+                    if result.stderr:
+                        if result.stderr.startswith("warning:"):
+                            logger.warning("Git warning while staging %s: %s", file, result.stderr)
+                        else:
+                            logger.info("Git message while staging %s: %s", file, result.stderr)
+                except subprocess.CalledProcessError as file_error:
+                    # Log the error but continue with other files
+                    error_msg = file_error.stderr or str(file_error)
+                    logger.warning("Failed to stage file %s: %s", file, error_msg)
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
             raise GitError(f"Failed to stage files: {error_msg}")
