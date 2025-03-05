@@ -1,7 +1,12 @@
 # Changelog
 
-## [1.0.1] - 2024-12-10
+## [Unreleased]
+### ✨ Features
+- ✨ feat: add local metrics and usage statistics
+- 🔧 fix: update console print methods in stats command
+- 🐛 fix: continue staging files when a file is not found or deleted
 
+## [1.0.1] - 2024-12-10
 
 ### 📦 Build System
 - bump version to 1.0.1

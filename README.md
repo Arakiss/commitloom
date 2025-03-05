@@ -61,6 +61,7 @@ loom -y  # Non-interactive mode
 - 🧵 **Smart Batching**: Weaves multiple changes into coherent, logical commits
 - 📊 **Complexity Analysis**: Identifies when commits are getting too large or complex
 - 💰 **Cost Control**: Built-in token and cost estimation to keep API usage efficient
+- 📈 **Usage Metrics**: Track your usage, cost savings, and productivity gains with built-in metrics
 - 🔍 **Binary Support**: Special handling for binary files with size and type detection
 - 🎨 **Beautiful CLI**: Rich, colorful interface with clear insights and warnings
 
@@ -85,16 +86,38 @@ CommitLoom can be invoked using either of these commands:
 
 ```bash
 # Using the full name
-loom [options]
+loom [command] [options]
 
 # Using the short alias
-cl [options]
+cl [command] [options]
 ```
 
-Both commands support the same options:
+#### Available Commands
+
+- `loom commit` (or simply `loom`): Generate a commit message and commit your changes
+- `loom stats`: Display detailed usage statistics and metrics
+
+#### Options
+
 - `-y, --yes`: Auto-confirm all prompts (non-interactive mode)
 - `-c, --combine`: Combine all changes into a single commit
-- `-v, --verbose`: Enable verbose logging
+- `-d, --debug`: Enable debug logging
+
+#### Usage Examples
+
+```bash
+# Basic usage (interactive mode)
+loom
+
+# Non-interactive mode with combined commits
+loom -y -c
+
+# View usage statistics
+loom stats
+
+# View debug information with statistics
+loom stats -d
+```
 
 ### API Key Configuration
 
@@ -195,6 +218,25 @@ Yes! Use the `-y` flag for non-interactive mode:
 ```bash
 loom -y
 ```
+
+### How does CommitLoom track metrics and usage statistics?
+
+CommitLoom keeps track of various metrics to help you understand your usage patterns:
+
+- **Usage tracking**: Number of commits generated, tokens used, and associated costs
+- **Time savings**: Estimated time saved compared to writing commit messages manually
+- **Repository statistics**: Which repositories you use CommitLoom with most frequently
+- **Model usage**: Performance metrics for different AI models
+- **Cost analysis**: Detailed breakdown of token usage and associated costs
+
+All metrics are stored locally in your user data directory (`~/.local/share/commitloom/metrics` on Linux) and are never sent to external servers.
+
+To view your metrics, simply run:
+```bash
+loom stats
+```
+
+For detailed documentation on the metrics system, see the [Usage Metrics Documentation](docs/usage_metrics/README.md).
 
 ### How does CommitLoom handle large changes?
 
