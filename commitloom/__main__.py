@@ -133,7 +133,9 @@ def main() -> None:
     """Entry point for the CLI."""
     known_commands = ['commit', 'stats', 'help']
     # These are options for the main CLI group
-    global_options = ['-d', '--debug', '-v', '--version', '--help']
+    global_options = ['-v', '--version', '--help']
+    # These are debug options that should include commit command
+    debug_options = ['-d', '--debug']
     # These are options specific to the commit command
     commit_options = ['-y', '--yes', '-c', '--combine', '-m', '--model']
     
@@ -154,6 +156,15 @@ def main() -> None:
     # If it starts with -y or --yes, it's intended for the commit command
     if first_arg in ['-y', '--yes']:
         sys.argv.insert(1, 'commit')
+        cli(obj={})
+        return
+        
+    # If it's a debug option, add 'commit' after it to enable debugging for the commit command
+    if first_arg in debug_options:
+        # Check if there's a command after the debug flag
+        if len(sys.argv) <= 2 or (len(sys.argv) > 2 and sys.argv[2].startswith('-')):
+            # No command after debug flag, insert commit
+            sys.argv.insert(2, 'commit')
         cli(obj={})
         return
         
