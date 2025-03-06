@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.10] - 2025-03-06
+
+
+### 📦 Build System
+- bump version to 1.2.10
+
 ## [1.2.9] - 2025-03-06
 
 
