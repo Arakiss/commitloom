@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.9] - 2025-03-06
+
+
+### 📦 Build System
+- bump version to 1.2.9
+
+### 🔄 Other Changes
+- ✨ feat: add debug options for commit command
+- 🔖 chore: bump version to 1.2.8
+
 ## [1.2.8] - 2025-03-06
 
 
