@@ -16,9 +16,9 @@ load_dotenv(dotenv_path=env_path)
 api_key = os.getenv("OPENAI_API_KEY")
 print(f"API Key loaded: {'Yes' if api_key else 'No'}")
 
+from . import __version__
 from .cli import console
 from .cli.cli_handler import CommitLoom
-from . import __version__
 from .config.settings import config
 
 
@@ -32,9 +32,11 @@ def handle_error(error: BaseException) -> None:
 
 @click.group()
 @click.option("-d", "--debug", is_flag=True, help="Enable debug logging")
-@click.version_option(version=__version__, prog_name="CommitLoom")
+@click.option("-v", "--version", is_flag=True, callback=lambda ctx, param, value: 
+              value and print(f"CommitLoom, version {__version__}") or exit(0) if value else None,
+              help="Show the version and exit.")
 @click.pass_context
-def cli(ctx, debug: bool) -> None:
+def cli(ctx, debug: bool, version: bool = False) -> None:
     """Create structured git commits with AI-generated messages."""
     ctx.ensure_object(dict)
     ctx.obj["DEBUG"] = debug
@@ -130,16 +132,41 @@ def help() -> None:
 def main() -> None:
     """Entry point for the CLI."""
     known_commands = ['commit', 'stats', 'help']
+    # These are options for the main CLI group
+    global_options = ['-d', '--debug', '-v', '--version', '--help']
+    # These are options specific to the commit command
     commit_options = ['-y', '--yes', '-c', '--combine', '-m', '--model']
     
-    # If no arguments or only options without a command, add 'commit' as the default command
-    if len(sys.argv) == 1 or (len(sys.argv) > 1 and sys.argv[1].startswith('-')):
-        # Insert 'commit' as the first argument
+    # If no arguments, simply add the default commit command
+    if len(sys.argv) == 1:
         sys.argv.insert(1, 'commit')
-    # If the first argument is not a known command and not an option, insert 'commit'
-    elif len(sys.argv) > 1 and not sys.argv[1].startswith('-') and sys.argv[1] not in known_commands:
+        cli(obj={})
+        return
+    
+    # Check the first argument
+    first_arg = sys.argv[1]
+    
+    # If it's already a known command, no need to modify
+    if first_arg in known_commands:
+        cli(obj={})
+        return
+    
+    # If it starts with -y or --yes, it's intended for the commit command
+    if first_arg in ['-y', '--yes']:
         sys.argv.insert(1, 'commit')
-
+        cli(obj={})
+        return
+        
+    # If it's a global option, don't insert commit
+    if any(first_arg == opt for opt in global_options):
+        cli(obj={})
+        return
+        
+    # For any other non-option argument that's not a known command, 
+    # assume it's meant for the commit command
+    if not first_arg.startswith('-'):
+        sys.argv.insert(1, 'commit')
+    
     cli(obj={})
 
 
