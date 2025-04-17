@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.0] - 2025-04-17
+
+
+### ✨ Features
+- set gpt-4.1-mini as default model and add 2025 OpenAI models/pricing
+
+### 📦 Build System
+- bump version to 1.4.0
+- bump version to 1.3.0
+
 ## [1.2.10] - 2025-03-06
 
 
