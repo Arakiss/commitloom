@@ -61,7 +61,17 @@ class Config:
             config_file = Path.home() / ".commitloom" / "config"
             if config_file.exists():
                 with open(config_file) as f:
-                    api_key = f.read().strip()
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#'):
+                            if line.startswith('OPENAI_API_KEY='):
+                                api_key = line.split('=', 1)[1].strip().strip('"\'')
+                                os.environ["OPENAI_API_KEY"] = api_key
+                                break
+                            elif line.startswith('COMMITLOOM_API_KEY='):
+                                api_key = line.split('=', 1)[1].strip().strip('"\'')
+                                os.environ["COMMITLOOM_API_KEY"] = api_key
+                                break
 
         if not api_key:
             raise ValueError(
