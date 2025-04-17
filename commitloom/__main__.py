@@ -39,9 +39,12 @@ def handle_error(error: BaseException) -> None:
 def cli(ctx, debug: bool, version: bool = False) -> None:
     """Create structured git commits with AI-generated messages."""
     ctx.ensure_object(dict)
-    ctx.obj["DEBUG"] = debug
+    
+    # Check for debug mode in config file or environment variable
+    debug_env = os.getenv("DEBUG_MODE", "").lower() in ("true", "1", "yes")
+    ctx.obj["DEBUG"] = debug or debug_env
 
-    if debug:
+    if debug or debug_env:
         console.setup_logging(debug=True)
 
 
