@@ -155,23 +155,23 @@ def main() -> None:
         cli(obj={})
         return
     
-    # If it starts with -y or --yes, it's intended for the commit command
-    if first_arg in ['-y', '--yes']:
+    # If it starts with any commit-specific option, it's intended for the commit command
+    if first_arg in commit_options:
         sys.argv.insert(1, 'commit')
+        cli(obj={})
+        return
+        
+    # If it's a global option, don't insert commit
+    if any(first_arg == opt for opt in global_options):
         cli(obj={})
         return
         
     # If it's a debug option, add 'commit' after it to enable debugging for the commit command
     if first_arg in debug_options:
         # Check if there's a command after the debug flag
-        if len(sys.argv) <= 2 or (len(sys.argv) > 2 and sys.argv[2].startswith('-')):
+        if len(sys.argv) <= 2 or (len(sys.argv) > 2 and (sys.argv[2].startswith('-') and sys.argv[2] not in known_commands)):
             # No command after debug flag, insert commit
             sys.argv.insert(2, 'commit')
-        cli(obj={})
-        return
-        
-    # If it's a global option, don't insert commit
-    if any(first_arg == opt for opt in global_options):
         cli(obj={})
         return
         
