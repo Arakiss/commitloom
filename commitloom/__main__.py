@@ -51,8 +51,8 @@ def cli(ctx, debug: bool, version: bool = False) -> None:
 @click.option(
     "-m", 
     "--model", 
-    type=click.Choice(list(config.model_costs.keys())), 
-    help=f"Specify the AI model to use (default: {config.default_model})"
+    type=str,  # Permitir cualquier string
+    help=f"Specify any OpenAI model to use (default: {config.default_model})"
 )
 @click.pass_context
 def commit(ctx, yes: bool, combine: bool, model: str | None) -> None:
@@ -60,19 +60,17 @@ def commit(ctx, yes: bool, combine: bool, model: str | None) -> None:
     debug = ctx.obj.get("DEBUG", False)
 
     try:
-        # Use test_mode=True when running tests (detected by pytest)
         test_mode = "pytest" in sys.modules
-        # Only pass API key if not in test mode and it exists
         api_key = None if test_mode else os.getenv("OPENAI_API_KEY")
-
-        # Initialize with test_mode
         loom = CommitLoom(test_mode=test_mode, api_key=api_key if api_key else None)
-        
-        # Set custom model if specified
+        # Validación personalizada para modelos OpenAI
         if model:
+            if not model.startswith("gpt-"):
+                console.print_warning(f"Model '{model}' does not appear to be a valid OpenAI model (should start with 'gpt-').")
+            if model not in config.model_costs:
+                console.print_warning(f"Model '{model}' is not in the known cost list. Cost estimation will be unavailable or inaccurate.")
             os.environ["COMMITLOOM_MODEL"] = model
             console.print_info(f"Using model: {model}")
-            
         loom.run(auto_commit=yes, combine_commits=combine, debug=debug)
     except (KeyboardInterrupt, Exception) as e:
         handle_error(e)
@@ -108,7 +106,7 @@ def help() -> None:
   loom commit            Generate commit message for staged changes
   loom commit -y         Skip confirmation prompts
   loom commit -c         Combine all changes into a single commit
-  loom commit -m MODEL   Specify AI model to use
+  loom commit -m MODEL   Specify any OpenAI model to use
   loom stats             Show usage statistics
   loom --version         Display version information
   loom help              Show this help message
@@ -116,6 +114,7 @@ def help() -> None:
 [bold]Available Models:[/bold]
   {', '.join(config.model_costs.keys())}
   Default: {config.default_model}
+  (You can use any OpenAI model name, but cost estimation is only available for the above models.)
 
 [bold]Environment Setup:[/bold]
   1. Set OPENAI_API_KEY in your environment or in a .env file

@@ -2,6 +2,7 @@
 
 import json
 from dataclasses import dataclass
+import os
 
 import requests
 
@@ -29,10 +30,14 @@ class TokenUsage:
         completion_tokens = usage["completion_tokens"]
         total_tokens = usage["total_tokens"]
 
-        # Calculate costs - convert from per million tokens to actual cost
-        # These costs are in EUR per 1M tokens, so we divide by 1M to get cost per token
-        input_cost = (prompt_tokens / 1_000) * config.model_costs[model].input
-        output_cost = (completion_tokens / 1_000) * config.model_costs[model].output
+        # Si el modelo no está en la lista, coste 0 y advertencia
+        if model in config.model_costs:
+            input_cost = (prompt_tokens / 1_000) * config.model_costs[model].input
+            output_cost = (completion_tokens / 1_000) * config.model_costs[model].output
+        else:
+            input_cost = 0.0
+            output_cost = 0.0
+            print(f"[WARNING] Cost estimation is not available for model '{model}'.")
         total_cost = input_cost + output_cost
 
         return cls(
@@ -81,7 +86,8 @@ class AIService:
             raise ValueError("API key is required")
         self.api_key = api_key or config.api_key
         self.test_mode = test_mode
-        self.model_name = config.default_model
+        # Permitir override por variable de entorno
+        self.model_name = os.getenv("COMMITLOOM_MODEL", config.default_model)
 
     @property
     def model(self) -> str:
@@ -200,7 +206,7 @@ class AIService:
         }
 
         data = {
-            "model": config.default_model,
+            "model": self.model_name,
             "messages": [{"role": "user", "content": prompt}],
             "response_format": {"type": "json_object"},
             "max_tokens": 1000,

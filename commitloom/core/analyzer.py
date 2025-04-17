@@ -58,9 +58,12 @@ class CommitAnalyzer:
             Tuple of (estimated_tokens, estimated_cost)
         """
         estimated_tokens = len(text) // config.token_estimation_ratio
-        cost_per_token = config.model_costs[model].input / 1_000_000
+        if model in config.model_costs:
+            cost_per_token = config.model_costs[model].input / 1_000_000
+        else:
+            print(f"[WARNING] Cost estimation is not available for model '{model}'.")
+            cost_per_token = 0.0
         estimated_cost = estimated_tokens * cost_per_token
-
         return estimated_tokens, estimated_cost
 
     @staticmethod

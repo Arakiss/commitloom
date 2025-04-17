@@ -88,7 +88,7 @@ class Config:
         ))
         default_model = os.getenv(
             "COMMITLOOM_MODEL",
-            os.getenv("MODEL_NAME", "gpt-4o-mini")
+            os.getenv("MODEL_NAME", "gpt-4.1-mini")
         )
 
         return cls(
@@ -116,6 +116,20 @@ class Config:
                 "*.min.css",
             ],
             model_costs={
+                # Nuevos modelos recomendados 2025
+                "gpt-4.1": ModelCosts(
+                    input=0.00200,  # $2.00 por 1M tokens
+                    output=0.00800, # $8.00 por 1M tokens
+                ),
+                "gpt-4.1-mini": ModelCosts(
+                    input=0.00040,  # $0.40 por 1M tokens
+                    output=0.00160, # $1.60 por 1M tokens
+                ),
+                "gpt-4.1-nano": ModelCosts(
+                    input=0.00010,  # $0.10 por 1M tokens
+                    output=0.00040, # $0.40 por 1M tokens
+                ),
+                # Modelos legacy
                 "gpt-4o-mini": ModelCosts(
                     input=0.00015,
                     output=0.00060,
