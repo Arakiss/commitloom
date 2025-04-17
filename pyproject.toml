@@ -37,7 +37,7 @@ loom = "commitloom.__main__:main"
 "Bug Tracker" = "https://github.com/Arakiss/commitloom/issues"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.10,<3.12"
 python-dotenv = "^1.0.1"
 rich = "^13.9.4"
 requests = "^2.32.3"
