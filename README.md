@@ -176,18 +176,25 @@ Configuration files are searched in this order:
 
 ### 🤖 Model Configuration
 
-CommitLoom supports various OpenAI models with different cost implications:
+CommitLoom supports any OpenAI model for commit message generation. You can specify any model name (e.g., `gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`, etc.) using the `MODEL_NAME` or `COMMITLOOM_MODEL` environment variable, or with the `-m`/`--model` CLI option.
 
-| Model | Description | Cost per 1M tokens (Input/Output) | Best for |
-|-------|-------------|----------------------------------|----------|
-| gpt-4o-mini | Default, optimized for commits | $0.15/$0.60 | Most use cases |
-| gpt-4o | Latest model, powerful | $2.50/$10.00 | Complex analysis |
-| gpt-4o-2024-05-13 | Previous version | $5.00/$15.00 | Legacy support |
-| gpt-3.5-turbo | Fine-tuned version | $3.00/$6.00 | Training data |
+| Model           | Description                        | Input (per 1M tokens) | Output (per 1M tokens) | Best for                |
+|-----------------|------------------------------------|-----------------------|------------------------|-------------------------|
+| gpt-4.1         | Highest quality, 1M ctx, multimodal| $2.00                 | $8.00                  | Final docs, critical    |
+| gpt-4.1-mini    | Default, best cost/quality         | $0.40                 | $1.60                  | Most use cases          |
+| gpt-4.1-nano    | Fastest, cheapest                  | $0.10                 | $0.40                  | Drafts, previews        |
+| gpt-4o-mini     | Legacy, cost-efficient             | $0.15                 | $0.60                  | Legacy/compatibility    |
+| gpt-4o          | Legacy, powerful                   | $2.50                 | $10.00                 | Legacy/compatibility    |
+| gpt-3.5-turbo   | Legacy, fine-tuned                 | $3.00                 | $6.00                  | Training data           |
+| gpt-4o-2024-05-13| Legacy, previous version           | $5.00                 | $15.00                 | Legacy support          |
 
-You can change the model by setting the `MODEL_NAME` environment variable. The default `gpt-4o-mini` model is recommended as it provides the best balance of cost and quality for commit message generation. It's OpenAI's most cost-efficient small model that's smarter and cheaper than GPT-3.5 Turbo.
+> **Default model:** `gpt-4.1-mini` (best balance for documentation and code)
 
-> Note: Prices are based on OpenAI's official pricing (https://openai.com/api/pricing/). Batch API usage can provide a 50% discount but responses will be returned within 24 hours.
+> **Warning:** If you use a model that is not in the above list, CommitLoom will still work, but cost estimation and token pricing will not be available for that model. You will see a warning in the CLI, and cost will be reported as zero. To add cost support for a new model, update the `model_costs` dictionary in `commitloom/config/settings.py`.
+
+You can change the model by setting the `MODEL_NAME` environment variable. The default `gpt-4.1-mini` model is recommended as it provides the best balance of cost and quality for commit message generation. It's OpenAI's most cost-efficient small model that's smarter and cheaper than GPT-3.5 Turbo.
+
+> Note: Prices are based on OpenAI's official pricing (https://openai.com/pricing/). Batch API usage can provide a 50% discount but responses will be returned within 24 hours.
 
 ## ❓ FAQ
 
