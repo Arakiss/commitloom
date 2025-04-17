@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "commitloom"
-version = "1.5.2"
+version = "1.5.3"
 description = "Weave perfect git commits with AI-powered intelligence"
 authors = ["Petru Arakiss <petruarakiss@gmail.com>"]
 readme = "README.md"
@@ -37,7 +37,7 @@ loom = "commitloom.__main__:main"
 "Bug Tracker" = "https://github.com/Arakiss/commitloom/issues"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.12"
+python = ">=3.10,<3.14"
 python-dotenv = "^1.0.1"
 rich = "^13.9.4"
 requests = "^2.32.3"
