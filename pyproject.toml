@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "commitloom"
-version = "1.3.0"
+version = "1.4.0"
 description = "Weave perfect git commits with AI-powered intelligence"
 authors = ["Petru Arakiss <petruarakiss@gmail.com>"]
 readme = "README.md"
