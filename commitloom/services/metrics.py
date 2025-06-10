@@ -122,6 +122,9 @@ class MetricsManager:
             try:
                 with open(self._metrics_file) as f:
                     metrics_list = json.load(f)
+                if not isinstance(metrics_list, list):
+                    logger.warning("Invalid metrics file format, creating new file")
+                    metrics_list = []
             except (json.JSONDecodeError, FileNotFoundError) as e:
                 logger.warning(f"Failed to load metrics, creating new file: {str(e)}")
                 metrics_list = []
