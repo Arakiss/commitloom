@@ -222,6 +222,17 @@ def confirm_batch_continue() -> bool:
         return False
 
 
+def confirm_branch_creation(branch_name: str) -> bool:
+    """Ask user to confirm creation of a new branch for large commits."""
+    if _auto_confirm:
+        return True
+    try:
+        prompt = f"Create a new branch '{branch_name}' for these large changes?"
+        return Confirm.ask(f"\n{prompt}")
+    except Exception:
+        return False
+
+
 def select_commit_strategy() -> str:
     """Ask user how they want to handle multiple commits."""
     if _auto_confirm:
