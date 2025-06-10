@@ -60,6 +60,7 @@ loom -y  # Non-interactive mode
 - 🤖 **AI-Powered Analysis**: Intelligently analyzes your changes and generates structured, semantic commit messages
 - 🧵 **Smart Batching**: Weaves multiple changes into coherent, logical commits
 - 📊 **Complexity Analysis**: Identifies when commits are getting too large or complex
+- 🌿 **Branch Suggestions**: Offers to create a new branch for very large commits
 - 💰 **Cost Control**: Built-in token and cost estimation to keep API usage efficient
 - 📈 **Usage Metrics**: Track your usage, cost savings, and productivity gains with built-in metrics
 - 🔍 **Binary Support**: Special handling for binary files with size and type detection
@@ -252,6 +253,7 @@ CommitLoom automatically:
 2. Warns about potentially oversized commits
 3. Suggests splitting changes when appropriate
 4. Maintains context across split commits
+5. Optionally creates a new branch when commits are very large
 
 ## 🛠️ Development Status
 
