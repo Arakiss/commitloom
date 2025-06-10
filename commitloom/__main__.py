@@ -9,12 +9,7 @@ from dotenv import load_dotenv
 
 # Load environment variables before any imports
 env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
-print(f"Loading .env from: {os.path.abspath(env_path)}")
 load_dotenv(dotenv_path=env_path)
-
-# Debug: Check if API key is loaded
-api_key = os.getenv("OPENAI_API_KEY")
-print(f"API Key loaded: {'Yes' if api_key else 'No'}")
 
 from . import __version__
 from .cli import console
@@ -32,14 +27,14 @@ def handle_error(error: BaseException) -> None:
 
 @click.group()
 @click.option("-d", "--debug", is_flag=True, help="Enable debug logging")
-@click.option("-v", "--version", is_flag=True, callback=lambda ctx, param, value: 
+@click.option("-v", "--version", is_flag=True, callback=lambda ctx, param, value:
               value and print(f"CommitLoom, version {__version__}") or exit(0) if value else None,
               help="Show the version and exit.")
 @click.pass_context
 def cli(ctx, debug: bool, version: bool = False) -> None:
     """Create structured git commits with AI-generated messages."""
     ctx.ensure_object(dict)
-    
+
     # Check for debug mode in config file or environment variable
     debug_env = os.getenv("DEBUG_MODE", "").lower() in ("true", "1", "yes")
     ctx.obj["DEBUG"] = debug or debug_env
@@ -52,8 +47,8 @@ def cli(ctx, debug: bool, version: bool = False) -> None:
 @click.option("-y", "--yes", is_flag=True, help="Skip all confirmation prompts")
 @click.option("-c", "--combine", is_flag=True, help="Combine all changes into a single commit")
 @click.option(
-    "-m", 
-    "--model", 
+    "-m",
+    "--model",
     type=str,  # Permitir cualquier string
     help=f"Specify any OpenAI model to use (default: {config.default_model})"
 )
@@ -140,32 +135,32 @@ def main() -> None:
     debug_options = ['-d', '--debug']
     # These are options specific to the commit command
     commit_options = ['-y', '--yes', '-c', '--combine', '-m', '--model']
-    
+
     # If no arguments, simply add the default commit command
     if len(sys.argv) == 1:
         sys.argv.insert(1, 'commit')
         cli(obj={})
         return
-    
+
     # Check the first argument
     first_arg = sys.argv[1]
-    
+
     # If it's already a known command, no need to modify
     if first_arg in known_commands:
         cli(obj={})
         return
-    
+
     # If it starts with any commit-specific option, it's intended for the commit command
     if first_arg in commit_options:
         sys.argv.insert(1, 'commit')
         cli(obj={})
         return
-        
+
     # If it's a global option, don't insert commit
     if any(first_arg == opt for opt in global_options):
         cli(obj={})
         return
-        
+
     # If it's a debug option, add 'commit' after it to enable debugging for the commit command
     if first_arg in debug_options:
         # Check if there's a command after the debug flag
@@ -174,12 +169,12 @@ def main() -> None:
             sys.argv.insert(2, 'commit')
         cli(obj={})
         return
-        
-    # For any other non-option argument that's not a known command, 
+
+    # For any other non-option argument that's not a known command,
     # assume it's meant for the commit command
     if not first_arg.startswith('-'):
         sys.argv.insert(1, 'commit')
-    
+
     cli(obj={})
 
 

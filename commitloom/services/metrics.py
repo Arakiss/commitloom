@@ -271,7 +271,7 @@ class MetricsManager:
             try:
                 first = datetime.fromisoformat(stats["first_used_at"])
                 last = datetime.fromisoformat(stats["last_used_at"])
-                
+
                 # Calculate days active (at least 1)
                 days_active = max(1, (last.date() - first.date()).days + 1)
                 stats["days_active"] = days_active
@@ -279,7 +279,7 @@ class MetricsManager:
                 if days_active > 0:
                     # Calculate average commits per day
                     stats["avg_commits_per_day"] = stats["total_commits"] / days_active
-                    
+
                     # Calculate average cost per day (ensure it's not zero)
                     stats["avg_cost_per_day"] = stats["total_cost_in_eur"] / days_active
             except (ValueError, TypeError):
@@ -462,11 +462,11 @@ class MetricsManager:
             parts.append(f"{hours} hour{'s' if hours != 1 else ''}")
         if minutes > 0 or (days == 0 and hours == 0):
             parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
-        
+
         # Always include at least one unit (default to minutes if everything is 0)
         if not parts:
             parts.append("0 minutes")
-            
+
         return " ".join(parts)
 
 
