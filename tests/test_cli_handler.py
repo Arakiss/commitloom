@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from commitloom.cli.cli_handler import CommitLoom
+from commitloom.core.analyzer import CommitAnalysis
 from commitloom.core.git import GitError, GitFile
 from commitloom.services.ai_service import TokenUsage
 
@@ -250,3 +251,35 @@ def test_handle_batch_git_error(cli):
     result = cli._handle_batch(mock_files, 1, 1)
 
     assert result is None
+
+
+def test_maybe_create_branch(cli):
+    """Ensure branch is created when commit is complex."""
+    analysis = CommitAnalysis(
+        estimated_tokens=2000,
+        estimated_cost=0.2,
+        num_files=10,
+        warnings=[],
+        is_complex=True,
+    )
+    cli.git.create_and_checkout_branch = MagicMock()
+    with patch("commitloom.cli.cli_handler.console") as mock_console:
+        mock_console.confirm_branch_creation.return_value = True
+        cli._maybe_create_branch(analysis)
+        cli.git.create_and_checkout_branch.assert_called_once()
+
+
+def test_maybe_create_branch_not_complex(cli):
+    """Ensure no branch is created when commit is simple."""
+    analysis = CommitAnalysis(
+        estimated_tokens=10,
+        estimated_cost=0.0,
+        num_files=1,
+        warnings=[],
+        is_complex=False,
+    )
+    cli.git.create_and_checkout_branch = MagicMock()
+    with patch("commitloom.cli.cli_handler.console") as mock_console:
+        mock_console.confirm_branch_creation.return_value = True
+        cli._maybe_create_branch(analysis)
+        cli.git.create_and_checkout_branch.assert_not_called()

@@ -284,3 +284,18 @@ class GitOperations:
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
             raise GitError(f"Failed to unstage file: {error_msg}")
+
+    @staticmethod
+    def create_and_checkout_branch(branch: str) -> None:
+        """Create and switch to a new branch."""
+        try:
+            result = subprocess.run(
+                ["git", "checkout", "-b", branch],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            GitOperations._handle_git_output(result, f"while creating branch {branch}")
+        except subprocess.CalledProcessError as e:
+            error_msg = e.stderr if e.stderr else str(e)
+            raise GitError(f"Failed to create branch '{branch}': {error_msg}")

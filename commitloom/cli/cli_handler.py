@@ -5,10 +5,11 @@ import logging
 import os
 import subprocess
 import sys
+from datetime import datetime
 
 from dotenv import load_dotenv
 
-from ..core.analyzer import CommitAnalyzer
+from ..core.analyzer import CommitAnalysis, CommitAnalyzer
 from ..core.git import GitError, GitFile, GitOperations
 from ..services.ai_service import AIService
 from ..services.metrics import metrics_manager  # noqa
@@ -53,6 +54,18 @@ class CommitLoom:
         self.combine_commits = False
         self.console = console
 
+    def _maybe_create_branch(self, analysis: CommitAnalysis) -> None:
+        """Offer to create a new branch if the commit is complex."""
+        if not analysis.is_complex:
+            return
+        branch_name = f"loom-large-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        if console.confirm_branch_creation(branch_name):
+            try:
+                self.git.create_and_checkout_branch(branch_name)
+                console.print_info(f"Switched to new branch {branch_name}")
+            except GitError as e:
+                console.print_error(str(e))
+
     def _process_single_commit(self, files: list[GitFile]) -> None:
         """Process files as a single commit."""
         try:
@@ -69,6 +82,8 @@ class CommitLoom:
 
             # Print analysis
             console.print_warnings(analysis)
+            self._maybe_create_branch(analysis)
+            self._maybe_create_branch(analysis)
 
             try:
                 # Generate commit message
@@ -236,12 +251,18 @@ class CommitLoom:
                 console.print_warning("No valid files to process.")
                 return []
 
-            # Create batches from valid files
+            # Group files by top-level directory for smarter batching
+            grouped: dict[str, list[GitFile]] = {}
+            for f in valid_files:
+                parts = f.path.split(os.sep)
+                top_dir = parts[0] if len(parts) > 1 else "root"
+                grouped.setdefault(top_dir, []).append(f)
+
             batches = []
             batch_size = BATCH_THRESHOLD
-            for i in range(0, len(valid_files), batch_size):
-                batch = valid_files[i : i + batch_size]
-                batches.append(batch)
+            for group_files in grouped.values():
+                for i in range(0, len(group_files), batch_size):
+                    batches.append(group_files[i : i + batch_size])
 
             return batches
 
