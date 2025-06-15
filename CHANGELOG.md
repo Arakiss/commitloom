@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.5.5] - 2025-06-15
+
+
+### 🐛 Bug Fixes
+- add debug option to commit command and improve CLI argument parsing
+- update poetry.lock file
+- sync version in __init__.py and improve release script
+
+### 📦 Build System
+- bump version to 1.5.5
+- trigger release workflow for version 1.5.4
+- republish version 1.5.4 to PyPI
+
+### 🔧 Chores
+- cleanup trigger file
+
 ## [1.5.4] - 2025-06-15
 
 
