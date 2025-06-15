@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.5.4] - 2025-06-15
+
+
+### ✨ Features
+- suggest new branch for large commits
+
+### 🐛 Bug Fixes
+- remove debug prints
+
+### 📦 Build System
+- bump version to 1.5.4
+
+### 🔄 Other Changes
+- Merge pull request #3 from Arakiss/codex/identificar-características-a-mejorar-o-agregar
+- Merge pull request #2 from Arakiss/codex/find-more-potential-bugs-to-fix
+- Merge pull request #1 from Arakiss/codex/fix-bug
+- fix metrics file parsing
+- bump version 1.5.3
+
 ## [1.4.0] - 2025-04-17
 
 
