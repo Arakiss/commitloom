@@ -46,6 +46,7 @@ def cli(ctx, debug: bool, version: bool = False) -> None:
 @cli.command(help="Generate an AI-powered commit message and commit your changes")
 @click.option("-y", "--yes", is_flag=True, help="Skip all confirmation prompts")
 @click.option("-c", "--combine", is_flag=True, help="Combine all changes into a single commit")
+@click.option("-d", "--debug", is_flag=True, help="Enable debug logging")
 @click.option(
     "-m",
     "--model",
@@ -53,9 +54,13 @@ def cli(ctx, debug: bool, version: bool = False) -> None:
     help=f"Specify any OpenAI model to use (default: {config.default_model})"
 )
 @click.pass_context
-def commit(ctx, yes: bool, combine: bool, model: str | None) -> None:
+def commit(ctx, yes: bool, combine: bool, debug: bool, model: str | None) -> None:
     """Generate commit message and commit changes."""
-    debug = ctx.obj.get("DEBUG", False)
+    # Use debug from either local flag or global context
+    debug = debug or ctx.obj.get("DEBUG", False)
+    
+    if debug:
+        console.setup_logging(debug=True)
 
     try:
         test_mode = "pytest" in sys.modules
@@ -142,6 +147,9 @@ def main() -> None:
         cli(obj={})
         return
 
+    # Check if we have debug option anywhere in the arguments
+    has_debug = any(arg in debug_options for arg in sys.argv[1:])
+    
     # Check the first argument
     first_arg = sys.argv[1]
 
@@ -150,23 +158,15 @@ def main() -> None:
         cli(obj={})
         return
 
-    # If it starts with any commit-specific option, it's intended for the commit command
-    if first_arg in commit_options:
+    # If it's a global option without debug, don't insert commit
+    if first_arg in global_options and not has_debug:
+        cli(obj={})
+        return
+
+    # If we have debug option anywhere, or commit-specific options, add commit command
+    if has_debug or first_arg in commit_options or any(arg in commit_options for arg in sys.argv[1:]):
+        # Insert 'commit' at the beginning of options
         sys.argv.insert(1, 'commit')
-        cli(obj={})
-        return
-
-    # If it's a global option, don't insert commit
-    if any(first_arg == opt for opt in global_options):
-        cli(obj={})
-        return
-
-    # If it's a debug option, add 'commit' after it to enable debugging for the commit command
-    if first_arg in debug_options:
-        # Check if there's a command after the debug flag
-        if len(sys.argv) <= 2 or (len(sys.argv) > 2 and (sys.argv[2].startswith('-') and sys.argv[2] not in known_commands)):
-            # No command after debug flag, insert commit
-            sys.argv.insert(2, 'commit')
         cli(obj={})
         return
 
