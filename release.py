@@ -166,14 +166,34 @@ def create_github_release(version: str, dry_run: bool = False) -> None:
     else:
         print(f"Would create tag: {tag}")
 
+def update_init_version(new_version: str) -> None:
+    """Update version in __init__.py file."""
+    init_file = Path("commitloom/__init__.py")
+    
+    with open(init_file) as f:
+        content = f.read()
+    
+    # Update the version line
+    updated_content = re.sub(
+        r'__version__ = "[^"]*"',
+        f'__version__ = "{new_version}"',
+        content
+    )
+    
+    with open(init_file, "w") as f:
+        f.write(updated_content)
+
 def create_version_commits(new_version: str) -> None:
     """Create granular commits for version changes."""
-    # 1. Update version in pyproject.toml
-    run_command('git add pyproject.toml')
+    # 1. Update version in __init__.py
+    update_init_version(new_version)
+    
+    # 2. Add both version files and commit
+    run_command('git add pyproject.toml commitloom/__init__.py')
     run_command(f'git commit -m "build: bump version to {new_version}"')
     print("✅ Committed version bump")
 
-    # 2. Update changelog
+    # 3. Update changelog
     update_changelog(new_version)
     run_command('git add CHANGELOG.md')
     run_command(f'git commit -m "docs: update changelog for {new_version}"')
