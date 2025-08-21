@@ -101,11 +101,11 @@ class MetricsManager:
             stats_dict = asdict(self._statistics)
 
             # Fix any potential problematic values
-            if 'repositories' in stats_dict and not isinstance(stats_dict['repositories'], dict):
-                stats_dict['repositories'] = {}
+            if "repositories" in stats_dict and not isinstance(stats_dict["repositories"], dict):
+                stats_dict["repositories"] = {}
 
-            if 'model_usage' in stats_dict and not isinstance(stats_dict['model_usage'], dict):
-                stats_dict['model_usage'] = {}
+            if "model_usage" in stats_dict and not isinstance(stats_dict["model_usage"], dict):
+                stats_dict["model_usage"] = {}
 
             with open(self._stats_file, "w") as f:
                 json.dump(stats_dict, f, indent=2)

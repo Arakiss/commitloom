@@ -94,7 +94,7 @@ def test_get_staged_files_ignores_untracked(mock_run, git_operations):
 
 def test_get_staged_files_with_spaces(git_operations):
     """Test getting staged files with spaces in paths."""
-    mock_output = "M  path with spaces/file.py\n" "A  another path/with spaces.py\n"
+    mock_output = "M  path with spaces/file.py\nA  another path/with spaces.py\n"
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(stdout=mock_output, stderr="", returncode=0)
         files = git_operations.get_staged_files()
@@ -106,9 +106,7 @@ def test_get_staged_files_with_spaces(git_operations):
 
 def test_get_staged_files_with_special_chars(git_operations):
     """Test getting staged files with special characters."""
-    mock_output = (
-        "M  path/with-dashes.py\n" "A  path/with_underscores.py\n" "M  path/with.dots.py\n"
-    )
+    mock_output = "M  path/with-dashes.py\nA  path/with_underscores.py\nM  path/with.dots.py\n"
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(stdout=mock_output, stderr="", returncode=0)
         files = git_operations.get_staged_files()
@@ -121,7 +119,7 @@ def test_get_staged_files_with_special_chars(git_operations):
 
 def test_get_staged_files_with_unicode(git_operations):
     """Test getting staged files with unicode characters."""
-    mock_output = "M  path/with/émoji/🚀.py\n" "A  path/with/áccents/file.py\n"
+    mock_output = "M  path/with/émoji/🚀.py\nA  path/with/áccents/file.py\n"
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(stdout=mock_output, stderr="", returncode=0)
         files = git_operations.get_staged_files()
@@ -145,7 +143,7 @@ def test_get_staged_files_with_warnings(git_operations):
 
 def test_get_staged_files_with_binary_detection(git_operations):
     """Test getting staged files with binary file detection."""
-    mock_output = "M  text.py\n" "M  image.png\n"
+    mock_output = "M  text.py\nM  image.png\n"
 
     def mock_run_side_effect(*args, **kwargs):
         if args[0][0] == "git" and args[0][1] == "status":
@@ -191,9 +189,7 @@ def test_get_staged_files_with_complex_renames(git_operations):
 
 def test_get_staged_files_with_submodules(git_operations):
     """Test getting staged files with submodule changes."""
-    mock_output = (
-        "M  regular_file.py\n" "M  submodule\n"  # Submodule change
-    )
+    mock_output = "M  regular_file.py\nM  submodule\n"  # Submodule change
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(stdout=mock_output, stderr="", returncode=0)
         files = git_operations.get_staged_files()

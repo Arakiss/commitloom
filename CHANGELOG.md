@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.6.0] - 2025-08-21
+
+### ✨ Features
+- **Smart File Grouping**: Intelligent semantic analysis for grouping related files in commits
+  - Detects relationships between test files and their implementations
+  - Identifies component pairs (e.g., .tsx and .css files)
+  - Groups files by change type (feature, fix, test, docs, etc.)
+  - Analyzes file dependencies and imports
+  - CLI option `-s/--smart-grouping` (enabled by default)
+
+### 🚀 Improvements
+- **Migration from Poetry to UV**: Complete build system overhaul
+  - 10-100x faster dependency installation
+  - Simplified configuration using PEP 621 standard
+  - Improved CI/CD pipeline performance
+  - Better cache management
+  - Updated all GitHub Actions workflows
+
+### 📦 Build System
+- Migrated from Poetry to UV package manager
+- Updated pyproject.toml to PEP 621 format
+- Added Dockerfile with UV support
+- Updated CI/CD workflows for UV compatibility
+
+### 📚 Documentation
+- Updated CONTRIBUTING.md with UV instructions
+- Added comprehensive tests for smart grouping feature
+- Improved code coverage to 74%
+
+### 🧪 Tests
+- Added comprehensive test suite for smart grouping
+- All 133 tests passing
+- Code coverage increased from 68% to 74%
+
 ## [1.5.6] - 2025-08-21
 
 ### ✨ Features

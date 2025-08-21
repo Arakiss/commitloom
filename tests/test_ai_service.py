@@ -85,13 +85,9 @@ def test_generate_commit_message_success(ai_service, mock_git_file):
         "usage": {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
     }
 
-    ai_service.session.post = MagicMock(
-        return_value=MagicMock(status_code=200, json=lambda: mock_response)
-    )
+    ai_service.session.post = MagicMock(return_value=MagicMock(status_code=200, json=lambda: mock_response))
 
-    suggestion, usage = ai_service.generate_commit_message(
-        "test diff", [mock_git_file("test.py")]
-    )
+    suggestion, usage = ai_service.generate_commit_message("test diff", [mock_git_file("test.py")])
 
     assert isinstance(suggestion, CommitSuggestion)
     assert suggestion.title == "✨ feat: add new feature"
@@ -101,9 +97,7 @@ def test_generate_commit_message_success(ai_service, mock_git_file):
 def test_generate_commit_message_api_error(ai_service, mock_git_file):
     """Test handling of API errors."""
     ai_service.session.post = MagicMock(
-        return_value=MagicMock(
-            status_code=400, json=lambda: {"error": {"message": "API Error"}}
-        )
+        return_value=MagicMock(status_code=400, json=lambda: {"error": {"message": "API Error"}})
     )
 
     with pytest.raises(ValueError) as exc_info:
@@ -119,9 +113,7 @@ def test_generate_commit_message_invalid_json(ai_service, mock_git_file):
         "usage": {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
     }
 
-    ai_service.session.post = MagicMock(
-        return_value=MagicMock(status_code=200, json=lambda: mock_response)
-    )
+    ai_service.session.post = MagicMock(return_value=MagicMock(status_code=200, json=lambda: mock_response))
 
     with pytest.raises(ValueError) as exc_info:
         ai_service.generate_commit_message("test diff", [mock_git_file("test.py")])
@@ -131,9 +123,7 @@ def test_generate_commit_message_invalid_json(ai_service, mock_git_file):
 
 def test_generate_commit_message_network_error(ai_service, mock_git_file):
     """Test handling of network errors."""
-    ai_service.session.post = MagicMock(
-        side_effect=requests.exceptions.RequestException("Network Error")
-    )
+    ai_service.session.post = MagicMock(side_effect=requests.exceptions.RequestException("Network Error"))
 
     with pytest.raises(ValueError) as exc_info:
         ai_service.generate_commit_message("test diff", [mock_git_file("test.py")])
@@ -171,9 +161,7 @@ def test_generate_commit_message_retries(mock_sleep, ai_service, mock_git_file):
             MagicMock(status_code=200, json=lambda: mock_response),
         ]
     )
-    suggestion, _ = ai_service.generate_commit_message(
-        "diff", [mock_git_file("test.py")]
-    )
+    suggestion, _ = ai_service.generate_commit_message("diff", [mock_git_file("test.py")])
     assert suggestion.title == "✨ feat: retry success"
     assert ai_service.session.post.call_count == 2
 
@@ -202,13 +190,9 @@ def test_ai_service_missing_api_key():
 
 
 @patch("time.sleep", return_value=None)
-def test_generate_commit_message_retries_exhausted(
-    mock_sleep, ai_service, mock_git_file
-):
+def test_generate_commit_message_retries_exhausted(mock_sleep, ai_service, mock_git_file):
     """Should raise error after exhausting all retries."""
-    ai_service.session.post = MagicMock(
-        side_effect=requests.exceptions.RequestException("temp")
-    )
+    ai_service.session.post = MagicMock(side_effect=requests.exceptions.RequestException("temp"))
     with pytest.raises(ValueError) as exc_info:
         ai_service.generate_commit_message("diff", [mock_git_file("test.py")])
     assert "API Request failed" in str(exc_info.value)

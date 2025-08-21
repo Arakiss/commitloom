@@ -23,9 +23,7 @@ class TokenUsage:
     total_cost: float
 
     @classmethod
-    def from_api_usage(
-        cls, usage: dict[str, int], model: str = config.default_model
-    ) -> "TokenUsage":
+    def from_api_usage(cls, usage: dict[str, int], model: str = config.default_model) -> "TokenUsage":
         """Create TokenUsage from API response usage data."""
         prompt_tokens = usage["prompt_tokens"]
         completion_tokens = usage["completion_tokens"]

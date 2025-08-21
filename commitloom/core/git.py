@@ -70,9 +70,7 @@ class GitOperations:
             size = os.path.getsize(path)
 
             # Get file hash
-            result = subprocess.run(
-                ["git", "hash-object", path], capture_output=True, text=True, check=True
-            )
+            result = subprocess.run(["git", "hash-object", path], capture_output=True, text=True, check=True)
             file_hash = result.stdout.strip()
 
             # Check if file is binary using git's internal mechanism
@@ -168,16 +166,12 @@ class GitOperations:
                 # First character is staged status, second is unstaged
                 if status[0] != " " and status[0] != "?":
                     is_binary, size, file_hash = GitOperations._is_binary_file(path_info)
-                    files.append(
-                        GitFile(path=path_info, status=status[0], size=size, hash=file_hash)
-                    )
+                    files.append(GitFile(path=path_info, status=status[0], size=size, hash=file_hash))
                 if status[1] != " " and status[1] != "?":
                     # Only add if not already added with staged status
                     if not any(f.path == path_info for f in files):
                         is_binary, size, file_hash = GitOperations._is_binary_file(path_info)
-                        files.append(
-                            GitFile(path=path_info, status=status[1], size=size, hash=file_hash)
-                        )
+                        files.append(GitFile(path=path_info, status=status[1], size=size, hash=file_hash))
 
             return files
 
@@ -273,9 +267,7 @@ class GitOperations:
     def stash_pop() -> None:
         """Pop most recent stash."""
         try:
-            result = subprocess.run(
-                ["git", "stash", "pop"], capture_output=True, text=True, check=True
-            )
+            result = subprocess.run(["git", "stash", "pop"], capture_output=True, text=True, check=True)
             GitOperations._handle_git_output(result, "during stash pop")
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
