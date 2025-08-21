@@ -83,7 +83,6 @@ class CommitLoom:
             # Print analysis
             console.print_warnings(analysis)
             self._maybe_create_branch(analysis)
-            self._maybe_create_branch(analysis)
 
             try:
                 # Generate commit message
@@ -239,9 +238,7 @@ class CommitLoom:
             invalid_files = []
 
             for file in changed_files:
-                if hasattr(self.git, "should_ignore_file") and self.git.should_ignore_file(
-                    file.path
-                ):
+                if self.git.should_ignore_file(file.path):
                     invalid_files.append(file)
                     console.print_warning(f"Ignoring file: {file.path}")
                 else:
@@ -289,18 +286,16 @@ class CommitLoom:
 
             # Create combined commit message
             title = "📦 chore: combine multiple changes"
-            body = "\n\n".join(
-                [
-                    title,
-                    "\n".join(
-                        f"{data['emoji']} {category}:" for category, data in all_changes.items()
-                    ),
-                    "\n".join(
-                        f"- {change}" for data in all_changes.values() for change in data["changes"]
-                    ),
-                    " ".join(summary_points),
-                ]
-            )
+            body_parts = [
+                "\n".join(
+                    f"{data['emoji']} {category}:" for category, data in all_changes.items()
+                ),
+                "\n".join(
+                    f"- {change}" for data in all_changes.values() for change in data["changes"]
+                ),
+                " ".join(summary_points),
+            ]
+            body = "\n\n".join(part for part in body_parts if part)
 
             # Stage and commit all files
             self.git.stage_files(all_files)

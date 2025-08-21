@@ -83,7 +83,10 @@ def test_handle_commit_success(cli):
 
 def test_handle_commit_complex_changes(cli):
     """Test handling complex changes."""
-    mock_files = [GitFile(f"test{i}.py", "A", old_path=None, size=100, hash="abc123") for i in range(4)]
+    mock_files = [
+        GitFile(f"test{i}.py", "A", old_path=None, size=100, hash="abc123")
+        for i in range(4)
+    ]
     cli.git.get_staged_files = MagicMock(return_value=mock_files)
     cli.git.create_commit = MagicMock(return_value=True)
 
@@ -121,7 +124,9 @@ def test_handle_commit_api_error(cli):
     """Test handling API error."""
     mock_file = GitFile("test.py", "A", old_path=None, size=100, hash="abc123")
     cli.git.get_staged_files = MagicMock(return_value=[mock_file])
-    cli.ai_service.generate_commit_message = MagicMock(side_effect=Exception("API error"))
+    cli.ai_service.generate_commit_message = MagicMock(
+        side_effect=Exception("API error")
+    )
 
     with pytest.raises(SystemExit) as exc:
         cli.run(auto_commit=True)
@@ -136,9 +141,6 @@ def test_create_batches_with_ignored_files(cli):
         GitFile("node_modules/test.js", "A", old_path=None, size=100, hash="def456"),
         GitFile("test2.py", "A", old_path=None, size=100, hash="ghi789"),
     ]
-    cli.git.get_staged_files = MagicMock(return_value=mock_files)
-    cli.git.should_ignore_file = MagicMock(side_effect=lambda path: "node_modules" in path)
-
     batches = cli._create_batches(mock_files)
 
     assert len(batches) == 1
@@ -148,7 +150,9 @@ def test_create_batches_with_ignored_files(cli):
 
 def test_create_batches_git_error(cli):
     """Test batch creation with git error."""
-    cli.git.get_staged_files = MagicMock(side_effect=subprocess.CalledProcessError(1, "git"))
+    cli.git.get_staged_files = MagicMock(
+        side_effect=subprocess.CalledProcessError(1, "git")
+    )
 
     batches = cli._create_batches([])
 
@@ -186,10 +190,11 @@ def test_create_combined_commit_success(cli):
         },
     ]
     cli.git.create_commit = MagicMock(return_value=True)
-
     cli._create_combined_commit(batches)
-
     cli.git.create_commit.assert_called_once()
+    args, _ = cli.git.create_commit.call_args
+    assert args[0] == "📦 chore: combine multiple changes"
+    assert not args[1].startswith("📦 chore: combine multiple changes")
 
 
 def test_create_combined_commit_no_changes(cli):
@@ -224,7 +229,10 @@ def test_debug_mode(cli):
 
 def test_process_files_in_batches_error(cli):
     """Test error handling in batch processing."""
-    mock_files = [GitFile(f"test{i}.py", "A", old_path=None, size=100, hash="abc123") for i in range(4)]
+    mock_files = [
+        GitFile(f"test{i}.py", "A", old_path=None, size=100, hash="abc123")
+        for i in range(4)
+    ]
     cli.git.get_diff = MagicMock(side_effect=GitError("Git error"))
 
     with pytest.raises(SystemExit) as exc:
@@ -283,3 +291,16 @@ def test_maybe_create_branch_not_complex(cli):
         mock_console.confirm_branch_creation.return_value = True
         cli._maybe_create_branch(analysis)
         cli.git.create_and_checkout_branch.assert_not_called()
+
+
+def test_process_single_commit_maybe_create_branch_once(cli, mock_git_file):
+    """_maybe_create_branch should be invoked only once."""
+    cli.auto_commit = True
+    cli._maybe_create_branch = MagicMock()
+    cli.git.create_commit = MagicMock(return_value=True)
+    file = mock_git_file("test.py")
+    with patch(
+        "commitloom.cli.cli_handler.metrics_manager.start_commit_tracking"
+    ), patch("commitloom.cli.cli_handler.metrics_manager.finish_commit_tracking"):
+        cli._process_single_commit([file])
+    cli._maybe_create_branch.assert_called_once()
