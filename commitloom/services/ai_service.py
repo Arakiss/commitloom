@@ -3,6 +3,7 @@
 import json
 from dataclasses import dataclass
 import os
+import time
 
 import requests
 
@@ -88,6 +89,7 @@ class AIService:
         self.test_mode = test_mode
         # Permitir override por variable de entorno
         self.model_name = os.getenv("COMMITLOOM_MODEL", config.default_model)
+        self.session = requests.Session()
 
     @property
     def model(self) -> str:
@@ -106,14 +108,15 @@ class AIService:
     def generate_prompt(self, diff: str, changed_files: list[GitFile]) -> str:
         """Generate the prompt for the AI model."""
         files_summary = ", ".join(f.path for f in changed_files)
+        has_binary = any(f.is_binary for f in changed_files)
+        binary_files = ", ".join(f.path for f in changed_files if f.is_binary)
+        text_files = [f for f in changed_files if not f.is_binary]
 
-        # Check if we're dealing with binary files
-        if diff.startswith("Binary files changed:"):
+        if has_binary and not text_files:
             return (
                 "Generate a structured commit message for the following binary file changes.\n"
                 "You must respond ONLY with a valid JSON object.\n\n"
-                f"Files changed: {files_summary}\n\n"
-                f"{diff}\n\n"
+                f"Files changed: {binary_files}\n\n"
                 "Requirements:\n"
                 "1. Title: Maximum 50 characters, starting with an appropriate "
                 "gitemoji (📝 for data files), followed by the semantic commit "
@@ -128,18 +131,22 @@ class AIService:
                 '      "emoji": "📝",\n'
                 '      "changes": [\n'
                 '        "Updated binary files with new data",\n'
-                '        "Files affected: example.bin"\n'
+                f'        "Files affected: {binary_files}"\n'
                 "      ]\n"
                 "    }\n"
                 "  },\n"
-                '  "summary": "Updated binary files with new data"\n'
+                f'  "summary": "Updated binary files: {binary_files}"\n'
                 "}"
             )
 
-        return (
+        prompt = (
             "Generate a structured commit message for the following git diff.\n"
             "You must respond ONLY with a valid JSON object.\n\n"
             f"Files changed: {files_summary}\n\n"
+        )
+        if binary_files:
+            prompt += f"Binary files: {binary_files}\n\n"
+        prompt += (
             "```\n"
             f"{diff}\n"
             "```\n\n"
@@ -172,6 +179,7 @@ class AIService:
             '  "summary": "Added new feature X with configuration updates"\n'
             "}"
         )
+        return prompt
 
     def generate_commit_message(
         self, diff: str, changed_files: list[GitFile]
@@ -213,36 +221,53 @@ class AIService:
             "temperature": 0.7,
         }
 
-        try:
-            response = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers=headers,
-                json=data,
-                timeout=30,
-            )
-
-            if response.status_code == 400:
-                error_data = response.json()
-                error_message = error_data.get("error", {}).get("message", "Unknown error")
-                raise ValueError(f"API Error: {error_message}")
-
-            response.raise_for_status()
-            response_data = response.json()
-            content = response_data["choices"][0]["message"]["content"]
-            usage = response_data["usage"]
-
+        last_exception: requests.exceptions.RequestException | None = None
+        response: requests.Response | None = None
+        for attempt in range(3):
             try:
-                commit_data = json.loads(content)
-                return CommitSuggestion(**commit_data), TokenUsage.from_api_usage(usage)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Failed to parse AI response: {str(e)}") from e
+                response = self.session.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers=headers,
+                    json=data,
+                    timeout=30,
+                )
+                if response.status_code >= 500:
+                    raise requests.exceptions.RequestException(
+                        f"Server error: {response.status_code}", response=response
+                    )
+                break
+            except requests.exceptions.RequestException as e:
+                last_exception = e
+                if attempt == 2:
+                    break
+                time.sleep(2**attempt)
 
-        except requests.exceptions.RequestException as e:
-            if hasattr(e, "response") and e.response is not None and hasattr(e.response, "text"):
-                error_message = e.response.text
+        if last_exception and (response is None or response.status_code >= 500):
+            if (
+                hasattr(last_exception, "response")
+                and last_exception.response is not None
+                and hasattr(last_exception.response, "text")
+            ):
+                error_message = last_exception.response.text
             else:
-                error_message = str(e)
-            raise ValueError(f"API Request failed: {error_message}") from e
+                error_message = str(last_exception)
+            raise ValueError(f"API Request failed: {error_message}") from last_exception
+
+        if response.status_code == 400:
+            error_data = response.json()
+            error_message = error_data.get("error", {}).get("message", "Unknown error")
+            raise ValueError(f"API Error: {error_message}")
+
+        response.raise_for_status()
+        response_data = response.json()
+        content = response_data["choices"][0]["message"]["content"]
+        usage = response_data["usage"]
+
+        try:
+            commit_data = json.loads(content)
+            return CommitSuggestion(**commit_data), TokenUsage.from_api_usage(usage)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse AI response: {str(e)}") from e
 
     @staticmethod
     def format_commit_message(commit_data: CommitSuggestion) -> str:
