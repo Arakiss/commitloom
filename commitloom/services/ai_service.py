@@ -222,6 +222,7 @@ class AIService:
         }
 
         last_exception: requests.exceptions.RequestException | None = None
+        response: requests.Response | None = None
         for attempt in range(3):
             try:
                 response = self.session.post(
@@ -241,7 +242,7 @@ class AIService:
                     break
                 time.sleep(2**attempt)
 
-        if last_exception and (not 'response' in locals() or response.status_code >= 500):
+        if last_exception and (response is None or response.status_code >= 500):
             if (
                 hasattr(last_exception, "response")
                 and last_exception.response is not None
