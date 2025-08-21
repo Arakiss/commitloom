@@ -30,9 +30,10 @@ def mock_token_usage():
 @pytest.fixture
 def mock_deps():
     """Fixture for mocked dependencies."""
-    with patch("commitloom.core.batch.GitOperations", autospec=True) as mock_git, patch(
-        "commitloom.cli.cli_handler.CommitAnalyzer", autospec=True
-    ) as mock_analyzer:
+    with (
+        patch("commitloom.core.batch.GitOperations", autospec=True) as mock_git,
+        patch("commitloom.cli.cli_handler.CommitAnalyzer", autospec=True) as mock_analyzer,
+    ):
         mock_git_instance = mock_git.return_value
         mock_git_instance.stage_files = MagicMock()
         mock_git_instance.reset_staged_changes = MagicMock()

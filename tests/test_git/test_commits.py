@@ -24,9 +24,7 @@ def test_create_commit_success(mock_run, git_operations):
         MagicMock(returncode=0, stdout="", stderr=""),
     ]
 
-    result = git_operations.create_commit(
-        title="test: add new feature", message="Detailed commit message"
-    )
+    result = git_operations.create_commit(title="test: add new feature", message="Detailed commit message")
 
     assert result is True
     mock_run.assert_any_call(
@@ -55,9 +53,7 @@ def test_create_commit_failure(mock_run, git_operations):
     ]
 
     with pytest.raises(GitError) as exc_info:
-        git_operations.create_commit(
-            title="test: add new feature", message="Detailed commit message"
-        )
+        git_operations.create_commit(title="test: add new feature", message="Detailed commit message")
 
     assert "Failed to create commit" in str(exc_info.value)
 

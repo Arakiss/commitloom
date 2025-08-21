@@ -38,9 +38,7 @@ def test_get_diff_binary_files(mock_run, git_operations, mock_git_file):
         returncode=0,
     )
 
-    diff = git_operations.get_diff(
-        [mock_git_file("image.png", size=1024, hash_="abc123")]
-    )
+    diff = git_operations.get_diff([mock_git_file("image.png", size=1024, hash_="abc123")])
 
     assert "Binary files" in diff
 
@@ -99,6 +97,4 @@ def test_stage_files_with_info(mock_logger, mock_run, git_operations):
     git_operations.stage_files(["file1.py"])
 
     # Verify info was logged
-    mock_logger.info.assert_called_once_with(
-        "Git message while staging %s: %s", "file1.py", "Updating index"
-    )
+    mock_logger.info.assert_called_once_with("Git message while staging %s: %s", "file1.py", "Updating index")

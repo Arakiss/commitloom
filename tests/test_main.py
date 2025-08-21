@@ -39,9 +39,7 @@ class TestCliBasic:
 
             assert result.exit_code == 0
             mock_commit_loom.assert_called_once_with(test_mode=True, api_key=None)
-            mock_loom.run.assert_called_once_with(
-                auto_commit=False, combine_commits=False, debug=False
-            )
+            mock_loom.run.assert_called_once_with(auto_commit=False, combine_commits=False, debug=False)
 
     def test_all_flags(self, runner, mock_loom):
         """Test run with all flags enabled."""

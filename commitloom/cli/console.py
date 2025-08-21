@@ -146,9 +146,7 @@ def print_batch_start(batch_num: int, total_batches: int, files: list[GitFile]) 
 
 def print_batch_complete(batch_num: int, total_batches: int) -> None:
     """Print completion message for a batch."""
-    console.print(
-        f"\n[bold green]✅ Batch {batch_num}/{total_batches} completed successfully[/bold green]"
-    )
+    console.print(f"\n[bold green]✅ Batch {batch_num}/{total_batches} completed successfully[/bold green]")
 
 
 def print_batch_summary(total_files: int, total_batches: int, batch_size: int = 5) -> None:
@@ -239,9 +237,7 @@ def select_commit_strategy() -> str:
         return "individual"
     console.print("\n[bold blue]🤔 How would you like to handle the commits?[/bold blue]")
     try:
-        return Prompt.ask(
-            "Choose strategy", choices=["individual", "combined"], default="individual"
-        )
+        return Prompt.ask("Choose strategy", choices=["individual", "combined"], default="individual")
     except Exception:
         return "individual"
 

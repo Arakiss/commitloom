@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 from ..core.analyzer import CommitAnalysis, CommitAnalyzer
 from ..core.git import GitError, GitFile, GitOperations
+from ..core.smart_grouping import SmartGrouper
 from ..services.ai_service import AIService
 from ..services.metrics import metrics_manager  # noqa
 from . import console
@@ -50,9 +51,11 @@ class CommitLoom:
         self.git = GitOperations()
         self.analyzer = CommitAnalyzer()
         self.ai_service = AIService(api_key=api_key, test_mode=test_mode)
+        self.smart_grouper = SmartGrouper()
         self.auto_commit = False
         self.combine_commits = False
         self.console = console
+        self.use_smart_grouping = True  # Flag to enable/disable smart grouping
 
     def _maybe_create_branch(self, analysis: CommitAnalysis) -> None:
         """Offer to create a new branch if the commit is complex."""
@@ -248,24 +251,57 @@ class CommitLoom:
                 console.print_warning("No valid files to process.")
                 return []
 
-            # Group files by top-level directory for smarter batching
-            grouped: dict[str, list[GitFile]] = {}
-            for f in valid_files:
-                parts = f.path.split(os.sep)
-                top_dir = parts[0] if len(parts) > 1 else "root"
-                grouped.setdefault(top_dir, []).append(f)
-
-            batches = []
-            batch_size = BATCH_THRESHOLD
-            for group_files in grouped.values():
-                for i in range(0, len(group_files), batch_size):
-                    batches.append(group_files[i : i + batch_size])
-
-            return batches
+            # Use smart grouping if enabled
+            if self.use_smart_grouping:
+                return self._create_smart_batches(valid_files)
+            else:
+                # Fallback to basic grouping
+                return self._create_basic_batches(valid_files)
 
         except subprocess.CalledProcessError as e:
             console.print_error(f"Error getting git status: {e}")
             return []
+
+    def _create_basic_batches(self, valid_files: list[GitFile]) -> list[list[GitFile]]:
+        """Create basic batches using the old grouping logic."""
+        # Group files by top-level directory for smarter batching
+        grouped: dict[str, list[GitFile]] = {}
+        for f in valid_files:
+            parts = f.path.split(os.sep)
+            top_dir = parts[0] if len(parts) > 1 else "root"
+            grouped.setdefault(top_dir, []).append(f)
+
+        batches = []
+        batch_size = BATCH_THRESHOLD
+        for group_files in grouped.values():
+            for i in range(0, len(group_files), batch_size):
+                batches.append(group_files[i : i + batch_size])
+
+        return batches
+
+    def _create_smart_batches(self, valid_files: list[GitFile]) -> list[list[GitFile]]:
+        """Create intelligent batches using semantic analysis."""
+        console.print_info("Analyzing file relationships for intelligent grouping...")
+
+        # Use the smart grouper to analyze files
+        file_groups = self.smart_grouper.analyze_files(valid_files)
+
+        if not file_groups:
+            console.print_warning("Smart grouping produced no groups, falling back to basic grouping")
+            return self._create_basic_batches(valid_files)
+
+        # Print group summary for user
+        console.print_info(f"Created {len(file_groups)} intelligent groups:")
+        for i, group in enumerate(file_groups, 1):
+            console.print_info(f"  Group {i}: {group.change_type.value} - {len(group.files)} files")
+            console.print_info(f"    Reason: {group.reason}")
+            console.print_info(f"    Confidence: {group.confidence:.0%}")
+            for file in group.files:
+                console.print_info(f"      - {file.path}")
+
+        # Convert FileGroup objects to lists of GitFile
+        batches = [group.files for group in file_groups]
+        return batches
 
     def _create_combined_commit(self, batches: list[dict]) -> None:
         """Create a combined commit from multiple batches."""
@@ -287,12 +323,8 @@ class CommitLoom:
             # Create combined commit message
             title = "📦 chore: combine multiple changes"
             body_parts = [
-                "\n".join(
-                    f"{data['emoji']} {category}:" for category, data in all_changes.items()
-                ),
-                "\n".join(
-                    f"- {change}" for data in all_changes.values() for change in data["changes"]
-                ),
+                "\n".join(f"{data['emoji']} {category}:" for category, data in all_changes.items()),
+                "\n".join(f"- {change}" for data in all_changes.values() for change in data["changes"]),
                 " ".join(summary_points),
             ]
             body = "\n\n".join(part for part in body_parts if part)
@@ -419,14 +451,12 @@ class CommitLoom:
                 for model, model_data in model_stats.items():
                     console.console.print(f"  • {model}:")
                     console.console.print(f"    - Total tokens: {model_data.get('tokens', 0):,}")
-                    cost = model_data.get('cost', 0.0)
+                    cost = model_data.get("cost", 0.0)
                     console.console.print(f"    - Total cost: €{cost:.4f}")
                     avg_tokens = model_data.get("avg_tokens_per_commit", 0.0)
                     console.console.print(f"    - Avg tokens per commit: {avg_tokens:.1f}")
 
-    def run(
-        self, auto_commit: bool = False, combine_commits: bool = False, debug: bool = False
-    ) -> None:
+    def run(self, auto_commit: bool = False, combine_commits: bool = False, debug: bool = False) -> None:
         """Run the commit process."""
         if debug:
             self.console.setup_logging(debug)

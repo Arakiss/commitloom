@@ -44,4 +44,3 @@ def test_get_statistics(tmp_path, monkeypatch):
 
     stats = metrics_manager.get_statistics()
     assert stats["total_commits"] >= 1
-

@@ -33,8 +33,7 @@ class BatchProcessor:
 
         # Split files into batches
         batches = [
-            files[i : i + self.config.batch_size]
-            for i in range(0, len(files), self.config.batch_size)
+            files[i : i + self.config.batch_size] for i in range(0, len(files), self.config.batch_size)
         ]
 
         # Process each batch

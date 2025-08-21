@@ -27,9 +27,15 @@ def handle_error(error: BaseException) -> None:
 
 @click.group()
 @click.option("-d", "--debug", is_flag=True, help="Enable debug logging")
-@click.option("-v", "--version", is_flag=True, callback=lambda ctx, param, value:
-              value and print(f"CommitLoom, version {__version__}") or exit(0) if value else None,
-              help="Show the version and exit.")
+@click.option(
+    "-v",
+    "--version",
+    is_flag=True,
+    callback=lambda ctx, param, value: value and print(f"CommitLoom, version {__version__}") or exit(0)
+    if value
+    else None,
+    help="Show the version and exit.",
+)
 @click.pass_context
 def cli(ctx, debug: bool, version: bool = False) -> None:
     """Create structured git commits with AI-generated messages."""
@@ -48,17 +54,23 @@ def cli(ctx, debug: bool, version: bool = False) -> None:
 @click.option("-c", "--combine", is_flag=True, help="Combine all changes into a single commit")
 @click.option("-d", "--debug", is_flag=True, help="Enable debug logging")
 @click.option(
+    "-s",
+    "--smart-grouping/--no-smart-grouping",
+    default=True,
+    help="Enable/disable intelligent file grouping (default: enabled)",
+)
+@click.option(
     "-m",
     "--model",
     type=str,  # Permitir cualquier string
-    help=f"Specify any OpenAI model to use (default: {config.default_model})"
+    help=f"Specify any OpenAI model to use (default: {config.default_model})",
 )
 @click.pass_context
-def commit(ctx, yes: bool, combine: bool, debug: bool, model: str | None) -> None:
+def commit(ctx, yes: bool, combine: bool, debug: bool, smart_grouping: bool, model: str | None) -> None:
     """Generate commit message and commit changes."""
     # Use debug from either local flag or global context
     debug = debug or ctx.obj.get("DEBUG", False)
-    
+
     if debug:
         console.setup_logging(debug=True)
 
@@ -66,12 +78,24 @@ def commit(ctx, yes: bool, combine: bool, debug: bool, model: str | None) -> Non
         test_mode = "pytest" in sys.modules
         api_key = None if test_mode else os.getenv("OPENAI_API_KEY")
         loom = CommitLoom(test_mode=test_mode, api_key=api_key if api_key else None)
+
+        # Configure smart grouping
+        loom.use_smart_grouping = smart_grouping
+        if smart_grouping:
+            console.print_info("Smart grouping: ENABLED (analyzing file relationships)")
+        else:
+            console.print_info("Smart grouping: DISABLED (using basic grouping)")
+
         # Validación personalizada para modelos OpenAI
         if model:
             if not model.startswith("gpt-"):
-                console.print_warning(f"Model '{model}' does not appear to be a valid OpenAI model (should start with 'gpt-').")
+                console.print_warning(
+                    f"Model '{model}' does not appear to be a valid OpenAI model (should start with 'gpt-')."
+                )
             if model not in config.model_costs:
-                console.print_warning(f"Model '{model}' is not in the known cost list. Cost estimation will be unavailable or inaccurate.")
+                console.print_warning(
+                    f"Model '{model}' is not in the known cost list. Cost estimation will be unavailable or inaccurate."
+                )
             os.environ["COMMITLOOM_MODEL"] = model
             console.print_info(f"Using model: {model}")
         loom.run(auto_commit=yes, combine_commits=combine, debug=debug)
@@ -105,17 +129,19 @@ def help() -> None:
 [italic]Weave perfect git commits with AI-powered intelligence[/italic]
 
 [bold]Basic Usage:[/bold]
-  loom                   Run the default commit command
-  loom commit            Generate commit message for staged changes
-  loom commit -y         Skip confirmation prompts
-  loom commit -c         Combine all changes into a single commit
-  loom commit -m MODEL   Specify any OpenAI model to use
-  loom stats             Show usage statistics
-  loom --version         Display version information
-  loom help              Show this help message
+  loom                          Run the default commit command
+  loom commit                   Generate commit message for staged changes
+  loom commit -y                Skip confirmation prompts
+  loom commit -c                Combine all changes into a single commit
+  loom commit -s                Enable smart grouping (default)
+  loom commit --no-smart-grouping  Disable smart grouping
+  loom commit -m MODEL          Specify any OpenAI model to use
+  loom stats                    Show usage statistics
+  loom --version                Display version information
+  loom help                     Show this help message
 
 [bold]Available Models:[/bold]
-  {', '.join(config.model_costs.keys())}
+  {", ".join(config.model_costs.keys())}
   Default: {config.default_model}
   (You can use any OpenAI model name, but cost estimation is only available for the above models.)
 
@@ -133,23 +159,33 @@ def help() -> None:
 # For backwards compatibility, default to commit command if no subcommand provided
 def main() -> None:
     """Entry point for the CLI."""
-    known_commands = ['commit', 'stats', 'help']
+    known_commands = ["commit", "stats", "help"]
     # These are options for the main CLI group
-    global_options = ['-v', '--version', '--help']
+    global_options = ["-v", "--version", "--help"]
     # These are debug options that should include commit command
-    debug_options = ['-d', '--debug']
+    debug_options = ["-d", "--debug"]
     # These are options specific to the commit command
-    commit_options = ['-y', '--yes', '-c', '--combine', '-m', '--model']
+    commit_options = [
+        "-y",
+        "--yes",
+        "-c",
+        "--combine",
+        "-m",
+        "--model",
+        "-s",
+        "--smart-grouping",
+        "--no-smart-grouping",
+    ]
 
     # If no arguments, simply add the default commit command
     if len(sys.argv) == 1:
-        sys.argv.insert(1, 'commit')
+        sys.argv.insert(1, "commit")
         cli(obj={})
         return
 
     # Check if we have debug option anywhere in the arguments
     has_debug = any(arg in debug_options for arg in sys.argv[1:])
-    
+
     # Check the first argument
     first_arg = sys.argv[1]
 
@@ -166,14 +202,14 @@ def main() -> None:
     # If we have debug option anywhere, or commit-specific options, add commit command
     if has_debug or first_arg in commit_options or any(arg in commit_options for arg in sys.argv[1:]):
         # Insert 'commit' at the beginning of options
-        sys.argv.insert(1, 'commit')
+        sys.argv.insert(1, "commit")
         cli(obj={})
         return
 
     # For any other non-option argument that's not a known command,
     # assume it's meant for the commit command
-    if not first_arg.startswith('-'):
-        sys.argv.insert(1, 'commit')
+    if not first_arg.startswith("-"):
+        sys.argv.insert(1, "commit")
 
     cli(obj={})
 

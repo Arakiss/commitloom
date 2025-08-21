@@ -17,7 +17,7 @@ def find_env_file() -> Path | None:
     search_paths = [
         Path.cwd() / ".env",
         Path(__file__).parent.parent.parent / ".env",
-        Path.home() / ".commitloom" / ".env"
+        Path.home() / ".commitloom" / ".env",
     ]
 
     for path in search_paths:
@@ -25,20 +25,25 @@ def find_env_file() -> Path | None:
             return path
     return None
 
+
 # Try to load environment variables from the first .env file found
 env_file = find_env_file()
 if env_file:
     load_dotenv(dotenv_path=env_file)
 
+
 @dataclass(frozen=True)
 class ModelCosts:
     """Cost configuration for AI models."""
+
     input: float
     output: float
+
 
 @dataclass(frozen=True)
 class Config:
     """Main configuration settings."""
+
     token_limit: int
     max_files_threshold: int
     cost_warning_threshold: float
@@ -52,10 +57,7 @@ class Config:
     def from_env(cls) -> "Config":
         """Create configuration from environment variables."""
         # Try to get API key from multiple sources
-        api_key = (
-            os.getenv("OPENAI_API_KEY") or
-            os.getenv("COMMITLOOM_API_KEY")
-        )
+        api_key = os.getenv("OPENAI_API_KEY") or os.getenv("COMMITLOOM_API_KEY")
 
         if not api_key:
             config_file = Path.home() / ".commitloom" / "config"
@@ -63,13 +65,13 @@ class Config:
                 with open(config_file) as f:
                     for line in f:
                         line = line.strip()
-                        if line and not line.startswith('#'):
-                            if line.startswith('OPENAI_API_KEY='):
-                                api_key = line.split('=', 1)[1].strip().strip('"\'')
+                        if line and not line.startswith("#"):
+                            if line.startswith("OPENAI_API_KEY="):
+                                api_key = line.split("=", 1)[1].strip().strip("\"'")
                                 os.environ["OPENAI_API_KEY"] = api_key
                                 break
-                            elif line.startswith('COMMITLOOM_API_KEY='):
-                                api_key = line.split('=', 1)[1].strip().strip('"\'')
+                            elif line.startswith("COMMITLOOM_API_KEY="):
+                                api_key = line.split("=", 1)[1].strip().strip("\"'")
                                 os.environ["COMMITLOOM_API_KEY"] = api_key
                                 break
 
@@ -84,22 +86,12 @@ class Config:
                 "5. Store your API key in ~/.commitloom/config"
             )
 
-        token_limit = int(os.getenv(
-            "COMMITLOOM_TOKEN_LIMIT",
-            os.getenv("TOKEN_LIMIT", "120000")
-        ))
-        max_files = int(os.getenv(
-            "COMMITLOOM_MAX_FILES",
-            os.getenv("MAX_FILES_THRESHOLD", "5")
-        ))
-        cost_warning = float(os.getenv(
-            "COMMITLOOM_COST_WARNING",
-            os.getenv("COST_WARNING_THRESHOLD", "0.05")
-        ))
-        default_model = os.getenv(
-            "COMMITLOOM_MODEL",
-            os.getenv("MODEL_NAME", "gpt-4.1-mini")
+        token_limit = int(os.getenv("COMMITLOOM_TOKEN_LIMIT", os.getenv("TOKEN_LIMIT", "120000")))
+        max_files = int(os.getenv("COMMITLOOM_MAX_FILES", os.getenv("MAX_FILES_THRESHOLD", "5")))
+        cost_warning = float(
+            os.getenv("COMMITLOOM_COST_WARNING", os.getenv("COST_WARNING_THRESHOLD", "0.05"))
         )
+        default_model = os.getenv("COMMITLOOM_MODEL", os.getenv("MODEL_NAME", "gpt-4.1-mini"))
 
         return cls(
             token_limit=token_limit,
@@ -129,15 +121,15 @@ class Config:
                 # Nuevos modelos recomendados 2025
                 "gpt-4.1": ModelCosts(
                     input=0.00200,  # $2.00 por 1M tokens
-                    output=0.00800, # $8.00 por 1M tokens
+                    output=0.00800,  # $8.00 por 1M tokens
                 ),
                 "gpt-4.1-mini": ModelCosts(
                     input=0.00040,  # $0.40 por 1M tokens
-                    output=0.00160, # $1.60 por 1M tokens
+                    output=0.00160,  # $1.60 por 1M tokens
                 ),
                 "gpt-4.1-nano": ModelCosts(
                     input=0.00010,  # $0.10 por 1M tokens
-                    output=0.00040, # $0.40 por 1M tokens
+                    output=0.00040,  # $0.40 por 1M tokens
                 ),
                 # Modelos legacy
                 "gpt-4o-mini": ModelCosts(
@@ -159,6 +151,7 @@ class Config:
             },
             api_key=api_key,
         )
+
 
 # Global configuration instance
 config = Config.from_env()

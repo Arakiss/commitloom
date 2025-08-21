@@ -49,19 +49,19 @@ If you have a suggestion for the project, I'd love to hear it! Enhancement sugge
    cd commitloom
    ```
 
-2. Install Poetry (if not already installed):
+2. Install uv (if not already installed):
    ```bash
-   curl -sSL https://install.python-poetry.org | python3 -
+   curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 
 3. Install dependencies:
    ```bash
-   poetry install
+   uv sync --all-extras --dev
    ```
 
-4. Set up pre-commit hooks:
+4. Set up pre-commit hooks (if available):
    ```bash
-   poetry run pre-commit install
+   uv run pre-commit install
    ```
 
 ## Style Guide
@@ -98,8 +98,8 @@ def process_data(input_data: List[str], max_items: Optional[int] = None) -> List
 
 - All new features should include tests
 - Maintain or improve test coverage
-- Run tests with: `poetry run pytest`
-- Check coverage with: `poetry run pytest --cov`
+- Run tests with: `uv run pytest`
+- Check coverage with: `uv run pytest --cov`
 
 ## Documentation
 
