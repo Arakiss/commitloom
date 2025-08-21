@@ -42,17 +42,26 @@ def test_generate_prompt_text_files(ai_service, mock_git_file):
 
 def test_generate_prompt_binary_files(ai_service, mock_git_file):
     """Test prompt generation for binary files."""
-    files = [mock_git_file("image.png", size=1024)]
-    diff = "Binary files changed"
-
-    prompt = ai_service.generate_prompt(diff, files)
-
+    files = [mock_git_file("image.png", size=1024, hash_="abc123")]
+    prompt = ai_service.generate_prompt("", files)
     assert "image.png" in prompt
-    assert "Binary files changed" in prompt
+    assert "binary file changes" in prompt
 
 
-@patch("requests.post")
-def test_generate_commit_message_success(mock_post, ai_service, mock_git_file):
+def test_generate_prompt_mixed_files(ai_service, mock_git_file):
+    """Prompt should mention both binary and text changes."""
+    files = [
+        mock_git_file("image.png", size=1024, hash_="abc123"),
+        mock_git_file("test.py"),
+    ]
+    diff = "diff content"
+    prompt = ai_service.generate_prompt(diff, files)
+    assert "image.png" in prompt
+    assert "test.py" in prompt
+    assert "Binary files" in prompt
+
+
+def test_generate_commit_message_success(ai_service, mock_git_file):
     """Test successful commit message generation."""
     mock_response = {
         "choices": [
@@ -76,7 +85,7 @@ def test_generate_commit_message_success(mock_post, ai_service, mock_git_file):
         "usage": {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
     }
 
-    mock_post.return_value = MagicMock(status_code=200, json=lambda: mock_response)
+    ai_service.session.post = MagicMock(return_value=MagicMock(status_code=200, json=lambda: mock_response))
 
     suggestion, usage = ai_service.generate_commit_message("test diff", [mock_git_file("test.py")])
 
@@ -85,11 +94,10 @@ def test_generate_commit_message_success(mock_post, ai_service, mock_git_file):
     assert usage.total_tokens == 150
 
 
-@patch("requests.post")
-def test_generate_commit_message_api_error(mock_post, ai_service, mock_git_file):
+def test_generate_commit_message_api_error(ai_service, mock_git_file):
     """Test handling of API errors."""
-    mock_post.return_value = MagicMock(
-        status_code=400, json=lambda: {"error": {"message": "API Error"}}
+    ai_service.session.post = MagicMock(
+        return_value=MagicMock(status_code=400, json=lambda: {"error": {"message": "API Error"}})
     )
 
     with pytest.raises(ValueError) as exc_info:
@@ -98,15 +106,14 @@ def test_generate_commit_message_api_error(mock_post, ai_service, mock_git_file)
     assert "API Error" in str(exc_info.value)
 
 
-@patch("requests.post")
-def test_generate_commit_message_invalid_json(mock_post, ai_service, mock_git_file):
+def test_generate_commit_message_invalid_json(ai_service, mock_git_file):
     """Test handling of invalid JSON response."""
     mock_response = {
         "choices": [{"message": {"content": "Invalid JSON"}}],
         "usage": {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
     }
 
-    mock_post.return_value = MagicMock(status_code=200, json=lambda: mock_response)
+    ai_service.session.post = MagicMock(return_value=MagicMock(status_code=200, json=lambda: mock_response))
 
     with pytest.raises(ValueError) as exc_info:
         ai_service.generate_commit_message("test diff", [mock_git_file("test.py")])
@@ -114,15 +121,44 @@ def test_generate_commit_message_invalid_json(mock_post, ai_service, mock_git_fi
     assert "Failed to parse AI response" in str(exc_info.value)
 
 
-@patch("requests.post")
-def test_generate_commit_message_network_error(mock_post, ai_service, mock_git_file):
+def test_generate_commit_message_network_error(ai_service, mock_git_file):
     """Test handling of network errors."""
-    mock_post.side_effect = requests.exceptions.RequestException("Network Error")
+    ai_service.session.post = MagicMock(side_effect=requests.exceptions.RequestException("Network Error"))
 
     with pytest.raises(ValueError) as exc_info:
         ai_service.generate_commit_message("test diff", [mock_git_file("test.py")])
 
     assert "Network Error" in str(exc_info.value)
+
+
+@patch("time.sleep", return_value=None)
+def test_generate_commit_message_retries(mock_sleep, ai_service, mock_git_file):
+    """Temporary failures should be retried."""
+    mock_response = {
+        "choices": [
+            {
+                "message": {
+                    "content": json.dumps(
+                        {
+                            "title": "✨ feat: retry success",
+                            "body": {"Features": {"emoji": "✨", "changes": ["Added new functionality"]}},
+                            "summary": "Added new feature",
+                        }
+                    )
+                }
+            }
+        ],
+        "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+    }
+    ai_service.session.post = MagicMock(
+        side_effect=[
+            requests.exceptions.RequestException("temp"),
+            MagicMock(status_code=200, json=lambda: mock_response),
+        ]
+    )
+    suggestion, _ = ai_service.generate_commit_message("diff", [mock_git_file("test.py")])
+    assert suggestion.title == "✨ feat: retry success"
+    assert ai_service.session.post.call_count == 2
 
 
 def test_format_commit_message():

@@ -175,6 +175,7 @@ def test_analyze_diff_complexity_git_format(analyzer, mock_git_file):
 
 def test_format_cost_for_humans():
     """Test cost formatting."""
+    assert CommitAnalyzer.format_cost_for_humans(0.0001) == "0.01¢"
     assert CommitAnalyzer.format_cost_for_humans(0.001) == "0.10¢"
     assert CommitAnalyzer.format_cost_for_humans(0.01) == "1.00¢"
     assert CommitAnalyzer.format_cost_for_humans(0.1) == "10.00¢"
