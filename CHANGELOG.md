@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.5.6] - 2025-08-21
+
+### ✨ Features
+- polish commit flow and AI service
+
+### 🐛 Bug Fixes
+- explicit response check in API retries
+
+### 🧪 Tests
+- improve coverage for new features
+
 ## [1.5.5] - 2025-06-15
 
 
