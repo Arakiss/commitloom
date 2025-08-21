@@ -419,7 +419,7 @@ class SmartGrouper:
         Returns:
             List of imported modules/files
         """
-        imports = []
+        imports: list[str] = []
 
         # For this implementation, we'll return empty list
         # In a real implementation, we would read the file and extract imports

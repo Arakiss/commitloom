@@ -251,6 +251,9 @@ class AIService:
                 error_message = str(last_exception)
             raise ValueError(f"API Request failed: {error_message}") from last_exception
 
+        if response is None:
+            raise ValueError("No response received from API")
+            
         if response.status_code == 400:
             error_data = response.json()
             error_message = error_data.get("error", {}).get("message", "Unknown error")

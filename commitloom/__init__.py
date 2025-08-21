@@ -5,7 +5,7 @@ from .core.analyzer import CommitAnalysis, CommitAnalyzer, Warning, WarningLevel
 from .core.git import GitError, GitFile, GitOperations
 from .services.ai_service import AIService, CommitSuggestion, TokenUsage
 
-__version__ = "1.6.0"
+__version__ = "1.6.1"
 __author__ = "Petru Arakiss"
 __email__ = "petruarakiss@gmail.com"
 

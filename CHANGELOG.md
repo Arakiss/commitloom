@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.6.1] - 2025-08-21
+
+### 🐛 Bug Fixes
+- **Fixed duplicate logging**: Removed redundant logger calls causing messages to appear 2-3 times
+- **Fixed metrics JSON parsing**: Better handling of corrupted or missing metrics files  
+- **Fixed MyPy type errors**: Added proper type checks for Response objects and type hints
+- **Reduced output verbosity**: Simplified smart grouping output to be more concise
+
+### 🚀 Improvements
+- Cleaner console output without debug noise
+- Silent handling of first-run file creation
+- More concise smart grouping summaries
+- Better error handling for API responses
+
 ## [1.6.0] - 2025-08-21
 
 ### ✨ Features
