@@ -14,6 +14,12 @@ def git_operations():
     return GitOperations()
 
 
+def test_should_ignore_file(git_operations):
+    """Files matching ignored patterns should be skipped."""
+    assert git_operations.should_ignore_file("node_modules/test.js")
+    assert not git_operations.should_ignore_file("src/app.py")
+
+
 @patch("subprocess.run")
 def test_get_staged_files_success(mock_run, git_operations, mock_git_file):
     """Test successful retrieval of staged files."""

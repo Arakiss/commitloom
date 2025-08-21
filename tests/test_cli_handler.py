@@ -136,9 +136,6 @@ def test_create_batches_with_ignored_files(cli):
         GitFile("node_modules/test.js", "A", old_path=None, size=100, hash="def456"),
         GitFile("test2.py", "A", old_path=None, size=100, hash="ghi789"),
     ]
-    cli.git.get_staged_files = MagicMock(return_value=mock_files)
-    cli.git.should_ignore_file = MagicMock(side_effect=lambda path: "node_modules" in path)
-
     batches = cli._create_batches(mock_files)
 
     assert len(batches) == 1
@@ -186,10 +183,11 @@ def test_create_combined_commit_success(cli):
         },
     ]
     cli.git.create_commit = MagicMock(return_value=True)
-
     cli._create_combined_commit(batches)
-
     cli.git.create_commit.assert_called_once()
+    args, _ = cli.git.create_commit.call_args
+    assert args[0] == "📦 chore: combine multiple changes"
+    assert not args[1].startswith("📦 chore: combine multiple changes")
 
 
 def test_create_combined_commit_no_changes(cli):

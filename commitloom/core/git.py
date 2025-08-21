@@ -4,6 +4,9 @@ import logging
 import os
 import subprocess
 from dataclasses import dataclass
+from fnmatch import fnmatch
+
+from ..config.settings import config
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +40,14 @@ class GitFile:
 
 class GitOperations:
     """Basic git operations handler."""
+
+    @staticmethod
+    def should_ignore_file(path: str) -> bool:
+        """Check if a file should be ignored based on configured patterns."""
+        for pattern in config.ignored_patterns:
+            if fnmatch(path, pattern):
+                return True
+        return False
 
     @staticmethod
     def _handle_git_output(result: subprocess.CompletedProcess, context: str = "") -> None:
