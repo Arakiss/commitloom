@@ -83,7 +83,10 @@ def test_handle_commit_success(cli):
 
 def test_handle_commit_complex_changes(cli):
     """Test handling complex changes."""
-    mock_files = [GitFile(f"test{i}.py", "A", old_path=None, size=100, hash="abc123") for i in range(4)]
+    mock_files = [
+        GitFile(f"test{i}.py", "A", old_path=None, size=100, hash="abc123")
+        for i in range(4)
+    ]
     cli.git.get_staged_files = MagicMock(return_value=mock_files)
     cli.git.create_commit = MagicMock(return_value=True)
 
@@ -121,7 +124,9 @@ def test_handle_commit_api_error(cli):
     """Test handling API error."""
     mock_file = GitFile("test.py", "A", old_path=None, size=100, hash="abc123")
     cli.git.get_staged_files = MagicMock(return_value=[mock_file])
-    cli.ai_service.generate_commit_message = MagicMock(side_effect=Exception("API error"))
+    cli.ai_service.generate_commit_message = MagicMock(
+        side_effect=Exception("API error")
+    )
 
     with pytest.raises(SystemExit) as exc:
         cli.run(auto_commit=True)
@@ -145,7 +150,9 @@ def test_create_batches_with_ignored_files(cli):
 
 def test_create_batches_git_error(cli):
     """Test batch creation with git error."""
-    cli.git.get_staged_files = MagicMock(side_effect=subprocess.CalledProcessError(1, "git"))
+    cli.git.get_staged_files = MagicMock(
+        side_effect=subprocess.CalledProcessError(1, "git")
+    )
 
     batches = cli._create_batches([])
 
@@ -222,7 +229,10 @@ def test_debug_mode(cli):
 
 def test_process_files_in_batches_error(cli):
     """Test error handling in batch processing."""
-    mock_files = [GitFile(f"test{i}.py", "A", old_path=None, size=100, hash="abc123") for i in range(4)]
+    mock_files = [
+        GitFile(f"test{i}.py", "A", old_path=None, size=100, hash="abc123")
+        for i in range(4)
+    ]
     cli.git.get_diff = MagicMock(side_effect=GitError("Git error"))
 
     with pytest.raises(SystemExit) as exc:
@@ -281,3 +291,16 @@ def test_maybe_create_branch_not_complex(cli):
         mock_console.confirm_branch_creation.return_value = True
         cli._maybe_create_branch(analysis)
         cli.git.create_and_checkout_branch.assert_not_called()
+
+
+def test_process_single_commit_maybe_create_branch_once(cli, mock_git_file):
+    """_maybe_create_branch should be invoked only once."""
+    cli.auto_commit = True
+    cli._maybe_create_branch = MagicMock()
+    cli.git.create_commit = MagicMock(return_value=True)
+    file = mock_git_file("test.py")
+    with patch(
+        "commitloom.cli.cli_handler.metrics_manager.start_commit_tracking"
+    ), patch("commitloom.cli.cli_handler.metrics_manager.finish_commit_tracking"):
+        cli._process_single_commit([file])
+    cli._maybe_create_branch.assert_called_once()
