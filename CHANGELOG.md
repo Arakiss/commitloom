@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.6] - 2025-08-21
+
+
+### ✨ Features
+- refine commit processing and API reliability
+
+### 📚 Documentation
+- add release process guide
+
+### 📦 Build System
+- bump version to 1.5.6
+- support branch selection in release script
+
 ## [1.5.5] - 2025-06-15
 
 

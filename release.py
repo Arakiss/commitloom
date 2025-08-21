@@ -26,15 +26,19 @@ COMMIT_TYPES = {
     "chore": "🔧 Chores",
 }
 
+
 def run_command(cmd: str) -> str:
     return subprocess.check_output(cmd, shell=True).decode().strip()
+
 
 def get_current_version() -> str:
     return run_command("poetry version -s")
 
+
 def bump_version(version_type: VERSION_TYPES) -> str:
     output = run_command(f"poetry version {version_type}")
     return output.split(" ")[-1]
+
 
 def parse_commit_message(commit: str) -> tuple[str, str]:
     """Parse a commit message into type and description."""
@@ -42,6 +46,7 @@ def parse_commit_message(commit: str) -> tuple[str, str]:
     if match:
         return match.group(1), match.group(2)
     return "other", commit.strip()
+
 
 def categorize_commits(commits: list[str]) -> dict[str, list[str]]:
     """Categorize commits by type."""
@@ -57,6 +62,7 @@ def categorize_commits(commits: list[str]) -> dict[str, list[str]]:
 
     return {k: v for k, v in categorized.items() if v}
 
+
 def get_changelog_entry(version: str) -> str:
     changelog_path = Path("CHANGELOG.md")
     with open(changelog_path) as f:
@@ -68,6 +74,7 @@ def get_changelog_entry(version: str) -> str:
         return ""
 
     return match.group(1).strip()
+
 
 def update_changelog(version: str) -> None:
     changelog_path = Path("CHANGELOG.md")
@@ -107,23 +114,26 @@ def update_changelog(version: str) -> None:
     updated_content = re.sub(
         r"(# Changelog\n\n)",
         f"\\1{new_entry_text}",
-        content
+        content,
     )
 
     with open(changelog_path, "w") as f:
         f.write(updated_content)
 
-def create_github_release(version: str, dry_run: bool = False) -> None:
+
+def create_github_release(version: str, branch: str, dry_run: bool = False, push: bool = True) -> None:
     tag = f"v{version}"
     if not dry_run:
-        # Create and push tag
+        # Create tag
         run_command(f'git tag -a {tag} -m "Release {tag}"')
-        run_command("git push origin main --tags")
-        print(f"✅ Created and pushed tag {tag}")
+        if push:
+            run_command(f"git push origin {branch} --tags")
+            print(f"✅ Created and pushed tag {tag}")
+        else:
+            print(f"🏷️ Created local tag {tag}")
 
-        # Create GitHub Release
         github_token = os.getenv("GITHUB_TOKEN")
-        if github_token:
+        if push and github_token:
             try:
                 # Get repository info from git remote
                 remote_url = run_command("git remote get-url origin")
@@ -136,20 +146,19 @@ def create_github_release(version: str, dry_run: bool = False) -> None:
                     "name": f"Release {tag}",
                     "body": changelog_entry,
                     "draft": False,
-                    "prerelease": False
+                    "prerelease": False,
                 }
 
-                # Create release via GitHub API
                 url = f"https://api.github.com/repos/{repo_path}/releases"
                 headers = {
                     "Authorization": f"token {github_token}",
-                    "Accept": "application/vnd.github.v3+json"
+                    "Accept": "application/vnd.github.v3+json",
                 }
                 request = urllib.request.Request(
                     url,
                     data=json.dumps(release_data).encode(),
                     headers=headers,
-                    method="POST"
+                    method="POST",
                 )
 
                 with urllib.request.urlopen(request) as response:
@@ -157,37 +166,34 @@ def create_github_release(version: str, dry_run: bool = False) -> None:
                         print("✅ Created GitHub Release")
                     else:
                         print(f"⚠️ GitHub Release creation returned status {response.status}")
-
             except Exception as e:
                 print(f"⚠️ Could not create GitHub Release: {str(e)}")
-                print("You may need to set the GITHUB_TOKEN environment variable")
-        else:
+        elif push:
             print("⚠️ GITHUB_TOKEN not found. Skipping GitHub Release creation")
-    else:
-        print(f"Would create tag: {tag}")
+
 
 def update_init_version(new_version: str) -> None:
     """Update version in __init__.py file."""
     init_file = Path("commitloom/__init__.py")
-    
+
     with open(init_file) as f:
         content = f.read()
-    
-    # Update the version line
+
     updated_content = re.sub(
         r'__version__ = "[^"]*"',
         f'__version__ = "{new_version}"',
-        content
+        content,
     )
-    
+
     with open(init_file, "w") as f:
         f.write(updated_content)
+
 
 def create_version_commits(new_version: str) -> None:
     """Create granular commits for version changes."""
     # 1. Update version in __init__.py
     update_init_version(new_version)
-    
+
     # 2. Add both version files and commit
     run_command('git add pyproject.toml commitloom/__init__.py')
     run_command(f'git commit -m "build: bump version to {new_version}"')
@@ -199,25 +205,36 @@ def create_version_commits(new_version: str) -> None:
     run_command(f'git commit -m "docs: update changelog for {new_version}"')
     print("✅ Committed changelog update")
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Release automation script")
     parser.add_argument(
         "version_type",
         choices=["major", "minor", "patch"],
-        help="Type of version bump"
+        help="Type of version bump",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Show what would be done without making changes"
+        help="Show what would be done without making changes",
+    )
+    parser.add_argument(
+        "--branch",
+        default="main",
+        help="Branch to release from (default: main)",
+    )
+    parser.add_argument(
+        "--skip-push",
+        action="store_true",
+        help="Create release commits and tag without pushing to origin",
     )
 
     args = parser.parse_args()
 
-    # Ensure we're on main branch
+    # Ensure we're on expected branch
     current_branch = run_command("git branch --show-current")
-    if current_branch != "main":
-        print("❌ Must be on main branch to release")
+    if current_branch != args.branch:
+        print(f"❌ Must be on {args.branch} branch to release")
         exit(1)
 
     # Ensure working directory is clean
@@ -234,15 +251,25 @@ def main() -> None:
         # Create granular commits
         create_version_commits(new_version)
 
-        # Push changes
-        run_command("git push origin main")
-        print("✅ Pushed changes to main")
+        # Push changes if not skipped
+        if not args.skip_push:
+            run_command(f"git push origin {args.branch}")
+            print(f"✅ Pushed changes to {args.branch}")
 
-        # Create GitHub release
-        create_github_release(new_version)
-        print(f"🎉 Release {new_version} is ready!")
+        # Create GitHub release and tag
+        create_github_release(
+            new_version,
+            branch=args.branch,
+            push=not args.skip_push,
+        )
+        if args.skip_push:
+            print(f"🎉 Release {new_version} created locally")
+        else:
+            print(f"🎉 Release {new_version} is ready!")
     else:
         print("Dry run completed. No changes made.")
 
+
 if __name__ == "__main__":
     main()
+

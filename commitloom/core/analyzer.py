@@ -175,7 +175,7 @@ class CommitAnalyzer:
         elif cost >= 0.01:
             return f"{cost*100:.2f}¢"
         else:
-            return "0.10¢"  # For very small costs, show as 0.10¢
+            return f"{cost*100:.2f}¢"
 
     @staticmethod
     def get_cost_context(total_cost: float) -> str:

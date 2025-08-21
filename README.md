@@ -266,6 +266,15 @@ CommitLoom automatically:
 - ✅ **Documentation**: Comprehensive README and type hints
 - ✅ **Maintenance**: Actively maintained and accepting contributions
 
+## 🔄 Release Process
+
+The project ships via a helper script that bumps versions, updates the changelog and tags releases.
+
+1. Ensure the working tree is clean and you are on the branch you want to release.
+2. Run `python release.py patch` (use `minor` or `major` as needed).
+3. Add `--branch` to target a different branch or `--skip-push` to avoid pushing to origin.
+4. When pushed, `auto-release.yml` creates the GitHub release and `publish.yml` uploads the package to PyPI.
+
 ## 🤝 Contributing
 
 While I maintain this project personally, I welcome contributions! If you'd like to help improve CommitLoom, please:
