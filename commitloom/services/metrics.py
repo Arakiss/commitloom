@@ -86,12 +86,16 @@ class MetricsManager:
                 data = json.load(f)
                 # Ensure valid JSON structure
                 if not isinstance(data, dict):
-                    logger.warning("Invalid statistics file format, creating new file")
+                    logger.debug("Invalid statistics file format, resetting")
                     return UsageStatistics()
                 stats = UsageStatistics(**data)
                 return stats
-        except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
-            logger.warning(f"Failed to load statistics, creating new file: {str(e)}")
+        except FileNotFoundError:
+            # Normal for first run, don't log
+            return UsageStatistics()
+        except (json.JSONDecodeError, KeyError) as e:
+            # Only log for actual corruption
+            logger.debug(f"Statistics file corrupted, resetting: {str(e)}")
             return UsageStatistics()
 
     def _save_statistics(self) -> None:
@@ -123,10 +127,14 @@ class MetricsManager:
                 with open(self._metrics_file) as f:
                     metrics_list = json.load(f)
                 if not isinstance(metrics_list, list):
-                    logger.warning("Invalid metrics file format, creating new file")
+                    logger.debug("Invalid metrics file format, resetting")
                     metrics_list = []
-            except (json.JSONDecodeError, FileNotFoundError) as e:
-                logger.warning(f"Failed to load metrics, creating new file: {str(e)}")
+            except FileNotFoundError:
+                # Normal for first run, don't log
+                metrics_list = []
+            except json.JSONDecodeError as e:
+                # Only log for actual corruption
+                logger.debug(f"Metrics file corrupted, resetting: {str(e)}")
                 metrics_list = []
 
         # Add new metrics and save

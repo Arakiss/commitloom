@@ -41,7 +41,10 @@ def set_auto_confirm(value: bool) -> None:
 def setup_logging(debug: bool = False):
     """Configure logging with optional debug mode."""
     level = logging.DEBUG if debug else logging.INFO
-
+    
+    # Clear existing handlers to avoid duplicates
+    logger.handlers.clear()
+    
     # Configure rich handler
     rich_handler = RichHandler(rich_tracebacks=True, markup=True, show_time=debug, show_path=debug)
     rich_handler.setLevel(level)
@@ -51,7 +54,7 @@ def setup_logging(debug: bool = False):
     logger.addHandler(rich_handler)
 
     if debug:
-        logger.debug("Debug mode enabled")
+        console.print("[dim]Debug mode enabled[/dim]")
 
 
 def print_debug(message: str, exc_info: bool = False) -> None:
@@ -66,25 +69,21 @@ def print_debug(message: str, exc_info: bool = False) -> None:
 
 def print_info(message: str) -> None:
     """Print info message."""
-    logger.info(f"ℹ️ {message}")
     console.print(f"\n[bold blue]ℹ️ {message}[/bold blue]")
 
 
 def print_warning(message: str) -> None:
     """Print warning message."""
-    logger.warning(f"⚠️ {message}")
     console.print(f"\n[bold yellow]⚠️ {message}[/bold yellow]")
 
 
 def print_error(message: str) -> None:
     """Print error message."""
-    logger.error(f"❌ {message}")
     console.print(f"\n[bold red]❌ {message}[/bold red]")
 
 
 def print_success(message: str) -> None:
     """Print success message."""
-    logger.info(f"✅ {message}")
     console.print(f"\n[bold green]✅ {message}[/bold green]")
 
 

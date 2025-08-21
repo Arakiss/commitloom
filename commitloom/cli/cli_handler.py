@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Main CLI handler module for CommitLoom."""
 
-import logging
 import os
 import subprocess
 import sys
@@ -19,14 +18,8 @@ from . import console
 env_path = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
 load_dotenv(dotenv_path=env_path)
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(levelname)s: %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
-
-logger = logging.getLogger(__name__)
+# Logging is configured by console module
+# logger = logging.getLogger(__name__)
 
 # Minimum number of files to activate batch processing
 BATCH_THRESHOLD = 3
@@ -281,8 +274,6 @@ class CommitLoom:
 
     def _create_smart_batches(self, valid_files: list[GitFile]) -> list[list[GitFile]]:
         """Create intelligent batches using semantic analysis."""
-        console.print_info("Analyzing file relationships for intelligent grouping...")
-
         # Use the smart grouper to analyze files
         file_groups = self.smart_grouper.analyze_files(valid_files)
 
@@ -290,14 +281,8 @@ class CommitLoom:
             console.print_warning("Smart grouping produced no groups, falling back to basic grouping")
             return self._create_basic_batches(valid_files)
 
-        # Print group summary for user
-        console.print_info(f"Created {len(file_groups)} intelligent groups:")
-        for i, group in enumerate(file_groups, 1):
-            console.print_info(f"  Group {i}: {group.change_type.value} - {len(group.files)} files")
-            console.print_info(f"    Reason: {group.reason}")
-            console.print_info(f"    Confidence: {group.confidence:.0%}")
-            for file in group.files:
-                console.print_info(f"      - {file.path}")
+        # Print concise group summary
+        console.print_info(f"Smart grouping created {len(file_groups)} groups based on file relationships")
 
         # Convert FileGroup objects to lists of GitFile
         batches = [group.files for group in file_groups]

@@ -81,10 +81,6 @@ def commit(ctx, yes: bool, combine: bool, debug: bool, smart_grouping: bool, mod
 
         # Configure smart grouping
         loom.use_smart_grouping = smart_grouping
-        if smart_grouping:
-            console.print_info("Smart grouping: ENABLED (analyzing file relationships)")
-        else:
-            console.print_info("Smart grouping: DISABLED (using basic grouping)")
 
         # Validación personalizada para modelos OpenAI
         if model:
