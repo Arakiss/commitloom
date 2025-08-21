@@ -1,6 +1,5 @@
 """Tests for commit analyzer module."""
 
-
 import pytest
 
 from commitloom.config.settings import config
@@ -52,7 +51,9 @@ def test_analyze_diff_complexity_token_limit_exceeded(analyzer, mock_git_file):
 def test_analyze_diff_complexity_many_files(analyzer, mock_git_file):
     """Test analysis when many files are changed."""
     diff = "Multiple file changes"
-    files = [mock_git_file(f"file{i}.py") for i in range(config.max_files_threshold + 1)]
+    files = [
+        mock_git_file(f"file{i}.py") for i in range(config.max_files_threshold + 1)
+    ]
 
     analysis = analyzer.analyze_diff_complexity(diff, files)
 
@@ -63,7 +64,9 @@ def test_analyze_diff_complexity_many_files(analyzer, mock_git_file):
 def test_analyze_diff_complexity_expensive_change(analyzer, mock_git_file):
     """Test analysis of an expensive change."""
     # Create a diff that will be expensive (>0.10€)
-    tokens_for_10_cents = int((0.10 * 1_000_000) / config.model_costs[config.default_model].input)
+    tokens_for_10_cents = int(
+        (0.10 * 1_000_000) / config.model_costs[config.default_model].input
+    )
     diff = "diff --git a/expensive.py b/expensive.py\n" + (
         "+" + "x" * tokens_for_10_cents * config.token_estimation_ratio + "\n"
     )
@@ -115,7 +118,9 @@ def test_analyze_diff_complexity_multiple_conditions(analyzer, mock_git_file):
     # 1. Many files
     # 2. Moderate cost
     # 3. One large file
-    files = [mock_git_file(f"file{i}.py") for i in range(config.max_files_threshold + 1)]
+    files = [
+        mock_git_file(f"file{i}.py") for i in range(config.max_files_threshold + 1)
+    ]
     tokens = config.token_limit * 0.8
     diff = "x" * int(tokens * config.token_estimation_ratio)
 
@@ -189,3 +194,26 @@ def test_get_cost_context():
     assert "moderate" in CommitAnalyzer.get_cost_context(0.05)
     assert "expensive" in CommitAnalyzer.get_cost_context(0.1)
     assert "very expensive" in CommitAnalyzer.get_cost_context(1.0)
+
+
+def test_estimate_tokens_and_cost_unknown_model(capsys):
+    """Fallback to zero cost for unknown model."""
+    tokens, cost = CommitAnalyzer.estimate_tokens_and_cost("test", model="unknown")
+    captured = capsys.readouterr()
+    assert "Cost estimation is not available" in captured.out
+    assert tokens >= 0
+    assert cost == 0
+
+
+def test_analyze_diff_complexity_moderate_cost(analyzer, mock_git_file):
+    """Should warn about moderate cost without marking complex."""
+    tokens_for_six_cents = int(
+        (0.06 * 1_000_000) / config.model_costs[config.default_model].input
+    )
+    diff = "diff --git a/mod.py b/mod.py\n" + (
+        "+" + "x" * tokens_for_six_cents * config.token_estimation_ratio + "\n"
+    )
+    files = [mock_git_file("mod.py")]
+    analysis = analyzer.analyze_diff_complexity(diff, files)
+    assert any("moderate" in str(w) for w in analysis.warnings)
+    assert analysis.is_complex
