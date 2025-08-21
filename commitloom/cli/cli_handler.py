@@ -443,8 +443,7 @@ class CommitLoom:
 
     def run(self, auto_commit: bool = False, combine_commits: bool = False, debug: bool = False) -> None:
         """Run the commit process."""
-        if debug:
-            self.console.setup_logging(debug)
+        # Logging is already configured in the main CLI callback
 
         # Set auto-confirm mode based on auto_commit flag
         console.set_auto_confirm(auto_commit)

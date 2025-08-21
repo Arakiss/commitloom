@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.6.2] - 2025-08-21
+
+### 🐛 Bug Fixes
+- **Fixed duplicate debug logging**: Removed redundant `setup_logging()` calls that caused "Debug mode enabled" to appear twice
+- **Cleaner CLI output**: Debug mode message now appears only once when using `-d/--debug` flag
+
+### 🚀 Improvements
+- Streamlined logging initialization process
+- Better separation of concerns in CLI setup
+- Maintained all existing functionality with cleaner output
+
 ## [1.6.1] - 2025-08-21
 
 ### 🐛 Bug Fixes
