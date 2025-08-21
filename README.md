@@ -28,10 +28,16 @@ I built CommitLoom to solve these challenges by:
 
 ## 🚀 Quick Start
 
-1. Install CommitLoom via pip:
+1. Install CommitLoom via pip or UV:
 
 ```bash
+# Using pip
 pip install commitloom
+
+# Using UV (faster alternative)
+uv add commitloom
+# or for global installation
+uvx commitloom
 ```
 
 2. Set up your OpenAI API key:
@@ -58,13 +64,46 @@ loom -y  # Non-interactive mode
 ## ✨ Features
 
 - 🤖 **AI-Powered Analysis**: Intelligently analyzes your changes and generates structured, semantic commit messages
-- 🧵 **Smart Batching**: Weaves multiple changes into coherent, logical commits
+- 🧠 **Smart File Grouping**: Advanced semantic analysis to group related files intelligently based on functionality, relationships, and change types
+- 🧵 **Smart Batching**: Weaves multiple changes into coherent, logical commits using intelligent grouping algorithms
 - 📊 **Complexity Analysis**: Identifies when commits are getting too large or complex
 - 🌿 **Branch Suggestions**: Offers to create a new branch for very large commits
 - 💰 **Cost Control**: Built-in token and cost estimation to keep API usage efficient
 - 📈 **Usage Metrics**: Track your usage, cost savings, and productivity gains with built-in metrics
 - 🔍 **Binary Support**: Special handling for binary files with size and type detection
+- ⚡ **UV Support**: Compatible with UV package manager for faster dependency management
 - 🎨 **Beautiful CLI**: Rich, colorful interface with clear insights and warnings
+
+## 🧠 Smart File Grouping
+
+CommitLoom v1.6.0+ includes advanced semantic analysis for intelligent file grouping. Instead of simple directory-based batching, it now:
+
+### How It Works
+- **Change Type Detection**: Automatically identifies the type of changes (features, fixes, tests, docs, refactoring, etc.)
+- **File Relationship Analysis**: Detects relationships between files:
+  - Test files and their corresponding implementation files
+  - Component files that work together (e.g., component + styles + tests)
+  - Configuration files and their dependent modules
+  - Documentation files and related code
+- **Semantic Grouping**: Groups files based on functionality rather than just directory structure
+- **Confidence Scoring**: Each grouping decision is scored for reliability
+
+### Benefits
+- **Better Commit Organization**: Related changes are grouped together logically
+- **Cleaner History**: More meaningful commit messages that reflect actual feature boundaries
+- **Reduced Context Switching**: Files that belong together are committed together
+- **Intelligent Defaults**: Works automatically but can be disabled with `--no-smart-grouping`
+
+### Example
+```bash
+# Before: Files grouped by directory
+Commit 1: src/components/Button.tsx, src/components/Input.tsx
+Commit 2: tests/Button.test.tsx, tests/Input.test.tsx
+
+# After: Files grouped by functionality  
+Commit 1: src/components/Button.tsx, tests/Button.test.tsx, docs/Button.md
+Commit 2: src/components/Input.tsx, tests/Input.test.tsx, docs/Input.md
+```
 
 ## 📖 Project History
 
@@ -76,6 +115,15 @@ Key improvements over GitMuse:
 - Better structured for distribution and maintenance
 - Enhanced error handling and user experience
 - Improved binary file handling
+
+### Recent Major Updates
+
+**v1.6.0+ (2024)**: Introduced intelligent file grouping and performance improvements:
+- **Smart File Grouping**: Advanced semantic analysis for better commit organization
+- **UV Package Manager Support**: Migrated from Poetry to UV for 10-100x faster dependency management
+- **Enhanced CLI**: New `-s/--smart-grouping` and `--no-smart-grouping` options
+- **Improved Error Handling**: Better JSON parsing and metrics collection
+- **Performance Optimizations**: Reduced logging verbosity and duplicate messages
 
 ## ⚙️ Configuration
 
@@ -102,16 +150,25 @@ cl [command] [options]
 
 - `-y, --yes`: Auto-confirm all prompts (non-interactive mode)
 - `-c, --combine`: Combine all changes into a single commit
+- `-s, --smart-grouping`: Enable intelligent file grouping (default: enabled)
+- `--no-smart-grouping`: Disable smart grouping and use simple batching
 - `-d, --debug`: Enable debug logging
+- `-m, --model`: Specify the AI model to use (e.g., gpt-4.1-mini)
 
 #### Usage Examples
 
 ```bash
-# Basic usage (interactive mode)
+# Basic usage (interactive mode with smart grouping)
 loom
 
 # Non-interactive mode with combined commits
 loom -y -c
+
+# Use smart grouping with specific model
+loom -s -m gpt-4.1
+
+# Disable smart grouping for simple batching
+loom --no-smart-grouping
 
 # View usage statistics
 loom stats
@@ -209,14 +266,14 @@ While local models like Llama are impressive, my experience with GitMuse showed 
 
 ### How much will it cost to use CommitLoom?
 
-With the default gpt-4o-mini model, costs are very low:
-- Input: $0.15 per million tokens
-- Output: $0.60 per million tokens
+With the default gpt-4.1-mini model, costs are very low:
+- Input: $0.40 per million tokens  
+- Output: $1.60 per million tokens
 
 For perspective, a typical commit analysis:
 - Uses ~1,000-2,000 tokens
-- Costs less than $0.002 (0.2 cents)
-- That's about 500 commits for $1
+- Costs less than $0.004 (0.4 cents)
+- That's about 250 commits for $1
 
 This makes it one of the most cost-effective tools in its category, especially when compared to the time saved and quality of commit messages generated.
 
@@ -250,20 +307,34 @@ For detailed documentation on the metrics system, see the [Usage Metrics Documen
 
 CommitLoom automatically:
 1. Analyzes the size and complexity of changes
-2. Warns about potentially oversized commits
-3. Suggests splitting changes when appropriate
-4. Maintains context across split commits
-5. Optionally creates a new branch when commits are very large
+2. Uses smart grouping to organize related files together
+3. Warns about potentially oversized commits
+4. Suggests splitting changes when appropriate
+5. Maintains context across split commits
+6. Optionally creates a new branch when commits are very large
+
+### What is smart grouping and how does it work?
+
+Smart grouping is CommitLoom's advanced semantic analysis feature that intelligently organizes your changed files:
+
+- **Detects relationships**: Groups test files with their implementation files, components with their styles, etc.
+- **Understands change types**: Identifies whether changes are features, fixes, documentation, tests, or refactoring
+- **Semantic analysis**: Goes beyond directory structure to understand what files actually work together
+- **Automatic by default**: Enabled automatically in v1.6.0+, but can be disabled with `--no-smart-grouping`
+
+This results in more logical commits where related files are grouped together, making your git history cleaner and more meaningful.
 
 ## 🛠️ Development Status
 
-- ✅ **CI/CD**: Automated testing, linting, and publishing
+- ✅ **CI/CD**: Automated testing, linting, and publishing with GitHub Actions
+- ✅ **Package Management**: Migrated to UV for faster dependency resolution and builds
 - ✅ **Code Quality**: 
   - Ruff for linting and formatting
   - MyPy for static type checking
-  - 70%+ test coverage
+  - 70%+ test coverage with pytest
+- ✅ **Smart Features**: Advanced semantic analysis and intelligent file grouping
 - ✅ **Distribution**: Available on PyPI and GitHub Releases
-- ✅ **Documentation**: Comprehensive README and type hints
+- ✅ **Documentation**: Comprehensive README with feature examples and type hints
 - ✅ **Maintenance**: Actively maintained and accepting contributions
 
 ## 🤝 Contributing

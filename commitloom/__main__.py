@@ -71,8 +71,7 @@ def commit(ctx, yes: bool, combine: bool, debug: bool, smart_grouping: bool, mod
     # Use debug from either local flag or global context
     debug = debug or ctx.obj.get("DEBUG", False)
 
-    if debug:
-        console.setup_logging(debug=True)
+    # Logging is already configured in the main callback
 
     try:
         test_mode = "pytest" in sys.modules
@@ -109,8 +108,7 @@ def stats(ctx) -> None:
     try:
         # Create a CommitLoom instance and run the stats command
         loom = CommitLoom(test_mode=True)  # Test mode to avoid API key requirement
-        if debug:
-            console.setup_logging(debug=True)
+        # Logging is already configured in the main callback
         loom.stats_command()
     except (KeyboardInterrupt, Exception) as e:
         handle_error(e)
