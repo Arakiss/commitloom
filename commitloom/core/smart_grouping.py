@@ -48,6 +48,8 @@ class FileGroup:
 class SmartGrouper:
     """Intelligent file grouping based on semantic analysis."""
 
+    MAX_FILE_SIZE_FOR_ANALYSIS = 200_000
+
     # Patterns for detecting change types
     CHANGE_TYPE_PATTERNS = {
         ChangeType.TEST: [
@@ -100,6 +102,19 @@ class SmartGrouper:
         ],
     }
 
+    CHANGE_TYPE_PRIORITY = {
+        ChangeType.TEST: 0,
+        ChangeType.FEATURE: 1,
+        ChangeType.FIX: 1,
+        ChangeType.PERF: 1,
+        ChangeType.REFACTOR: 2,
+        ChangeType.DOCS: 3,
+        ChangeType.STYLE: 3,
+        ChangeType.BUILD: 4,
+        ChangeType.CONFIG: 4,
+        ChangeType.CHORE: 5,
+    }
+
     # Import patterns for various languages
     IMPORT_PATTERNS = {
         "python": [
@@ -144,6 +159,8 @@ class SmartGrouper:
         if not files:
             return []
 
+        self.file_contents_cache.clear()
+
         # Step 1: Detect change types for each file
         file_types = self._detect_change_types(files)
 
@@ -161,6 +178,8 @@ class SmartGrouper:
 
         # Step 6: Split large groups if necessary
         final_groups = self._split_large_groups(refined_groups)
+
+        self._enrich_groups_with_dependencies(final_groups, dependencies)
 
         return final_groups
 
@@ -195,7 +214,7 @@ class SmartGrouper:
         # Check against patterns
         for change_type, patterns in self.CHANGE_TYPE_PATTERNS.items():
             for pattern in patterns:
-                if re.search(pattern, file_path, re.IGNORECASE):
+                if self._matches_pattern(pattern, file_path):
                     return change_type
 
         # Check file extension for common source files
@@ -335,7 +354,7 @@ class SmartGrouper:
     def _is_test_file(self, file_path: str) -> bool:
         """Check if a file is a test file."""
         for pattern in self.CHANGE_TYPE_PATTERNS[ChangeType.TEST]:
-            if re.search(pattern, file_path, re.IGNORECASE):
+            if self._matches_pattern(pattern, file_path):
                 return True
         return False
 
@@ -381,19 +400,36 @@ class SmartGrouper:
         dependencies = defaultdict(list)
 
         for file in files:
-            # Determine file language
+            if file.is_binary:
+                continue
+
             ext = Path(file.path).suffix.lower()
             language = self._get_language_from_extension(ext)
 
-            if language and language in self.IMPORT_PATTERNS:
-                imports = self._extract_imports(file.path, language)
-                # Match imports to files in our change set
-                for imp in imports:
-                    for other_file in files:
-                        if self._import_matches_file(imp, other_file.path):
-                            dependencies[file.path].append(other_file.path)
+            if not language or language not in self.IMPORT_PATTERNS:
+                continue
 
-        return dict(dependencies)
+            raw_imports = self._extract_imports(file.path, language)
+
+            if not raw_imports:
+                continue
+
+            normalized_imports = [self._normalize_import_path(imp) for imp in raw_imports]
+
+            matched_dependencies: set[str] = set()
+            for imp in normalized_imports:
+                if not imp:
+                    continue
+                for other_file in files:
+                    if other_file.path == file.path:
+                        continue
+                    if self._import_matches_file(imp, other_file.path):
+                        matched_dependencies.add(other_file.path)
+
+            if matched_dependencies:
+                dependencies[file.path].extend(sorted(matched_dependencies))
+
+        return {path: deps for path, deps in dependencies.items() if deps}
 
     def _get_language_from_extension(self, ext: str) -> str | None:
         """Get programming language from file extension."""
@@ -421,9 +457,20 @@ class SmartGrouper:
         """
         imports: list[str] = []
 
-        # For this implementation, we'll return empty list
-        # In a real implementation, we would read the file and extract imports
-        # This would require reading file contents which we want to avoid for performance
+        try:
+            content = self._get_file_contents(file_path)
+        except OSError:
+            return []
+
+        if not content:
+            return []
+
+        for pattern in self.IMPORT_PATTERNS.get(language, []):
+            for match in re.findall(pattern, content):
+                if isinstance(match, tuple):
+                    imports.extend([m for m in match if m])
+                elif match:
+                    imports.append(match)
 
         return imports
 
@@ -486,54 +533,133 @@ class SmartGrouper:
             Refined list of file groups
         """
         refined_groups = []
+        assigned_paths: set[str] = set()
 
-        for change_type, files in groups_by_type.items():
+        file_lookup = {file.path: file for file_list in groups_by_type.values() for file in file_list}
+
+        original_order = {change_type: index for index, change_type in enumerate(groups_by_type.keys())}
+        sorted_change_types = sorted(
+            groups_by_type.keys(),
+            key=lambda ct: (self._change_type_priority(ct), original_order.get(ct, 0)),
+        )
+
+        for change_type in sorted_change_types:
+            files = groups_by_type.get(change_type, [])
             if not files:
                 continue
 
-            # For test files, try to group with their implementations
+            available_files = [file for file in files if file.path not in assigned_paths]
+
+            if not available_files:
+                continue
+
             if change_type == ChangeType.TEST:
-                test_groups = self._group_tests_with_implementations(files)
+                test_groups = self._group_tests_with_implementations(
+                    available_files, file_lookup, dependencies, assigned_paths
+                )
                 refined_groups.extend(test_groups)
-            # For small groups, keep them together
-            elif len(files) <= 3:
+            elif len(available_files) <= 3:
                 group = FileGroup(
-                    files=files,
+                    files=available_files,
                     change_type=change_type,
                     reason=f"All {change_type.value} changes",
                     confidence=0.8,
                 )
+                assigned_paths.update(file.path for file in available_files)
                 refined_groups.append(group)
-            # For larger groups, split by directory or module
             else:
-                subgroups = self._split_by_module(files, change_type)
+                subgroups = self._split_by_module(available_files, change_type)
+                for subgroup in subgroups:
+                    assigned_paths.update(file.path for file in subgroup.files)
                 refined_groups.extend(subgroups)
 
         return refined_groups
 
-    def _group_tests_with_implementations(self, test_files: list[GitFile]) -> list[FileGroup]:
+    def _group_tests_with_implementations(
+        self,
+        test_files: list[GitFile],
+        file_lookup: dict[str, GitFile],
+        dependencies: dict[str, list[str]],
+        assigned_paths: set[str],
+    ) -> list[FileGroup]:
         """Group test files with their corresponding implementations."""
-        groups = []
+        groups: list[FileGroup] = []
+        test_paths = {file.path for file in test_files}
+
+        implementation_to_tests: dict[str, set[str]] = defaultdict(set)
+        for rel in self.relationships:
+            if rel.relationship_type != "test-implementation":
+                continue
+
+            test_path, impl_path = self._identify_test_and_implementation(rel.file1, rel.file2)
+            if not test_path or not impl_path:
+                continue
+
+            if test_path not in test_paths:
+                continue
+
+            if impl_path not in file_lookup:
+                continue
+
+            implementation_to_tests[impl_path].add(test_path)
+
+        for impl_path, tests in implementation_to_tests.items():
+            if impl_path in assigned_paths:
+                continue
+
+            candidate_tests = [test for test in sorted(tests) if test not in assigned_paths]
+            if not candidate_tests:
+                continue
+
+            group_paths: set[str] = {impl_path}
+            group_paths.update(candidate_tests)
+
+            group_files = [file_lookup[path] for path in sorted(group_paths)]
+            if not group_files:
+                continue
+
+            assigned_paths.update(group_paths)
+
+            reason = "Test with linked implementation" if len(candidate_tests) == 1 else "Test suite with implementation"
+            confidence = 0.9 if len(candidate_tests) == 1 else 0.95
+
+            groups.append(
+                FileGroup(
+                    files=group_files,
+                    change_type=ChangeType.TEST,
+                    reason=reason,
+                    confidence=confidence,
+                )
+            )
 
         for test_file in test_files:
-            # Find related implementation files
-            related_files = [test_file]
+            if test_file.path in assigned_paths:
+                continue
 
-            for rel in self.relationships:
-                if rel.relationship_type == "test-implementation":
-                    if rel.file1 == test_file.path:
-                        # Find the implementation file in our file list
-                        impl_file = next((f for f in test_files if f.path == rel.file2), None)
-                        if impl_file:
-                            related_files.append(impl_file)
+            related_paths: set[str] = {test_file.path}
+            for dependency in dependencies.get(test_file.path, []):
+                if dependency in assigned_paths:
+                    continue
+                if dependency in file_lookup:
+                    related_paths.add(dependency)
 
-            group = FileGroup(
-                files=related_files,
-                change_type=ChangeType.TEST,
-                reason="Test and related implementation",
-                confidence=0.9,
+            group_files = [file_lookup[path] for path in sorted(related_paths) if path in file_lookup]
+            if not group_files:
+                continue
+
+            assigned_paths.update(related_paths)
+
+            reason = "Isolated test change" if len(group_files) == 1 else "Test with supporting files"
+            confidence = 0.7 if len(group_files) == 1 else 0.78
+
+            groups.append(
+                FileGroup(
+                    files=group_files,
+                    change_type=ChangeType.TEST,
+                    reason=reason,
+                    confidence=confidence,
+                )
             )
-            groups.append(group)
 
         return groups
 
@@ -610,3 +736,68 @@ class SmartGrouper:
             f"Files: {file_list}\n"
             f"Dependencies: {', '.join(group.dependencies) if group.dependencies else 'None'}"
         )
+
+    @classmethod
+    def _change_type_priority(cls, change_type: ChangeType) -> int:
+        """Get processing priority for a change type."""
+        return cls.CHANGE_TYPE_PRIORITY.get(change_type, 5)
+
+    def _identify_test_and_implementation(self, path1: str, path2: str) -> tuple[str | None, str | None]:
+        """Identify which path corresponds to the test and which to the implementation."""
+        is_test1 = self._is_test_file(path1)
+        is_test2 = self._is_test_file(path2)
+
+        if is_test1 and not is_test2:
+            return path1, path2
+        if is_test2 and not is_test1:
+            return path2, path1
+
+        return None, None
+
+    def _normalize_import_path(self, import_path: str) -> str:
+        """Normalize import paths for comparison."""
+        normalized = import_path.strip().strip("\"'")
+        normalized = normalized.lstrip("./")
+        return normalized
+
+    def _get_file_contents(self, file_path: str) -> str:
+        """Retrieve file contents with caching and safety checks."""
+        if file_path in self.file_contents_cache:
+            return self.file_contents_cache[file_path]
+
+        path = Path(file_path)
+        try:
+            if not path.exists() or path.is_dir():
+                self.file_contents_cache[file_path] = ""
+                return ""
+
+            if path.stat().st_size > self.MAX_FILE_SIZE_FOR_ANALYSIS:
+                self.file_contents_cache[file_path] = ""
+                return ""
+
+            content = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            content = ""
+
+        self.file_contents_cache[file_path] = content
+        return content
+
+    def _enrich_groups_with_dependencies(
+        self, groups: list[FileGroup], dependencies: dict[str, list[str]]
+    ) -> None:
+        """Populate dependency information for each group."""
+        for group in groups:
+            group_paths = {file.path for file in group.files}
+            dependency_set = {
+                dep
+                for file in group.files
+                for dep in dependencies.get(file.path, [])
+                if dep not in group_paths
+            }
+
+            group.dependencies = sorted(dependency_set)
+
+    def _matches_pattern(self, pattern: str, file_path: str) -> bool:
+        """Match change-type patterns against either full paths or file names."""
+        target = file_path if "/" in pattern else Path(file_path).name
+        return re.search(pattern, target, re.IGNORECASE) is not None

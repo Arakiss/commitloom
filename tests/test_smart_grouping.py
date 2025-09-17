@@ -279,7 +279,13 @@ class TestSmartGrouper:
 
         # Find the test group
         test_groups = [g for g in refined if g.change_type == ChangeType.TEST]
-        assert len(test_groups) > 0
+        assert len(test_groups) == 1
+
+        test_group = test_groups[0]
+        paths = {file.path for file in test_group.files}
+        assert paths == {"src/calculator.py", "tests/test_calculator.py"}
+        assert test_group.reason == "Test with linked implementation"
+        assert test_group.confidence == pytest.approx(0.9)
 
     def test_get_language_from_extension(self, grouper):
         """Test language detection from file extension."""
@@ -302,3 +308,62 @@ class TestSmartGrouper:
         # Non-matching cases
         assert not grouper._import_matches_file("utils", "src/main.py")
         assert not grouper._import_matches_file("models.user", "src/models/post.py")
+
+    def test_detect_dependencies_reads_imports(self, grouper, tmp_path):
+        """Ensure dependency detection parses import statements."""
+        module_dir = tmp_path / "pkg"
+        module_dir.mkdir()
+
+        main_file = module_dir / "main.py"
+        helper_file = module_dir / "helper.py"
+        utils_file = module_dir / "utils.py"
+
+        main_file.write_text("import helper\nfrom .utils import loader\n", encoding="utf-8")
+        helper_file.write_text("VALUE = 1\n", encoding="utf-8")
+        utils_file.write_text("def loader():\n    return True\n", encoding="utf-8")
+
+        files = [
+            GitFile(str(main_file), "M"),
+            GitFile(str(helper_file), "M"),
+            GitFile(str(utils_file), "M"),
+        ]
+
+        dependencies = grouper._detect_dependencies(files)
+
+        assert str(main_file) in dependencies
+        assert str(helper_file) in dependencies[str(main_file)]
+        assert str(utils_file) in dependencies[str(main_file)]
+
+    def test_analyze_files_enriches_dependencies(self, grouper, tmp_path):
+        """Integration test verifying dependency enrichment in final groups."""
+        src_dir = tmp_path / "pkg"
+        tests_dir = tmp_path / "tests"
+        src_dir.mkdir()
+        tests_dir.mkdir()
+
+        impl_path = src_dir / "service.py"
+        helper_path = src_dir / "helper.py"
+        test_path = tests_dir / "test_service.py"
+
+        impl_path.write_text("from pkg import helper\n", encoding="utf-8")
+        helper_path.write_text("VALUE = 1\n", encoding="utf-8")
+        test_path.write_text("from pkg import service\n", encoding="utf-8")
+
+        files = [
+            GitFile(str(impl_path), "M"),
+            GitFile(str(helper_path), "M"),
+            GitFile(str(test_path), "M"),
+        ]
+
+        groups = grouper.analyze_files(files)
+
+        test_groups = [group for group in groups if group.change_type == ChangeType.TEST]
+        assert test_groups, "Expected at least one test-focused group"
+
+        test_group = test_groups[0]
+        paths = {file.path for file in test_group.files}
+
+        assert str(test_path) in paths
+        assert str(impl_path) in paths
+        assert str(helper_path) not in paths
+        assert str(helper_path) in test_group.dependencies

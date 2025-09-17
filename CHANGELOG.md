@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.7.0] - 2025-08-22
+
+### 🐛 Bug Fixes
+- **Resolved missing implementation pairing**: Test groups now pull in their corresponding implementation files instead of duplicating tests in isolation.
+
+### 🚀 Improvements
+- **Smarter dependency detection**: Smart grouping reads import statements with cached file access to uncover relationships between changed files.
+- **Dependency-aware grouping**: File groups now surface downstream dependencies so commit authors understand supporting changes at a glance.
+- **Prioritized test handling**: Ensured test changes are processed before other change types to prevent duplicated files across groups.
+
+### 🧪 Tests
+- Added regression coverage for dependency extraction and dependency-enriched grouping flows.
+
 ## [1.6.2] - 2025-08-21
 
 ### 🐛 Bug Fixes
@@ -471,4 +484,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test suite
 - Full type hints support
 
-[0.1.0]: https://github.com/Arakiss/commitloom/releases/tag/v0.1.0 
+[0.1.0]: https://github.com/Arakiss/commitloom/releases/tag/v0.1.0
