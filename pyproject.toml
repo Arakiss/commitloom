@@ -1,6 +1,6 @@
 [project]
 name = "commitloom"
-version = "1.6.2"
+version = "1.7.0"
 description = "Weave perfect git commits with AI-powered intelligence"
 authors = [
     { name = "Petru Arakiss", email = "petruarakiss@gmail.com" }
