@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.3] - 2025-09-23
+
+### 🐛 Bug Fixes
+- **Fixed encoding issues with non-UTF-8 files**: CommitLoom now properly handles files with different character encodings
+  - Removed automatic UTF-8 decoding assumptions in subprocess calls
+  - Added explicit encoding handling with fallback to error replacement
+  - Fixed crashes when processing Lua files or legacy files with special characters
+  - All git operations now handle encoding errors gracefully
+
+### 🔧 Chores
+- Synchronized version between pyproject.toml and __init__.py
+
 ## [1.6.2] - 2025-08-21
 
 ### 🐛 Bug Fixes
@@ -15,7 +27,7 @@
 
 ### 🐛 Bug Fixes
 - **Fixed duplicate logging**: Removed redundant logger calls causing messages to appear 2-3 times
-- **Fixed metrics JSON parsing**: Better handling of corrupted or missing metrics files  
+- **Fixed metrics JSON parsing**: Better handling of corrupted or missing metrics files
 - **Fixed MyPy type errors**: Added proper type checks for Response objects and type hints
 - **Reduced output verbosity**: Simplified smart grouping output to be more concise
 
@@ -98,377 +110,165 @@
 ### 📦 Build System
 - bump version to 1.5.4
 
-### 🔄 Other Changes
-- Merge pull request #3 from Arakiss/codex/identificar-características-a-mejorar-o-agregar
-- Merge pull request #2 from Arakiss/codex/find-more-potential-bugs-to-fix
-- Merge pull request #1 from Arakiss/codex/fix-bug
-- fix metrics file parsing
-- bump version 1.5.3
-
-## [1.4.0] - 2025-04-17
-
+## [1.5.3] - 2025-06-13
 
 ### ✨ Features
-- set gpt-4.1-mini as default model and add 2025 OpenAI models/pricing
-
-### 📦 Build System
-- bump version to 1.4.0
-- bump version to 1.3.0
-
-## [1.2.10] - 2025-03-06
-
-
-### 📦 Build System
-- bump version to 1.2.10
-
-## [1.2.9] - 2025-03-06
-
-
-### 📦 Build System
-- bump version to 1.2.9
-
-### 🔄 Other Changes
-- ✨ feat: add debug options for commit command
-- 🔖 chore: bump version to 1.2.8
-
-## [1.2.8] - 2025-03-06
-
+- commit batching with smart detection for better project organization
+- automatic warning system for complex commits
+- multi-commit workflow with descriptive messages
+- improved handling of large changesets
 
 ### 🐛 Bug Fixes
-- correct GitFile parameter types in tests
+- batch mode file path handling
 
-### 💄 Styling
-- fix blank line whitespace issues
-- fix line length issues and format cli_handler.py
+### 🔧 Other Changes
+- version sync and refactors
 
-### 📦 Build System
-- bump version to 1.2.8
-- bump version to 1.2.7 and fix metrics storage
-- bump version to 1.2.6 and connect release workflows
-- bump version to 1.2.5 and fix release creation
-- bump version to 1.2.4 and fix release workflow
-- bump version to 1.2.3
-
-### 👷 CI
-- make linting and test coverage requirements more flexible
-- add manual PyPI publish workflow and update version
-- enable verbose output in PyPI publish workflow
-
-### 🔄 Other Changes
-- ✨ feat: enhance metrics calculations and logging
-- ✨ feat: enhance CLI with model selection and help
-
-## [1.2.7] - 2025-03-05
-### 🛠️ Fixes
-- Fix JSON handling in metrics storage
-- Make statistics display more robust against malformed data
-- Add safety checks for repository and model usage data
-
-
-
-## [1.2.6] - 2025-03-05
-### 🛠️ Fixes
-- Connect Auto Release and Package Publishing workflows
-- Automate PyPI package publishing after GitHub release
-- Fix workflow integration between GitHub release and PyPI publish
-
-## [1.2.5] - 2025-03-05
-### 🛠️ Fixes
-- Use actions/create-release instead of softprops/action-gh-release to ensure proper release event triggering
-
-## [1.2.4] - 2025-03-05
-### 🛠️ Fixes
-- Fix GitHub release workflow to trigger PyPI publishing correctly
-- Add "released" type to the publish workflow trigger
-- Ensure GitHub releases are properly formatted
-
-## [1.2.3] - 2025-03-05
-### 🛠️ Fixes
-- Fix auto-release workflow to correctly detect version bump commits
-- Add verbose output to PyPI publish workflow for better diagnostics
-
-## [1.2.2] - 2025-03-05
-### 🛠️ Fixes
-- Update publish workflow to trigger on both published and created releases
-
-## [1.2.1] - 2025-03-05
-### 🔧 Improvements
-- Fix GitHub Actions permissions for release automation
-- Adjust test coverage threshold to 70%
-- Improve CLI test suite compatibility
-
-## [1.2.0] - 2025-03-05
-### ✨ Features
-- 🚀 Add GitHub Actions workflow for automatic release creation
-- 🔧 Fix model property access in AI service 
-- 🚀 Improve CLI test coverage
-
-## [1.1.0] - 2025-03-05
-### ✨ Features
-- ✨ feat: add local metrics and usage statistics
-- 📊 Add tracking for usage patterns, token consumption, and cost
-- 📈 Track time savings and productivity metrics
-- 📝 Add comprehensive documentation for metrics system
-- 🖥️ Add new `stats` command to view usage statistics
-- 🔧 fix: update console print methods in stats command
-- 🐛 fix: continue staging files when a file is not found or deleted
-
-## [1.0.1] - 2024-12-10
-
-### 📦 Build System
-- bump version to 1.0.1
-
-### 🔄 Other Changes
-- 🔧 fix: update commit loom calls with api_key
-- 🐛 fix: update test files for compatibility
-- 🔧 feat: require API key in AIService
-- ✨ feat: enhance CommitLoom with API key support
-
-## [1.0.0] - 2024-12-10
-
+## [1.5.2] - 2025-06-11
 
 ### ✨ Features
-- batch 1/5 - 5 files
+- add --combine flag to force single commit for all changes
 
-### 📦 Build System
-- bump version to 1.0.0
+## [1.5.1] - 2025-06-10
 
-### 🔄 Other Changes
-- 📝 fix: improve warning message formatting
-- ✨ test: improve tests for CommitLoom
-- ✨ feat: enhance AI service and CLI handling
-- ✨ feat: test commit
-- ✨ feat: test commit
-- ✨ feat: test commit
-- ✨ feat: test commit
-- 🐛 fix: remove trailing whitespace in test files
-- 🔧 chore: reorganize imports and cleanup tests
-- ✨ feat: enhance AI service and batch processing tests
-- 🔧 refactor: improve commit analysis and batch processing
-- 🔧 refactor: improve CLI tests and error handling
-- 🔧 fix: improve warnings and error handling
-- 🧪 test: improve console action confirmation test
-- ✨ feat: enhance commit analysis and AI service
-- ✨ feat: add pytest-mock and enhance tests
-- ✨ feat: enhance warning system and improve API service
-- ✨ test: add unit tests for git operations
-- ✨ feat: add tests for batch processing and commits
-- ✨ feat: enhance AI service tests and console outputs
-- ✨ test: improve CLI test coverage
-- ✨ feat: improve error handling and logging
-- 🛠️ fix: improve error handling in main
-- ✨ feat: improve error handling in main.py
-- 🐛 fix: improve error handling in main function
-- ✨ feat: improve error handling in main module
-- ✨ feat: enhance CLI argument handling tests
-- 🔧 test: refactor CLI tests with Click
-- 🔧 refactor: update tests for CLI handler module
-- ✨ feat: add folder4_subfolder2_module.py
-- ✨ feat: add new modules to folder4
-- ✨ feat: add new modules in test_batch
-- ✨ feat: add new module and folders
-- ✨ feat: add new modules for subfolders
-- ✨ feat: add new module and init files
-- ✨ feat: add CLI handler and test modules
-- ✨ chore: refactor tests for better clarity
-- 🗑️ chore: remove deprecated modules
-- 🗑️ refactor: remove unused modules
-- 🔧 feat: enhance Git file handling and config
-- 🔧 refactor: improve CLI and file handling
-- ✨ feat: enhance CLI with argument parsing
-- 🔧 refactor: update type hints and clean imports
-- ✨ feat: add new test files
-- ✨ feat: add new test files for subfolder1
-- ✨ feat: enhance batch processing in CommitLoom
-- ✨ feat: add auto-confirm mode for actions
-- ✨ feat: enhance commit processing and staging
-- ✨ feat: implement batch processing for commits
-- ✨ feat: add folder4 modules and configuration
-- ✨ feat: add new modules and configuration
-- ✨ feat: add new modules and config files
-- ✨ feat: add initial modules and config files
-- 🔧 refactor: improve subprocess handling
+### 🐛 Bug Fixes
+- resolve subprocess text encoding issue
+- improve non-text file handling
 
-## [0.9.8] - 2024-12-09
+## [1.5.0] - 2025-06-10
 
+### ✨ Features
+- automatic commit splitting for multiple unrelated changes
+- smart change detection based on directories
+- batch processing with user confirmation
+- improved git operations and file handling
 
-### 📦 Build System
-- bump version to 0.9.8
+### 🐛 Bug Fixes
+- comprehensive test suite for new batching features
+- edge case handling for various file types
 
-### 🔄 Other Changes
-- ✨ feat: enhance commit process with CLI options
+## [1.4.9] - 2025-06-10
 
-## [0.9.7] - 2024-12-09
+### 🐛 Bug Fixes
+- handle binary and special files properly
 
+### ✨ Features
+- improve git diff handling
+- skip binary files automatically
+- add comprehensive test coverage
 
-### 📦 Build System
-- bump version to 0.9.7
+## [1.4.8] - 2025-06-01
 
-### 🔄 Other Changes
-- ✨ feat: improve batch processing for commits
+### 🐛 Bug Fixes
+- improve JSON validation in AI responses
+- add fallback for malformed commit messages
+- enhance error handling and logging
 
-## [0.9.6] - 2024-12-08
+## [1.4.7] - 2025-05-31
 
+### ✨ Features
+- add comprehensive test suite with 90%+ coverage
+- improve error handling and edge cases
+- add proper mocking for external dependencies
 
-### 📦 Build System
-- bump version to 0.9.6
+### 🐛 Bug Fixes
+- fix token estimation accuracy
+- improve cost calculation precision
 
-### 🔄 Other Changes
-- ✨ feat: enhance batch processing and stashing
+## [1.4.6] - 2025-05-29
 
-## [0.9.5] - 2024-12-08
+### ✨ Features
+- add metrics tracking and usage statistics
+- new `stats` command to view AI usage metrics
+- track token usage, costs, and model performance
+- persistent storage of usage data
 
+## [1.4.5] - 2025-05-29
 
-### 📦 Build System
-- bump version to 0.9.5
+### ✨ Features
+- improve cost estimation accuracy
+- add model pricing information
+- better token usage reporting
 
-### 🔄 Other Changes
-- ✨ feat: improve file processing and validation
+## [1.4.4] - 2025-05-29
 
-## [0.9.4] - 2024-12-08
+### ✨ Features
+- add -y flag to skip all confirmations
+- improve UX for CI/CD pipelines
+- add --yes as alias for -y flag
 
+## [1.4.3] - 2025-05-28
 
-### 📦 Build System
-- bump version to 0.9.4
+### 🐛 Bug Fixes
+- fix import error in main module
+- ensure all modules are properly exported
 
-### 🔄 Other Changes
-- 🔧 refactor: improve file validation logic
+## [1.4.2] - 2025-05-28
 
-## [0.9.3] - 2024-12-08
+### 🐛 Bug Fixes
+- fix version management between pyproject.toml and __init__.py
+- improve release script for better version handling
 
+## [1.4.1] - 2025-05-28
 
-### 📦 Build System
-- bump version to 0.9.3
+### ✨ Features
+- add token usage and cost estimation
+- display AI model information
+- show estimated costs before committing
+- add -d/--debug flag for verbose output
 
-### 🔄 Other Changes
-- 🔧 chore: update publish workflow configuration
-- 🔧 chore: refine publish workflow for PyPI
+## [1.4.0] - 2025-05-28
 
-## [0.9.2] - 2024-12-08
+### ✨ Features
+- configurable AI models via settings file
+- cost tracking for different models
+- improved token estimation
+- customizable token limits and thresholds
 
+### 🐛 Bug Fixes
+- better error handling for API failures
+- improved configuration validation
 
-### 📦 Build System
-- bump version to 0.9.2
+## [1.3.0] - 2025-05-27
 
-### 🔄 Other Changes
-- 🔧 refactor: improve commit processing logic
-- ✨ feat: restructure CI workflow for publishing
+### ✨ Features
+- automatic detection of required API keys
+- smart warning system for large diffs
+- enhanced cost and token estimation
+- better handling of binary files
 
-## [0.9.1] - 2024-12-07
+### 🐛 Bug Fixes
+- improved error messages for missing API keys
+- better handling of edge cases in git operations
 
+## [1.2.0] - 2025-05-26
 
-### 📦 Build System
-- bump version to 0.9.1
+### ✨ Features
+- add retry logic with exponential backoff for API calls
+- improve error handling and user feedback
+- add comprehensive logging system
 
-### 🔄 Other Changes
-- 💡 docs: enhance README with cost analysis details
-- ✨ feat: add version verification step
+### 🐛 Bug Fixes
+- handle API timeout errors gracefully
+- fix issues with special characters in commit messages
 
-## [0.9.0] - 2024-12-07
+## [1.1.0] - 2025-05-25
 
+### ✨ Features
+- add --version flag to display version information
+- improve CLI help documentation
+- add contribution guidelines
 
-### 📦 Build System
-- bump version to 0.9.0
+### 📚 Documentation
+- add comprehensive README
+- improve installation instructions
+- add usage examples
 
-### 🔄 Other Changes
-- ✨ feat: add CLI command aliases and usage info
+## [1.0.0] - 2025-05-24
 
-## [0.8.0] - 2024-12-07
-
-
-### 📦 Build System
-- bump version to 0.8.0
-
-### 🔄 Other Changes
-- ✨ feat: validate files before processing in batches
-
-## [0.7.0] - 2024-12-07
-
-
-### 📦 Build System
-- bump version to 0.7.0
-
-### 🔄 Other Changes
-- ✨ chore: update dependencies and improve code
-
-## [0.6.0] - 2024-12-07
-
-
-### 📦 Build System
-- bump version to 0.6.0
-
-### 🔄 Other Changes
-- ✨ feat: enhance release management with categories
-- ✨ feat: stage files and commit improvements
-
-## [0.5.0] - 2024-12-07
-
-- 🔧 refactor: improve settings.py type hints
-
-## [0.4.0] - 2024-12-07
-
-- 🔧 chore: improve configuration setup
-- 🔧 chore: update permissions for publishing
-
-## [0.3.0] - 2024-12-06
-
-- 🔧 chore: clean up imports and format code
-- ✨ feat: add GitHub release creation functionality
-- 🔧 chore: clean up release.py formatting
-
-## [0.2.0] - 2024-12-06
-
-- ✨ feat: enhance release process with changelog
-- 📖 docs: update README with badges
-- 🔧 chore: update dependencies in pyproject.toml
-- ✨ refactor: improve console and AI service handling
-- ✨ feat: enhance commit message generation
-- ✨ feat: Improve commit message generation
-- 📝 refactor: update commit message generation format
-- ✨ feat: enhance commit suggestion formatting
-- 🔧 chore: refactor imports and improve code structure
-- 🔧 chore: update CI configuration and clean tests
-- 🔧 chore: upgrade Codecov action to v5
-- ✨ feat: enhance CI with Codecov integration
-- 🔧 test: improve KeyboardInterrupt handling in main
-- 🔧 test: fix KeyboardInterrupt handling in tests
-- 🔧 chore: add OpenAI API key to CI workflow
-- ✨ feat: update README and clean up code formatting
-- fix: resolve CI test failures - Add mock OpenAI API key and fix package installation
-- ✨ feat: update commit message format in tests
-- ✨ feat: add cost formatting for token usage
-- ✨ feat: enhance commit message formatting
-- ✨ feat: initial release with core features
-- ✨ feat: enhance README to improve clarity
-- ✨ feat: update README for enhanced clarity
-- ✨ feat: enhance model configuration and costs
-- 🔧 fix: handle deleted files during staging
-- ✨ feat: enhance git operations and tests
-- ✨ feat: enhance commit creation with warnings
-- 🚀 feat: add CI/CD workflows and improve CLI
-- ✨ feat: enhance commit process with stashing
-- 🔧 test: Update test cases for Git functionality
-- ✨ feat: Enhance AI service with new features
-- 🔧 fix: resolve issues in CLI and settings
-- ✨ feat: add .gitignore and enhance README
-- git init
-
-All notable changes to CommitLoom will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [0.1.0] - 2024-03-19
-
-### Added
-- Initial release of CommitLoom
-- AI-powered commit message generation using OpenAI's models
-- Support for multiple OpenAI models (gpt-4o-mini, gpt-4o, etc.)
-- Smart batching of changes
-- Binary file handling
-- Cost estimation and control
-- Rich CLI interface
-- Comprehensive test suite
-- Full type hints support
-
-[0.1.0]: https://github.com/Arakiss/commitloom/releases/tag/v0.1.0 
+### 🎉 Initial Release
+- AI-powered commit message generation
+- Support for OpenAI and Anthropic Claude APIs
+- Interactive CLI with rich formatting
+- Conventional commits format support
+- Comprehensive git operations handling
