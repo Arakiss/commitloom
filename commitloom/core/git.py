@@ -53,10 +53,12 @@ class GitOperations:
     def _handle_git_output(result: subprocess.CompletedProcess, context: str = "") -> None:
         """Handle git command output and log messages."""
         if result.stderr:
-            if result.stderr.startswith("warning:"):
-                logger.warning("Git warning%s: %s", f" {context}" if context else "", result.stderr)
+            # Handle both bytes and string
+            stderr = result.stderr if isinstance(result.stderr, str) else result.stderr.decode('utf-8', errors='replace')
+            if stderr.startswith("warning:"):
+                logger.warning("Git warning%s: %s", f" {context}" if context else "", stderr)
             else:
-                logger.info("Git message%s: %s", f" {context}" if context else "", result.stderr)
+                logger.info("Git message%s: %s", f" {context}" if context else "", stderr)
 
     @staticmethod
     def _is_binary_file(path: str) -> tuple[bool, int | None, str | None]:
@@ -70,18 +72,18 @@ class GitOperations:
             size = os.path.getsize(path)
 
             # Get file hash
-            result = subprocess.run(["git", "hash-object", path], capture_output=True, text=True, check=True)
-            file_hash = result.stdout.strip()
+            result = subprocess.run(["git", "hash-object", path], capture_output=True, check=True)
+            file_hash = result.stdout.decode('utf-8', errors='replace').strip()
 
             # Check if file is binary using git's internal mechanism
             result = subprocess.run(
                 ["git", "diff", "--numstat", "--cached", path],
                 capture_output=True,
-                text=True,
                 check=True,
             )
             # Binary files show up as "-" in numstat output
-            is_binary = "-\t-\t" in result.stdout
+            stdout = result.stdout.decode('utf-8', errors='replace')
+            is_binary = "-\t-\t" in stdout
 
             return is_binary, size if is_binary else None, file_hash if is_binary else None
         except (subprocess.CalledProcessError, OSError):
@@ -91,10 +93,10 @@ class GitOperations:
     def reset_staged_changes() -> None:
         """Reset all staged changes."""
         try:
-            result = subprocess.run(["git", "reset"], capture_output=True, text=True, check=True)
+            result = subprocess.run(["git", "reset"], capture_output=True, check=True)
             GitOperations._handle_git_output(result)
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if e.stderr else str(e)
+            error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
             raise GitError(f"Failed to reset staged changes: {error_msg}")
 
     @staticmethod
@@ -109,20 +111,20 @@ class GitOperations:
                     result = subprocess.run(
                         ["git", "add", "--", file],
                         capture_output=True,
-                        text=True,
                         check=True,
                     )
                     if result.stderr:
-                        if result.stderr.startswith("warning:"):
-                            logger.warning("Git warning while staging %s: %s", file, result.stderr)
+                        stderr = result.stderr.decode('utf-8', errors='replace')
+                        if stderr.startswith("warning:"):
+                            logger.warning("Git warning while staging %s: %s", file, stderr)
                         else:
-                            logger.info("Git message while staging %s: %s", file, result.stderr)
+                            logger.info("Git message while staging %s: %s", file, stderr)
                 except subprocess.CalledProcessError as file_error:
                     # Log the error but continue with other files
-                    error_msg = file_error.stderr or str(file_error)
+                    error_msg = file_error.stderr.decode('utf-8', errors='replace') if file_error.stderr else str(file_error)
                     logger.warning("Failed to stage file %s: %s", file, error_msg)
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if e.stderr else str(e)
+            error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
             raise GitError(f"Failed to stage files: {error_msg}")
 
     @staticmethod
@@ -131,11 +133,17 @@ class GitOperations:
         try:
             # Get status in porcelain format for both staged and unstaged changes
             result = subprocess.run(
-                ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
+                ["git", "status", "--porcelain"], capture_output=True, check=True
             )
 
+            # Decode with error handling for non-UTF-8 filenames
+            try:
+                stdout = result.stdout.decode('utf-8')
+            except UnicodeDecodeError:
+                stdout = result.stdout.decode('utf-8', errors='replace')
+
             files = []
-            for line in result.stdout.splitlines():
+            for line in stdout.splitlines():
                 if not line.strip():
                     continue
 
@@ -176,7 +184,7 @@ class GitOperations:
             return files
 
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if e.stderr else str(e)
+            error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
             raise GitError(f"Failed to get staged files: {error_msg}")
 
     @staticmethod
@@ -184,11 +192,16 @@ class GitOperations:
         """Get git status for a specific file."""
         try:
             result = subprocess.run(
-                ["git", "status", "--porcelain", file], capture_output=True, text=True, check=True
+                ["git", "status", "--porcelain", file], capture_output=True, check=True
             )
-            return result.stdout[:2] if result.stdout else "  "
+            # Decode with error handling
+            try:
+                stdout = result.stdout.decode('utf-8')
+            except UnicodeDecodeError:
+                stdout = result.stdout.decode('utf-8', errors='replace')
+            return stdout[:2] if stdout else "  "
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if e.stderr else str(e)
+            error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
             raise GitError(f"Failed to get file status: {error_msg}")
 
     @staticmethod
@@ -199,7 +212,6 @@ class GitOperations:
             status = subprocess.run(
                 ["git", "diff", "--cached", "--quiet"],
                 capture_output=True,
-                text=True,
             )
 
             if status.returncode == 0:
@@ -212,16 +224,17 @@ class GitOperations:
             if message:
                 cmd.extend(["-m", message])
 
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            result = subprocess.run(cmd, capture_output=True, check=True)
             if result.stderr:
-                if result.stderr.startswith("warning:"):
-                    logger.warning("Git warning during commit: %s", result.stderr)
+                stderr = result.stderr.decode('utf-8', errors='replace')
+                if stderr.startswith("warning:"):
+                    logger.warning("Git warning during commit: %s", stderr)
                 else:
-                    logger.info("Git message during commit: %s", result.stderr)
+                    logger.info("Git message during commit: %s", stderr)
             return True
 
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if e.stderr else str(e)
+            error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
             raise GitError(f"Failed to create commit: {error_msg}")
 
     @staticmethod
@@ -242,11 +255,19 @@ class GitOperations:
                 if valid_paths:
                     cmd.extend(["--"] + valid_paths)
 
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            return result.stdout
+            # Get raw bytes to handle different encodings
+            result = subprocess.run(cmd, capture_output=True, check=True)
+
+            # Try to decode with UTF-8 first, fallback to latin-1 with replacement
+            try:
+                return result.stdout.decode('utf-8')
+            except UnicodeDecodeError:
+                logger.warning("Failed to decode diff as UTF-8, using fallback encoding")
+                # Use latin-1 which accepts any byte sequence, or replace errors
+                return result.stdout.decode('utf-8', errors='replace')
 
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if e.stderr else str(e)
+            error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
             raise GitError(f"Failed to get diff: {error_msg}")
 
     @staticmethod
@@ -257,20 +278,20 @@ class GitOperations:
             if message:
                 cmd.extend(["-m", message])
 
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            result = subprocess.run(cmd, capture_output=True, check=True)
             GitOperations._handle_git_output(result, "during stash save")
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if e.stderr else str(e)
+            error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
             raise GitError(f"Failed to save stash: {error_msg}")
 
     @staticmethod
     def stash_pop() -> None:
         """Pop most recent stash."""
         try:
-            result = subprocess.run(["git", "stash", "pop"], capture_output=True, text=True, check=True)
+            result = subprocess.run(["git", "stash", "pop"], capture_output=True, check=True)
             GitOperations._handle_git_output(result, "during stash pop")
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if e.stderr else str(e)
+            error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
             raise GitError(f"Failed to pop stash: {error_msg}")
 
     @staticmethod
@@ -280,12 +301,11 @@ class GitOperations:
             result = subprocess.run(
                 ["git", "reset", "--", file],
                 capture_output=True,
-                text=True,
                 check=True,
             )
             GitOperations._handle_git_output(result, f"while unstaging {file}")
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if e.stderr else str(e)
+            error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
             raise GitError(f"Failed to unstage file: {error_msg}")
 
     @staticmethod
@@ -295,10 +315,9 @@ class GitOperations:
             result = subprocess.run(
                 ["git", "checkout", "-b", branch],
                 capture_output=True,
-                text=True,
                 check=True,
             )
             GitOperations._handle_git_output(result, f"while creating branch {branch}")
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if e.stderr else str(e)
+            error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
             raise GitError(f"Failed to create branch '{branch}': {error_msg}")
