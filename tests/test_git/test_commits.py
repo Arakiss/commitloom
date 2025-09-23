@@ -21,7 +21,7 @@ def test_create_commit_success(mock_run, git_operations):
         # git diff --cached --quiet
         MagicMock(returncode=1),  # Non-zero means there are staged changes
         # git commit
-        MagicMock(returncode=0, stdout="", stderr=""),
+        MagicMock(returncode=0, stdout=b"", stderr=b""),
     ]
 
     result = git_operations.create_commit(title="test: add new feature", message="Detailed commit message")
@@ -37,7 +37,6 @@ def test_create_commit_success(mock_run, git_operations):
             "Detailed commit message",
         ],
         capture_output=True,
-        text=True,
         check=True,
     )
 
@@ -66,7 +65,7 @@ def test_create_commit_with_warning(mock_logger, mock_run, git_operations):
         # git diff --cached --quiet
         MagicMock(returncode=1),  # Non-zero means there are staged changes
         # git commit
-        MagicMock(returncode=0, stderr="warning: CRLF will be replaced by LF", stdout=""),
+        MagicMock(returncode=0, stderr=b"warning: CRLF will be replaced by LF", stdout=b""),
     ]
 
     result = git_operations.create_commit(title="test", message="message")

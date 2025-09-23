@@ -19,8 +19,8 @@ def test_get_diff_text_files(mock_run, git_operations, mock_git_file):
     """Test getting diff for text files."""
     mock_diff = "diff --git a/file1.py b/file1.py\n+new line"
     mock_run.return_value = MagicMock(
-        stdout=mock_diff,
-        stderr="",
+        stdout=mock_diff.encode('utf-8'),
+        stderr=b"",
         returncode=0,
     )
 
@@ -33,8 +33,8 @@ def test_get_diff_text_files(mock_run, git_operations, mock_git_file):
 def test_get_diff_binary_files(mock_run, git_operations, mock_git_file):
     """Test getting diff for binary files."""
     mock_run.return_value = MagicMock(
-        stdout="Binary files a/image.png and b/image.png differ",
-        stderr="",
+        stdout=b"Binary files a/image.png and b/image.png differ",
+        stderr=b"",
         returncode=0,
     )
 
@@ -50,7 +50,7 @@ def test_reset_staged_changes_success(mock_run, git_operations):
 
     git_operations.reset_staged_changes()
 
-    mock_run.assert_called_with(["git", "reset"], capture_output=True, text=True, check=True)
+    mock_run.assert_called_with(["git", "reset"], capture_output=True, check=True)
 
 
 @patch("subprocess.run")
@@ -70,8 +70,8 @@ def test_stage_files_with_warning(mock_logger, mock_run, git_operations):
     """Test handling of git warnings during staging."""
     mock_run.return_value = MagicMock(
         returncode=0,
-        stderr="warning: LF will be replaced by CRLF in file1.py",
-        stdout="",
+        stderr=b"warning: LF will be replaced by CRLF in file1.py",
+        stdout=b"",
     )
 
     git_operations.stage_files(["file1.py"])
@@ -90,8 +90,8 @@ def test_stage_files_with_info(mock_logger, mock_run, git_operations):
     """Test handling of git info messages during staging."""
     mock_run.return_value = MagicMock(
         returncode=0,
-        stderr="Updating index",
-        stdout="",
+        stderr=b"Updating index",
+        stdout=b"",
     )
 
     git_operations.stage_files(["file1.py"])
