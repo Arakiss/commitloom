@@ -109,7 +109,7 @@ class CommitLoom:
             # Create commit
             commit_success = self.git.create_commit(suggestion.title, suggestion.format_body())
             if commit_success:
-                console.print_success("Changes committed successfully!")
+                console.print_success("Changes committed successfully!", show_quote=True)
 
                 # Record metrics
                 metrics_manager.finish_commit_tracking(
@@ -321,7 +321,7 @@ class CommitLoom:
                 self.git.reset_staged_changes()
                 sys.exit(0)
 
-            console.print_success("Combined commit created successfully!")
+            console.print_success("Combined commit created successfully!", show_quote=True)
 
         except GitError as e:
             console.print_error(f"Git error: {str(e)}")

@@ -107,7 +107,7 @@ class TestBasicOperations:
             loom.run()
 
             loom.git.create_commit.assert_called_once()
-            mock_console.print_success.assert_called_once_with("Changes committed successfully!")
+            mock_console.print_success.assert_called_once_with("Changes committed successfully!", show_quote=True)
 
 
 class TestErrorHandling:

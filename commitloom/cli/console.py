@@ -1,6 +1,7 @@
 """Console output formatting and user interaction."""
 
 import logging
+import random
 from unittest.mock import MagicMock
 
 from rich.console import Console
@@ -30,6 +31,17 @@ from ..services.ai_service import TokenUsage
 console = Console()
 logger = logging.getLogger("commitloom")
 _auto_confirm = False  # Global flag for auto-confirmation
+
+# Original inspirational messages about code transparency and truth
+COMMIT_QUOTES = [
+    "Every commit reveals the truth of your changes.",
+    "Transparency in code, clarity in commits.",
+    "Your changes are now part of history.",
+    "The truth is in the commit - documented and traceable.",
+    "Clean commits illuminate the path forward.",
+    "Honest commits, better codebases.",
+    "What you commit today shapes tomorrow's code.",
+]
 
 
 def set_auto_confirm(value: bool) -> None:
@@ -82,9 +94,12 @@ def print_error(message: str) -> None:
     console.print(f"\n[bold red]❌ {message}[/bold red]")
 
 
-def print_success(message: str) -> None:
-    """Print success message."""
+def print_success(message: str, show_quote: bool = False) -> None:
+    """Print success message with optional inspirational quote."""
     console.print(f"\n[bold green]✅ {message}[/bold green]")
+    if show_quote:
+        quote = random.choice(COMMIT_QUOTES)
+        console.print(f"[dim italic]   {quote}[/dim italic]")
 
 
 def create_progress() -> Progress:

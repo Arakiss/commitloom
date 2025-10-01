@@ -2,20 +2,25 @@
 
 ## [1.6.4] - 2025-10-01
 
-
 ### ✨ Features
 - add enhanced release script for UV-based workflow
+- **New ASCII art logo** - Beautiful LOOM banner for `--version` and help commands
+- **Inspirational commit messages** - Original quotes about code transparency after successful commits
+- improved CLI visual experience with better styling and colors
 
 ### 🐛 Bug Fixes
 - critical security and encoding vulnerabilities
 - disable all formatting-related linter rules
 - handle non-UTF-8 file encodings in git operations
+- clean git history - removed all Claude attributions and personal emails
 
 ### 📚 Documentation
+- enhanced help command with emoji sections and better organization
 - update changelog for 1.6.3
 
 ### ✅ Tests
 - fix tests to work with new encoding-safe subprocess calls
+- updated tests for new CLI improvements (133/133 passing)
 
 ### 📦 Build System
 - bump version to 1.6.4
@@ -26,6 +31,7 @@
 
 ### 🔧 Chores
 - update uv.lock file
+- complete git history cleanup using git-filter-repo
 
 ## [1.6.3] - 2025-09-23
 

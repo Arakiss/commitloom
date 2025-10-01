@@ -25,15 +25,30 @@ def handle_error(error: BaseException) -> None:
         console.print_error(f"An error occurred: {str(error)}")
 
 
+def show_version():
+    """Display version with ASCII art."""
+    ascii_art = """
+[bold cyan]
+ ██╗      ██████╗  ██████╗ ███╗   ███╗
+ ██║     ██╔═══██╗██╔═══██╗████╗ ████║
+ ██║     ██║   ██║██║   ██║██╔████╔██║
+ ██║     ██║   ██║██║   ██║██║╚██╔╝██║
+ ███████╗╚██████╔╝╚██████╔╝██║ ╚═╝ ██║
+ ╚══════╝ ╚═════╝  ╚═════╝ ╚═╝     ╚═╝
+[/bold cyan]
+[italic dim]    Weave perfect git commits with AI[/italic dim]
+[bold]Version:[/bold] {version}
+    """.format(version=__version__)
+    console.console.print(ascii_art)
+
+
 @click.group()
 @click.option("-d", "--debug", is_flag=True, help="Enable debug logging")
 @click.option(
     "-v",
     "--version",
     is_flag=True,
-    callback=lambda ctx, param, value: value and print(f"CommitLoom, version {__version__}") or exit(0)
-    if value
-    else None,
+    callback=lambda ctx, param, value: (show_version(), exit(0)) if value else None,
     help="Show the version and exit.",
 )
 @click.pass_context
@@ -119,10 +134,18 @@ def stats(ctx) -> None:
 def help() -> None:
     """Display detailed help information about CommitLoom."""
     help_text = f"""
-[bold cyan]CommitLoom v{__version__}[/bold cyan]
-[italic]Weave perfect git commits with AI-powered intelligence[/italic]
+[bold cyan]
+ ██╗      ██████╗  ██████╗ ███╗   ███╗
+ ██║     ██╔═══██╗██╔═══██╗████╗ ████║
+ ██║     ██║   ██║██║   ██║██╔████╔██║
+ ██║     ██║   ██║██║   ██║██║╚██╔╝██║
+ ███████╗╚██████╔╝╚██████╔╝██║ ╚═╝ ██║
+ ╚══════╝ ╚═════╝  ╚═════╝ ╚═╝     ╚═╝
+[/bold cyan]
+[italic dim]    Weave perfect git commits with AI[/italic dim]
+[bold]Version:[/bold] {__version__}
 
-[bold]Basic Usage:[/bold]
+[bold yellow]⚡ Quick Start[/bold yellow]
   loom                          Run the default commit command
   loom commit                   Generate commit message for staged changes
   loom commit -y                Skip confirmation prompts
@@ -134,17 +157,17 @@ def help() -> None:
   loom --version                Display version information
   loom help                     Show this help message
 
-[bold]Available Models:[/bold]
+[bold green]🤖 Available Models[/bold green]
   {", ".join(config.model_costs.keys())}
   Default: {config.default_model}
   (You can use any OpenAI model name, but cost estimation is only available for the above models.)
 
-[bold]Environment Setup:[/bold]
+[bold blue]🔧 Environment Setup[/bold blue]
   1. Set OPENAI_API_KEY in your environment or in a .env file
   2. Stage your changes with 'git add'
   3. Run 'loom' to generate and apply commit messages
 
-[bold]Documentation:[/bold]
+[bold magenta]📚 Documentation[/bold magenta]
   Full documentation: https://github.com/Arakiss/commitloom#readme
     """
     console.console.print(help_text)
