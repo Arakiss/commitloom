@@ -30,14 +30,26 @@ COMMIT_TYPES = {
     "chore": "🔧 Chores",
 }
 
-def run_command(cmd: str, check: bool = True) -> str:
-    """Run a shell command and return output."""
+def run_command(cmd: str | list[str], check: bool = True) -> str:
+    """Run a command safely without shell=True.
+
+    Args:
+        cmd: Command as list of arguments (preferred) or string (will be parsed)
+        check: Whether to raise exception on non-zero exit
+
+    Returns:
+        Command output as string
+    """
+    import shlex
+    if isinstance(cmd, str):
+        cmd = shlex.split(cmd)
+
     try:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=check)
+        result = subprocess.run(cmd, shell=False, capture_output=True, text=True, check=check)
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
         if check:
-            print(f"❌ Command failed: {cmd}")
+            print(f"❌ Command failed: {' '.join(cmd) if isinstance(cmd, list) else cmd}")
             print(f"   Error: {e.stderr}")
             sys.exit(1)
         return ""
@@ -128,11 +140,15 @@ def update_changelog(version: str) -> None:
     current_date = datetime.now().strftime("%Y-%m-%d")
 
     # Get commits since last tag
-    last_tag = run_command("git describe --tags --abbrev=0 2>/dev/null || echo ''", check=False)
+    try:
+        last_tag = run_command(["git", "describe", "--tags", "--abbrev=0"], check=True)
+    except Exception:
+        last_tag = ""
+
     if last_tag:
-        raw_commits = run_command(f"git log {last_tag}..HEAD --pretty=format:'%s'").split('\n')
+        raw_commits = run_command(["git", "log", f"{last_tag}..HEAD", "--pretty=format:%s"]).split('\n')
     else:
-        raw_commits = run_command("git log --pretty=format:'%s'").split('\n')
+        raw_commits = run_command(["git", "log", "--pretty=format:%s"]).split('\n')
 
     # Categorize commits
     categorized_commits = categorize_commits(raw_commits)
@@ -177,14 +193,14 @@ def create_version_commits(new_version: str) -> None:
     update_version_in_files(new_version)
 
     # Commit version bump
-    run_command('git add pyproject.toml commitloom/__init__.py')
-    run_command(f'git commit -m "build: bump version to {new_version}"')
+    run_command(["git", "add", "pyproject.toml", "commitloom/__init__.py"])
+    run_command(["git", "commit", "-m", f"build: bump version to {new_version}"])
     print("✅ Committed version bump")
 
     # Update changelog
     update_changelog(new_version)
-    run_command('git add CHANGELOG.md')
-    run_command(f'git commit -m "docs: update changelog for {new_version}"')
+    run_command(["git", "add", "CHANGELOG.md"])
+    run_command(["git", "commit", "-m", f"docs: update changelog for {new_version}"])
     print("✅ Committed changelog update")
 
 def get_changelog_entry(version: str) -> str:
@@ -215,14 +231,14 @@ def create_github_release(version: str, dry_run: bool = False) -> None:
     changelog_content = get_changelog_entry(version)
     tag_message = f"Release {tag}\n\n{changelog_content}" if changelog_content else f"Release {tag}"
 
-    run_command(f'git tag -a {tag} -m "{tag_message}"')
+    run_command(["git", "tag", "-a", tag, "-m", tag_message])
     print(f"✅ Created tag {tag}")
 
     # Push commits and tag
-    run_command("git push origin main")
+    run_command(["git", "push", "origin", "main"])
     print("✅ Pushed commits to main")
 
-    run_command("git push origin --tags")
+    run_command(["git", "push", "origin", "--tags"])
     print("✅ Pushed tag to origin")
 
     # Create GitHub Release via API
@@ -230,7 +246,7 @@ def create_github_release(version: str, dry_run: bool = False) -> None:
     if github_token:
         try:
             # Get repository info from git remote
-            remote_url = run_command("git remote get-url origin")
+            remote_url = run_command(["git", "remote", "get-url", "origin"])
             repo_match = re.search(r"github\.com[:/](.+?)(?:\.git)?$", remote_url)
             if not repo_match:
                 print("⚠️ Could not parse GitHub repository from remote URL")
@@ -276,25 +292,24 @@ def create_github_release(version: str, dry_run: bool = False) -> None:
 def check_prerequisites() -> None:
     """Check that we can proceed with release."""
     # Ensure we're on main branch
-    current_branch = run_command("git branch --show-current")
+    current_branch = run_command(["git", "branch", "--show-current"])
     if current_branch != "main":
         print(f"❌ Must be on main branch to release (currently on {current_branch})")
         sys.exit(1)
 
     # Ensure working directory is clean
-    if run_command("git status --porcelain"):
+    if run_command(["git", "status", "--porcelain"]):
         print("❌ Working directory is not clean. Commit or stash changes first.")
         sys.exit(1)
 
     # Ensure git user is configured
-    user_name = run_command("git config user.name", check=False)
-    user_email = run_command("git config user.email", check=False)
+    user_name = run_command(["git", "config", "user.name"], check=False)
+    user_email = run_command(["git", "config", "user.email"], check=False)
     if not user_name or not user_email:
-        print("⚠️ Git user not configured. Setting default values...")
-        if not user_name:
-            run_command('git config user.name "Petru Arakiss"')
-        if not user_email:
-            run_command('git config user.email "petruarakiss@gmail.com"')
+        print("❌ Git user not configured. Please configure git user:")
+        print("   git config user.name 'Your Name'")
+        print("   git config user.email 'your.email@example.com'")
+        sys.exit(1)
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -350,7 +365,7 @@ def main() -> None:
             tag = f"v{new_version}"
             changelog_content = get_changelog_entry(new_version)
             tag_message = f"Release {tag}\n\n{changelog_content}" if changelog_content else f"Release {tag}"
-            run_command(f'git tag -a {tag} -m "{tag_message}"')
+            run_command(["git", "tag", "-a", tag, "-m", tag_message])
             print(f"✅ Created tag {tag}")
             print("ℹ️ Skipped GitHub release (use --skip-github=false to enable)")
 

@@ -26,8 +26,22 @@ COMMIT_TYPES = {
     "chore": "🔧 Chores",
 }
 
-def run_command(cmd: str) -> str:
-    return subprocess.check_output(cmd, shell=True).decode().strip()
+def run_command(cmd: str | list[str]) -> str:
+    """Execute a command safely without shell=True.
+
+    Args:
+        cmd: Command as list of arguments (preferred) or string (will attempt to parse)
+
+    Returns:
+        Command output as string
+    """
+    if isinstance(cmd, str):
+        # For simple commands, split by spaces
+        # Note: This won't work for commands with quoted arguments or shell operators
+        # Those commands should be refactored to use list form
+        import shlex
+        cmd = shlex.split(cmd)
+    return subprocess.check_output(cmd, shell=False).decode().strip()
 
 def get_current_version() -> str:
     return run_command("poetry version -s")
@@ -77,11 +91,15 @@ def update_changelog(version: str) -> None:
         content = f.read()
 
     # Get commits since last release
-    last_tag = run_command("git describe --tags --abbrev=0 || echo ''")
+    try:
+        last_tag = run_command(["git", "describe", "--tags", "--abbrev=0"])
+    except subprocess.CalledProcessError:
+        last_tag = ""
+
     if last_tag:
-        raw_commits = run_command(f"git log {last_tag}..HEAD --pretty=format:'%s'").split('\n')
+        raw_commits = run_command(["git", "log", f"{last_tag}..HEAD", "--pretty=format:%s"]).split('\n')
     else:
-        raw_commits = run_command("git log --pretty=format:'%s'").split('\n')
+        raw_commits = run_command(["git", "log", "--pretty=format:%s"]).split('\n')
 
     # Categorize commits
     categorized_commits = categorize_commits(raw_commits)
@@ -117,8 +135,8 @@ def create_github_release(version: str, dry_run: bool = False) -> None:
     tag = f"v{version}"
     if not dry_run:
         # Create and push tag
-        run_command(f'git tag -a {tag} -m "Release {tag}"')
-        run_command("git push origin main --tags")
+        run_command(["git", "tag", "-a", tag, "-m", f"Release {tag}"])
+        run_command(["git", "push", "origin", "main", "--tags"])
         print(f"✅ Created and pushed tag {tag}")
 
         # Create GitHub Release
@@ -126,7 +144,7 @@ def create_github_release(version: str, dry_run: bool = False) -> None:
         if github_token:
             try:
                 # Get repository info from git remote
-                remote_url = run_command("git remote get-url origin")
+                remote_url = run_command(["git", "remote", "get-url", "origin"])
                 repo_path = re.search(r"github\.com[:/](.+?)(?:\.git)?$", remote_url).group(1)
 
                 # Prepare release data
@@ -189,14 +207,14 @@ def create_version_commits(new_version: str) -> None:
     update_init_version(new_version)
     
     # 2. Add both version files and commit
-    run_command('git add pyproject.toml commitloom/__init__.py')
-    run_command(f'git commit -m "build: bump version to {new_version}"')
+    run_command(["git", "add", "pyproject.toml", "commitloom/__init__.py"])
+    run_command(["git", "commit", "-m", f"build: bump version to {new_version}"])
     print("✅ Committed version bump")
 
     # 3. Update changelog
     update_changelog(new_version)
-    run_command('git add CHANGELOG.md')
-    run_command(f'git commit -m "docs: update changelog for {new_version}"')
+    run_command(["git", "add", "CHANGELOG.md"])
+    run_command(["git", "commit", "-m", f"docs: update changelog for {new_version}"])
     print("✅ Committed changelog update")
 
 def main() -> None:
@@ -215,13 +233,13 @@ def main() -> None:
     args = parser.parse_args()
 
     # Ensure we're on main branch
-    current_branch = run_command("git branch --show-current")
+    current_branch = run_command(["git", "branch", "--show-current"])
     if current_branch != "main":
         print("❌ Must be on main branch to release")
         exit(1)
 
     # Ensure working directory is clean
-    if run_command("git status --porcelain"):
+    if run_command(["git", "status", "--porcelain"]):
         print("❌ Working directory is not clean")
         exit(1)
 
@@ -235,7 +253,7 @@ def main() -> None:
         create_version_commits(new_version)
 
         # Push changes
-        run_command("git push origin main")
+        run_command(["git", "push", "origin", "main"])
         print("✅ Pushed changes to main")
 
         # Create GitHub release

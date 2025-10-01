@@ -105,6 +105,17 @@ class AIService:
 
     def generate_prompt(self, diff: str, changed_files: list[GitFile]) -> str:
         """Generate the prompt for the AI model."""
+        # Ensure diff is properly encoded by cleaning any invalid UTF-8 sequences
+        if isinstance(diff, bytes):
+            diff = diff.decode('utf-8', errors='replace')
+        elif isinstance(diff, str):
+            # Re-encode and decode to ensure clean UTF-8
+            try:
+                diff = diff.encode('utf-8', errors='replace').decode('utf-8')
+            except Exception:
+                # If encoding fails, use original string
+                pass
+
         files_summary = ", ".join(f.path for f in changed_files)
         has_binary = any(f.is_binary for f in changed_files)
         binary_files = ", ".join(f.path for f in changed_files if f.is_binary)

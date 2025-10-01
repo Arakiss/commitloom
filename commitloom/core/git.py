@@ -258,13 +258,19 @@ class GitOperations:
             # Get raw bytes to handle different encodings
             result = subprocess.run(cmd, capture_output=True, check=True)
 
-            # Try to decode with UTF-8 first, fallback to latin-1 with replacement
+            # Try to decode with UTF-8 first, fallback to latin-1 which accepts any byte sequence
             try:
                 return result.stdout.decode('utf-8')
             except UnicodeDecodeError:
-                logger.warning("Failed to decode diff as UTF-8, using fallback encoding")
-                # Use latin-1 which accepts any byte sequence, or replace errors
-                return result.stdout.decode('utf-8', errors='replace')
+                logger.warning("Failed to decode diff as UTF-8, using latin-1 encoding")
+                # latin-1 (ISO-8859-1) accepts any byte sequence (0x00-0xFF)
+                # This ensures we never fail with encoding errors
+                try:
+                    return result.stdout.decode('latin-1')
+                except Exception:
+                    # Ultimate fallback: replace invalid characters
+                    logger.warning("latin-1 decoding also failed, using replacement characters")
+                    return result.stdout.decode('utf-8', errors='replace')
 
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
