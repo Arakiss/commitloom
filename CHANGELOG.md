@@ -2,7 +2,35 @@
 
 ## [1.6.4] - 2025-10-01
 
-### ✨ Features
+### ✨ AI & Prompt Engineering Improvements
+- **Advanced few-shot learning** - Added 4 real-world commit examples for superior AI output quality
+- **Conventional Commits support** - Full specification implementation with scopes and breaking changes
+- **Dynamic temperature control** - Adaptive AI parameters (0.3-0.6) based on change type
+- **Scope auto-detection** - Intelligent scope inference from file paths
+- **Breaking change detection** - 8 regex patterns to identify API-breaking changes
+
+### 🧠 Smart File Grouping Enhancements
+- **Real import analysis** - AST-based Python import extraction and JavaScript/TypeScript regex parsing
+- **Extended change types** - Added hotfix, security, ci, revert, and perf categories
+- **Dynamic confidence scoring** - Multi-factor algorithm for better grouping decisions
+- **Feature boundary detection** - Groups related files by functionality, not just directory
+
+### 📊 Analyzer & Token Estimation
+- **Tiktoken integration** - Precise token counting with fallback heuristics
+- **Change nature analysis** - Distinguishes additions, modifications, deletions, and mixed changes
+- **Dangerous change detection** - Warns about migrations, secrets, credentials, and production configs
+- **Actionable warnings** - Specific suggestions for file splitting and organization
+
+### 🏗️ Project Structure
+- **Professional module organization** - Added __init__.py files to all packages
+- **Enhanced exports** - Proper module interfaces with ChangeNature, ChangeType, FileGroup
+- **Better type safety** - Resolved mypy errors for cleaner CI/CD
+
+### 🎨 CLI Experience
+- **ASCII art logo** - Beautiful LOOM banner for `--version` and help commands
+- **Inspirational quotes** - Original messages about code transparency after commits
+
+### ✅ Features
 - add enhanced release script for UV-based workflow
 - **New ASCII art logo** - Beautiful LOOM banner for `--version` and help commands
 - **Inspirational commit messages** - Original quotes about code transparency after successful commits
