@@ -56,7 +56,8 @@ def test_analyze_diff_complexity_many_files(analyzer, mock_git_file):
     analysis = analyzer.analyze_diff_complexity(diff, files)
 
     assert analysis.is_complex
-    assert any("files changed" in w for w in analysis.warnings)
+    # Check for the new warning message format
+    assert any("modifying" in str(w).lower() and "files" in str(w).lower() for w in analysis.warnings)
 
 
 def test_analyze_diff_complexity_expensive_change(analyzer, mock_git_file):
@@ -122,8 +123,10 @@ def test_analyze_diff_complexity_multiple_conditions(analyzer, mock_git_file):
 
     assert analysis.is_complex
     assert len(analysis.warnings) >= 2
-    assert any("files changed" in str(w) for w in analysis.warnings)
-    assert any("large" in str(w) for w in analysis.warnings)
+    # Check for the new warning message format
+    assert any("modifying" in str(w).lower() and "files" in str(w).lower() for w in analysis.warnings)
+    # Check for file size warning (can be "large" or "extensive")
+    assert any("large" in str(w).lower() or "extensive" in str(w).lower() for w in analysis.warnings)
 
 
 def test_analyze_diff_complexity_edge_cases(analyzer, mock_git_file):

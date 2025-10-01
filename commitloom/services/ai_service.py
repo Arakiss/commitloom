@@ -56,6 +56,8 @@ class CommitSuggestion:
     title: str
     body: dict[str, dict[str, str | list[str]]]
     summary: str
+    scope: str | None = None
+    breaking: bool = False
 
     def format_body(self) -> str:
         """Format the commit message body."""
@@ -68,6 +70,12 @@ class CommitSuggestion:
                 lines.append(f"  - {change}")
             lines.append("")
         lines.append(self.summary)
+
+        # Add breaking change footer if applicable
+        if self.breaking:
+            lines.append("")
+            lines.append("BREAKING CHANGE: This commit contains breaking changes.")
+
         return "\n".join(lines)
 
 
@@ -103,8 +111,61 @@ class AIService:
         """Create TokenUsage from API response usage data."""
         return TokenUsage.from_api_usage(usage)
 
+    def _detect_scope_from_files(self, changed_files: list[GitFile]) -> str | None:
+        """Detect the scope based on changed files."""
+        if not changed_files:
+            return None
+
+        # Extract top-level directories and file patterns
+        paths = [f.path for f in changed_files]
+
+        # Common scope patterns
+        if any("cli" in p.lower() for p in paths):
+            return "cli"
+        elif any("api" in p.lower() for p in paths):
+            return "api"
+        elif any("core" in p.lower() for p in paths):
+            return "core"
+        elif any("config" in p.lower() for p in paths):
+            return "config"
+        elif any("service" in p.lower() for p in paths):
+            return "services"
+        elif any("test" in p.lower() for p in paths):
+            return "tests"
+        elif any("doc" in p.lower() for p in paths):
+            return "docs"
+        elif any(p.endswith(".md") for p in paths):
+            return "docs"
+
+        # Try to extract from common path structure
+        for path in paths:
+            parts = path.split("/")
+            if len(parts) > 1 and not parts[0].startswith("."):
+                return parts[0]
+
+        return None
+
+    def _detect_breaking_changes(self, diff: str) -> bool:
+        """Detect potential breaking changes in the diff."""
+        breaking_indicators = [
+            r"BREAKING[\s-]CHANGE",
+            r"breaking[\s-]change",
+            r"API[\s-]breaking",
+            r"removed.*public.*method",
+            r"deleted.*function",
+            r"renamed.*class",
+            r"changed.*signature",
+            r"major.*version",
+        ]
+
+        import re
+        for indicator in breaking_indicators:
+            if re.search(indicator, diff, re.IGNORECASE):
+                return True
+        return False
+
     def generate_prompt(self, diff: str, changed_files: list[GitFile]) -> str:
-        """Generate the prompt for the AI model."""
+        """Generate an advanced prompt using few-shot learning and best practices."""
         # Ensure diff is properly encoded by cleaning any invalid UTF-8 sequences
         if isinstance(diff, bytes):
             diff = diff.decode('utf-8', errors='replace')
@@ -121,74 +182,217 @@ class AIService:
         binary_files = ", ".join(f.path for f in changed_files if f.is_binary)
         text_files = [f for f in changed_files if not f.is_binary]
 
-        if has_binary and not text_files:
-            return (
-                "Generate a structured commit message for the following binary file changes.\n"
-                "You must respond ONLY with a valid JSON object.\n\n"
-                f"Files changed: {binary_files}\n\n"
-                "Requirements:\n"
-                "1. Title: Maximum 50 characters, starting with an appropriate "
-                "gitemoji (📝 for data files), followed by the semantic commit "
-                "type and a brief description.\n"
-                "2. Body: Create a simple summary of the binary file changes.\n"
-                "3. Summary: A brief sentence describing the data updates.\n\n"
-                "Return ONLY a JSON object in this format:\n"
-                "{\n"
-                '  "title": "📝 chore: update binary files",\n'
-                '  "body": {\n'
-                '    "Data Updates": {\n'
-                '      "emoji": "📝",\n'
-                '      "changes": [\n'
-                '        "Updated binary files with new data",\n'
-                f'        "Files affected: {binary_files}"\n'
-                "      ]\n"
-                "    }\n"
-                "  },\n"
-                f'  "summary": "Updated binary files: {binary_files}"\n'
-                "}"
-            )
+        # Detect scope and breaking changes
+        scope = self._detect_scope_from_files(changed_files)
+        has_breaking = self._detect_breaking_changes(diff)
 
-        prompt = (
-            "Generate a structured commit message for the following git diff.\n"
-            "You must respond ONLY with a valid JSON object.\n\n"
-            f"Files changed: {files_summary}\n\n"
+        if has_binary and not text_files:
+            return self._generate_binary_prompt(binary_files, scope)
+
+        prompt = self._generate_advanced_prompt(
+            diff=diff,
+            files_summary=files_summary,
+            binary_files=binary_files,
+            scope=scope,
+            has_breaking=has_breaking
         )
-        if binary_files:
-            prompt += f"Binary files: {binary_files}\n\n"
-        prompt += (
-            "```\n"
-            f"{diff}\n"
-            "```\n\n"
+
+        return prompt
+
+    def _generate_binary_prompt(self, binary_files: str, scope: str | None) -> str:
+        """Generate prompt for binary file changes."""
+        scope_part = f"({scope})" if scope else ""
+        return (
+            "Generate a structured commit message for binary file changes following Conventional Commits.\n"
+            "You must respond ONLY with a valid JSON object.\n\n"
+            f"Files changed: {binary_files}\n\n"
             "Requirements:\n"
-            "1. Title: Maximum 50 characters, starting with an appropriate "
-            "gitemoji, followed by the semantic commit type and a brief "
-            "description.\n"
-            "2. Body: Organize changes into categories. Each category should "
-            "have an appropriate emoji and bullet points summarizing key "
-            "changes.\n"
-            "3. Summary: A brief sentence summarizing the overall impact.\n\n"
+            "1. Title: Follow format 'emoji type(scope): description' (max 50 chars)\n"
+            "2. Type: Use 'chore' for binary data updates\n"
+            "3. Body: Organize changes with emojis and bullet points\n"
+            "4. Include scope if files are in a specific module\n"
+            "5. Summary: Brief impact description\n\n"
             "Return ONLY a JSON object in this format:\n"
             "{\n"
-            '  "title": "✨ feat: add new feature",\n'
+            f'  "title": "📝 chore{scope_part}: update binary assets",\n'
             '  "body": {\n'
-            '    "Features": {\n'
-            '      "emoji": "✨",\n'
+            '    "Assets": {\n'
+            '      "emoji": "📝",\n'
             '      "changes": [\n'
-            '        "Added new feature X",\n'
-            '        "Implemented functionality Y"\n'
-            "      ]\n"
-            "    },\n"
-            '    "Configuration": {\n'
-            '      "emoji": "🔧",\n'
-            '      "changes": [\n'
-            '        "Updated settings for feature X"\n'
+            '        "Updated binary files with new data",\n'
+            f'        "Files: {binary_files}"\n'
             "      ]\n"
             "    }\n"
             "  },\n"
-            '  "summary": "Added new feature X with configuration updates"\n'
+            f'  "summary": "Updated binary assets in {scope or "project"}",\n'
+            '  "scope": ' + (f'"{scope}"' if scope else 'null') + ',\n'
+            '  "breaking": false\n'
             "}"
         )
+
+    def _generate_advanced_prompt(
+        self, diff: str, files_summary: str, binary_files: str, scope: str | None, has_breaking: bool
+    ) -> str:
+        """Generate advanced prompt with few-shot learning."""
+        scope_hint = f'\n  "scope": "{scope}",' if scope else '\n  "scope": null,'
+        breaking_hint = "true" if has_breaking else "false"
+
+        prompt = f"""You are an expert at writing high-quality git commit messages following Conventional Commits specification.
+
+# Conventional Commits Format
+- Format: <type>(<scope>): <description>
+- Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+- Scope: Optional, indicates what part of codebase (e.g., api, cli, core, parser)
+- Description: Imperative mood, lowercase, no period at end
+- Breaking Changes: Add ! after type/scope, e.g., "feat(api)!: change endpoint"
+
+# Files Changed
+{files_summary}
+{f"Binary files: {binary_files}" if binary_files else ""}
+
+# Git Diff
+```
+{diff}
+```
+
+# Few-Shot Examples of Excellent Commits
+
+Example 1 - Feature Addition:
+{{
+  "title": "✨ feat(api): add user authentication endpoint",
+  "body": {{
+    "Features": {{
+      "emoji": "✨",
+      "changes": [
+        "Add JWT-based authentication",
+        "Implement login and logout endpoints",
+        "Add password hashing with bcrypt"
+      ]
+    }},
+    "Tests": {{
+      "emoji": "✅",
+      "changes": [
+        "Add authentication tests",
+        "Test JWT token generation and validation"
+      ]
+    }}
+  }},
+  "summary": "Implemented secure JWT authentication system for API",
+  "scope": "api",
+  "breaking": false
+}}
+
+Example 2 - Bug Fix:
+{{
+  "title": "🐛 fix(parser): handle null values in JSON parser",
+  "body": {{
+    "Bug Fixes": {{
+      "emoji": "🐛",
+      "changes": [
+        "Add null check before parsing JSON fields",
+        "Prevent NullPointerException in edge cases"
+      ]
+    }}
+  }},
+  "summary": "Fixed crash when parsing JSON with null values",
+  "scope": "parser",
+  "breaking": false
+}}
+
+Example 3 - Breaking Change:
+{{
+  "title": "💥 feat(api)!: change authentication response format",
+  "body": {{
+    "Breaking Changes": {{
+      "emoji": "💥",
+      "changes": [
+        "Changed auth response from string to object",
+        "Token now in 'accessToken' field instead of 'token'",
+        "Added 'refreshToken' and 'expiresIn' fields"
+      ]
+    }},
+    "Migration": {{
+      "emoji": "📝",
+      "changes": [
+        "Update client code to use new response format",
+        "Access token via response.accessToken instead of response.token"
+      ]
+    }}
+  }},
+  "summary": "Improved authentication response with refresh tokens and expiration",
+  "scope": "api",
+  "breaking": true
+}}
+
+Example 4 - Performance Improvement:
+{{
+  "title": "⚡ perf(database): optimize query performance with indexing",
+  "body": {{
+    "Performance": {{
+      "emoji": "⚡",
+      "changes": [
+        "Add database indexes on user_id and created_at",
+        "Reduce query time from 2s to 50ms",
+        "Implement connection pooling"
+      ]
+    }}
+  }},
+  "summary": "Improved database query performance by 40x with indexing",
+  "scope": "database",
+  "breaking": false
+}}
+
+# Your Task
+Analyze the provided diff and generate a commit message following the same high-quality format.
+
+# Requirements
+1. Title: Max 50 chars, format "emoji type(scope): description"
+2. Use appropriate emoji: ✨ feat, 🐛 fix, 📝 docs, 💄 style, ♻️ refactor, ⚡ perf, ✅ test, 👷 ci, 🔧 chore
+3. Detect scope from file paths (e.g., cli, api, core, config)
+4. Body: Organize by category with emojis and concise bullet points
+5. Breaking changes: Set breaking=true and include migration notes if needed
+6. Summary: One sentence describing overall impact
+7. Use imperative mood: "add" not "added", "fix" not "fixed"
+
+# Detected Context
+- Scope: {scope or "not detected"}
+- Potential Breaking Change: {has_breaking}
+
+Return ONLY a JSON object:
+{{
+  "title": "emoji type(scope): brief description",
+  "body": {{
+    "Category Name": {{
+      "emoji": "📝",
+      "changes": [
+        "Change description in imperative mood",
+        "Another change"
+      ]
+    }}
+  }},
+  "summary": "One sentence overall impact",{scope_hint}
+  "breaking": {breaking_hint}
+}}"""
+
         return prompt
+
+    def _get_dynamic_temperature(self, diff: str, changed_files: list[GitFile]) -> float:
+        """Determine optimal temperature based on change type."""
+        # Check for bug fixes (lower temperature for determinism)
+        if any(word in diff.lower() for word in ["fix", "bug", "error", "crash", "issue"]):
+            return 0.3
+
+        # Check for documentation (slightly higher creativity)
+        if any(f.path.endswith(".md") for f in changed_files):
+            return 0.6
+
+        # Check for configuration changes (low temperature)
+        config_extensions = {".yaml", ".yml", ".toml", ".json", ".ini", ".conf"}
+        if any(f.path.endswith(tuple(config_extensions)) for f in changed_files):
+            return 0.3
+
+        # Default for features and refactoring
+        return 0.5
 
     def generate_commit_message(
         self, diff: str, changed_files: list[GitFile]
@@ -201,6 +405,8 @@ class AIService:
                     title="✨ feat: test commit",
                     body={"Features": {"emoji": "✨", "changes": ["Test change"]}},
                     summary="Test summary",
+                    scope=None,
+                    breaking=False,
                 ),
                 TokenUsage(
                     prompt_tokens=100,
@@ -217,6 +423,9 @@ class AIService:
 
         prompt = self.generate_prompt(diff, changed_files)
 
+        # Determine optimal temperature based on change type
+        temperature = self._get_dynamic_temperature(diff, changed_files)
+
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
@@ -227,7 +436,7 @@ class AIService:
             "messages": [{"role": "user", "content": prompt}],
             "response_format": {"type": "json_object"},
             "max_tokens": 1000,
-            "temperature": 0.7,
+            "temperature": temperature,
         }
 
         last_exception: requests.exceptions.RequestException | None = None

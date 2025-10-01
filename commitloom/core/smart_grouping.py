@@ -14,6 +14,7 @@ class ChangeType(Enum):
 
     FEATURE = "feature"
     FIX = "fix"
+    HOTFIX = "hotfix"
     TEST = "test"
     DOCS = "docs"
     REFACTOR = "refactor"
@@ -22,6 +23,9 @@ class ChangeType(Enum):
     CONFIG = "config"
     BUILD = "build"
     PERF = "perf"
+    SECURITY = "security"
+    CI = "ci"
+    REVERT = "revert"
 
 
 @dataclass
@@ -65,6 +69,7 @@ class SmartGrouper:
             r"README",
             r"CHANGELOG",
             r"LICENSE",
+            r"CONTRIBUTING",
             r"(?<!requirements)\.txt$",  # Don't match requirements.txt
         ],
         ChangeType.BUILD: [
@@ -77,6 +82,10 @@ class SmartGrouper:
             r"CMakeLists\.txt$",
             r"\.gradle$",
             r"pom\.xml$",
+            r"poetry\.lock$",
+            r"uv\.lock$",
+            r"Gemfile",
+            r"Cargo\.toml$",
         ],
         ChangeType.CONFIG: [
             r"\.yaml$",
@@ -89,6 +98,7 @@ class SmartGrouper:
             r"Dockerfile",
             r"docker-compose",
             r"\.gitignore$",
+            r"\.editorconfig$",
             r"\.json$",  # Move .json$ to the end to let package.json match BUILD first
         ],
         ChangeType.STYLE: [
@@ -97,6 +107,34 @@ class SmartGrouper:
             r"\.sass$",
             r"\.less$",
             r"\.styl$",
+        ],
+        ChangeType.CI: [
+            r"\.github/workflows/",
+            r"\.gitlab-ci\.yml$",
+            r"\.travis\.yml$",
+            r"\.circleci/",
+            r"jenkins",
+            r"azure-pipelines",
+        ],
+        ChangeType.SECURITY: [
+            r"security",
+            r"\.secret",
+            r"auth",
+            r"crypt",
+            r"hash",
+            r"password",
+            r"token",
+        ],
+        ChangeType.HOTFIX: [
+            r"hotfix",
+            r"urgent",
+            r"critical",
+        ],
+        ChangeType.PERF: [
+            r"perf",
+            r"performance",
+            r"optim",
+            r"cache",
         ],
     }
 
@@ -421,9 +459,63 @@ class SmartGrouper:
         """
         imports: list[str] = []
 
-        # For this implementation, we'll return empty list
-        # In a real implementation, we would read the file and extract imports
-        # This would require reading file contents which we want to avoid for performance
+        # Check if file exists and is readable
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists() or not file_path_obj.is_file():
+            return imports
+
+        try:
+            # Read file content (with size limit to avoid performance issues)
+            if file_path_obj.stat().st_size > 1_000_000:  # 1MB limit
+                return imports
+
+            content = file_path_obj.read_text(encoding="utf-8", errors="ignore")
+
+            # Extract imports based on language
+            if language == "python":
+                imports = self._extract_python_imports(content)
+            elif language in ("javascript", "typescript"):
+                imports = self._extract_js_imports(content)
+            # Add more languages as needed
+
+        except (OSError, UnicodeDecodeError):
+            # If we can't read the file, return empty list
+            pass
+
+        return imports
+
+    def _extract_python_imports(self, content: str) -> list[str]:
+        """Extract Python imports using AST parsing."""
+        import ast
+        imports = []
+
+        try:
+            tree = ast.parse(content)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        imports.append(alias.name)
+                elif isinstance(node, ast.ImportFrom):
+                    if node.module:
+                        imports.append(node.module)
+        except SyntaxError:
+            # If parsing fails, fall back to regex
+            imports = self._extract_imports_regex(content, "python")
+
+        return imports
+
+    def _extract_js_imports(self, content: str) -> list[str]:
+        """Extract JavaScript/TypeScript imports using regex."""
+        return self._extract_imports_regex(content, "javascript")
+
+    def _extract_imports_regex(self, content: str, language: str) -> list[str]:
+        """Extract imports using regex patterns."""
+        imports = []
+        patterns = self.IMPORT_PATTERNS.get(language, [])
+
+        for pattern in patterns:
+            matches = re.findall(pattern, content)
+            imports.extend(matches)
 
         return imports
 
@@ -472,6 +564,90 @@ class SmartGrouper:
 
         return dict(groups)
 
+    def _calculate_dynamic_confidence(
+        self, files: list[GitFile], change_type: ChangeType, relationships: list[FileRelationship]
+    ) -> float:
+        """
+        Calculate confidence score based on multiple factors.
+
+        Args:
+            files: Files in the group
+            change_type: Type of change
+            relationships: Relationships between files
+
+        Returns:
+            Confidence score between 0.0 and 1.0
+        """
+        confidence = 0.5  # Base confidence
+
+        # Factor 1: Number of files (smaller groups are more confident)
+        if len(files) == 1:
+            confidence += 0.2
+        elif len(files) <= 3:
+            confidence += 0.15
+        elif len(files) <= 5:
+            confidence += 0.1
+
+        # Factor 2: Relationship strength
+        if relationships:
+            avg_strength = sum(r.strength for r in relationships) / len(relationships)
+            confidence += avg_strength * 0.2
+
+        # Factor 3: Change type confidence
+        high_confidence_types = {ChangeType.TEST, ChangeType.DOCS, ChangeType.CONFIG, ChangeType.CI}
+        if change_type in high_confidence_types:
+            confidence += 0.1
+
+        # Factor 4: All files in same directory
+        if len(set(Path(f.path).parent for f in files)) == 1:
+            confidence += 0.1
+
+        # Ensure confidence is in valid range
+        return min(max(confidence, 0.0), 1.0)
+
+    def _detect_feature_boundary(self, files: list[GitFile]) -> list[list[GitFile]]:
+        """
+        Detect feature boundaries within a group of files.
+
+        Args:
+            files: List of files to analyze
+
+        Returns:
+            List of file groups representing different features
+        """
+        # Group files by common feature prefixes
+        feature_groups: dict[str, list[GitFile]] = defaultdict(list)
+
+        for file in files:
+            feature_key = self._extract_feature_key(file.path)
+            feature_groups[feature_key].append(file)
+
+        return list(feature_groups.values())
+
+    def _extract_feature_key(self, file_path: str) -> str:
+        """
+        Extract a feature key from file path.
+
+        Args:
+            file_path: Path to the file
+
+        Returns:
+            Feature key for grouping
+        """
+        parts = Path(file_path).parts
+
+        # Look for feature indicators
+        for part in parts:
+            # Feature folder or file prefix patterns
+            if any(
+                keyword in part.lower()
+                for keyword in ["feature", "module", "component", "service", "controller", "model"]
+            ):
+                return part
+
+        # Use top-level directory as fallback
+        return parts[0] if parts else "default"
+
     def _refine_groups(
         self, groups_by_type: dict[ChangeType, list[GitFile]], dependencies: dict[str, list[str]]
     ) -> list[FileGroup]:
@@ -491,23 +667,48 @@ class SmartGrouper:
             if not files:
                 continue
 
+            # Get relevant relationships for these files
+            file_paths = {f.path for f in files}
+            relevant_relationships = [
+                r for r in self.relationships if r.file1 in file_paths and r.file2 in file_paths
+            ]
+
             # For test files, try to group with their implementations
             if change_type == ChangeType.TEST:
                 test_groups = self._group_tests_with_implementations(files)
                 refined_groups.extend(test_groups)
             # For small groups, keep them together
             elif len(files) <= 3:
+                confidence = self._calculate_dynamic_confidence(files, change_type, relevant_relationships)
                 group = FileGroup(
                     files=files,
                     change_type=change_type,
                     reason=f"All {change_type.value} changes",
-                    confidence=0.8,
+                    confidence=confidence,
                 )
                 refined_groups.append(group)
-            # For larger groups, split by directory or module
+            # For larger groups, detect feature boundaries and split by module
             else:
-                subgroups = self._split_by_module(files, change_type)
-                refined_groups.extend(subgroups)
+                # Try to detect feature boundaries first
+                feature_subgroups = self._detect_feature_boundary(files)
+
+                for feature_files in feature_subgroups:
+                    if len(feature_files) <= 5:
+                        # Small enough to keep as one group
+                        confidence = self._calculate_dynamic_confidence(
+                            feature_files, change_type, relevant_relationships
+                        )
+                        group = FileGroup(
+                            files=feature_files,
+                            change_type=change_type,
+                            reason=f"{change_type.value} changes in feature",
+                            confidence=confidence,
+                        )
+                        refined_groups.append(group)
+                    else:
+                        # Still too large, split by module
+                        subgroups = self._split_by_module(feature_files, change_type)
+                        refined_groups.extend(subgroups)
 
         return refined_groups
 
