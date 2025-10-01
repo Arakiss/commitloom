@@ -8,7 +8,7 @@ from .git import GitFile
 
 # Try to import tiktoken for precise token counting
 try:
-    import tiktoken
+    import tiktoken  # type: ignore[import-not-found]
     TIKTOKEN_AVAILABLE = True
 except ImportError:
     TIKTOKEN_AVAILABLE = False
@@ -226,7 +226,7 @@ class CommitAnalyzer:
         if len(changed_files) > config.max_files_threshold:
             is_complex = True
             # Provide specific suggestions based on file patterns
-            file_types = {}
+            file_types: dict[str, int] = {}
             for f in changed_files:
                 ext = f.path.split(".")[-1] if "." in f.path else "other"
                 file_types[ext] = file_types.get(ext, 0) + 1
