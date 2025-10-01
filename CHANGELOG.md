@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.6.4] - 2025-10-01
+
+
+### ✨ Features
+- add enhanced release script for UV-based workflow
+
+### 🐛 Bug Fixes
+- critical security and encoding vulnerabilities
+- disable all formatting-related linter rules
+- handle non-UTF-8 file encodings in git operations
+
+### 📚 Documentation
+- update changelog for 1.6.3
+
+### ✅ Tests
+- fix tests to work with new encoding-safe subprocess calls
+
+### 📦 Build System
+- bump version to 1.6.4
+- bump version to 1.6.3
+
+### 👷 CI
+- disable code formatting check in CI
+
+### 🔧 Chores
+- update uv.lock file
+
 ## [1.6.3] - 2025-09-23
 
 ### 🐛 Bug Fixes
