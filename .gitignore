@@ -177,5 +177,20 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 
-# CommitLoom
+# CommitLoom specific
 .loom/
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Temporary and backup files
+*.swp
+*.swo
+*~
+
+# Release artifacts
+release_uv.py

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from ..cli.cli_handler import console
+from ..cli import console
 from ..core.git import GitOperations
 
 

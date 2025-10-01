@@ -61,6 +61,13 @@ loom  # Interactive mode
 loom -y  # Non-interactive mode
 ```
 
+5. Check out the beautiful ASCII art:
+
+```bash
+loom --version  # Display version with ASCII art banner
+loom help       # Full help with styled sections
+```
+
 ## ✨ Features
 
 - 🤖 **AI-Powered Analysis**: Intelligently analyzes your changes and generates structured, semantic commit messages
@@ -72,7 +79,8 @@ loom -y  # Non-interactive mode
 - 📈 **Usage Metrics**: Track your usage, cost savings, and productivity gains with built-in metrics
 - 🔍 **Binary Support**: Special handling for binary files with size and type detection
 - ⚡ **UV Support**: Compatible with UV package manager for faster dependency management
-- 🎨 **Beautiful CLI**: Rich, colorful interface with clear insights and warnings
+- 🎨 **Beautiful CLI**: Rich, colorful interface with ASCII art logo and inspirational commit messages
+- ✨ **Professional Polish**: Inspirational quotes about code transparency after successful commits
 
 ## 🧠 Smart File Grouping
 
@@ -189,9 +197,13 @@ export OPENAI_API_KEY=your-api-key
 export COMMITLOOM_API_KEY=your-api-key
 ```
 
-2. Project-level `.env` file:
+2. Project-level `.env` file (copy `.env.example` to `.env` and fill in your values):
 
-```env
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit with your API key
 OPENAI_API_KEY=your-api-key
 # or
 COMMITLOOM_API_KEY=your-api-key
