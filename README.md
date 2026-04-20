@@ -1,3 +1,5 @@
+> ⚠️ **Archived** — AI commit messages are now native in Claude Code. This tool duplicates that workflow. Kept for history; use `claude` instead.
+
 # CommitLoom 🧵
 
 > Weave perfect git commits with AI-powered intelligence
